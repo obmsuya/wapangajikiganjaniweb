@@ -1,26 +1,150 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
+
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base colors */
+  --color-white: 255, 255, 255;
+  --color-black: 0, 0, 0;
+  
+  /* Primary color palette */
+  --color-primary-50: 239, 246, 255;
+  --color-primary-100: 219, 234, 254;
+  --color-primary-200: 191, 219, 254;
+  --color-primary-300: 147, 197, 253;
+  --color-primary-400: 96, 165, 250;
+  --color-primary-500: 59, 130, 246;
+  --color-primary-600: 37, 99, 235;
+  --color-primary-700: 29, 78, 216;
+  --color-primary-800: 30, 64, 175;
+  --color-primary-900: 30, 58, 138;
+  
+  /* Gray palette */
+  --color-gray-50: 249, 250, 251;
+  --color-gray-100: 243, 244, 246;
+  --color-gray-200: 229, 231, 235;
+  --color-gray-300: 209, 213, 219;
+  --color-gray-400: 156, 163, 175;
+  --color-gray-500: 107, 114, 128;
+  --color-gray-600: 75, 85, 99;
+  --color-gray-700: 55, 65, 81;
+  --color-gray-800: 31, 41, 55;
+  --color-gray-900: 17, 24, 39;
+  
+  /* Success/Error colors */
+  --color-success-50: 240, 253, 244;
+  --color-success-500: 34, 197, 94;
+  --color-success-700: 21, 128, 61;
+  
+  --color-error-50: 254, 242, 242;
+  --color-error-500: 239, 68, 68;
+  --color-error-700: 185, 28, 28;
+  
+  /* UI Elements */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  
+  /* App-specific */
+  --header-height: 64px;
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 70px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Light theme (default) */
+:root {
+  --background: var(--color-white);
+  --foreground: var(--color-gray-900);
+  
+  --card-bg: var(--color-white);
+  --card-border: var(--color-gray-200);
+  --card-fg: var(--color-gray-900);
+  
+  --input-bg: var(--color-white);
+  --input-border: var(--color-gray-300);
+  --input-fg: var(--color-gray-900);
+  
+  --primary-bg: var(--color-primary-600);
+  --primary-fg: var(--color-white);
+  --primary-hover: var(--color-primary-700);
+  
+  --secondary-bg: var(--color-gray-100);
+  --secondary-fg: var(--color-gray-800);
+  --secondary-hover: var(--color-gray-200);
+  
+  --sidebar-bg: var(--color-white);
+  --sidebar-border: var(--color-gray-200);
+  --sidebar-fg: var(--color-gray-800);
+  --sidebar-hover: var(--color-gray-100);
+  --sidebar-active: var(--color-primary-50);
+  --sidebar-active-fg: var(--color-primary-700);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Dark theme */
+.dark {
+  --background: var(--color-gray-900);
+  --foreground: var(--color-gray-100);
+  
+  --card-bg: var(--color-gray-800);
+  --card-border: var(--color-gray-700);
+  --card-fg: var(--color-gray-100);
+  
+  --input-bg: var(--color-gray-800);
+  --input-border: var(--color-gray-700);
+  --input-fg: var(--color-gray-100);
+  
+  --primary-bg: var(--color-primary-600);
+  --primary-fg: var(--color-white);
+  --primary-hover: var(--color-primary-700);
+  
+  --secondary-bg: var(--color-gray-700);
+  --secondary-fg: var(--color-gray-100);
+  --secondary-hover: var(--color-gray-600);
+  
+  --sidebar-bg: var(--color-gray-800);
+  --sidebar-border: var(--color-gray-700);
+  --sidebar-fg: var(--color-gray-300);
+  --sidebar-hover: var(--color-gray-700);
+  --sidebar-active: var(--color-primary-900);
+  --sidebar-active-fg: var(--color-primary-300);
+}
+
+@layer base {
+  html, body {
+    height: 100%;
+    width: 100%;
+  }
+  
+  body {
+    background-color: rgb(var(--background));
+    color: rgb(var(--foreground));
+    font-family: 'Comic Neue', system-ui, sans-serif;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white font-medium py-2 px-4 rounded-md hover:bg-primary-hover transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-secondary-fg font-medium py-2 px-4 rounded-md hover:bg-secondary-hover transition-colors;
+  }
+  
+  .card {
+    @apply bg-card border border-card-border rounded-lg p-4 shadow-sm;
+  }
+  
+  .input {
+    @apply bg-input border border-input-border text-input-fg rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500;
+  }
+  
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-fg hover:bg-sidebar-hover transition-colors;
+  }
+  
+  .sidebar-link.active {
+    @apply bg-sidebar-active text-sidebar-active-fg font-medium;
+  }
 }
