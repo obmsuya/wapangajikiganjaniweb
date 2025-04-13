@@ -1,7 +1,7 @@
 // app/(dashboard)/layout.jsx
 import { CustomSidebar } from "@/components/custom-sidebar";
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout({ children }) { 
   return (
     <div className="flex h-screen overflow-hidden">
       <CustomSidebar role="admin" />

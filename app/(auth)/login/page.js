@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import customToast from "@/components/ui/custom-toast";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Button} from "@/components/ui/button";
 import AuthService from "@/services/auth";
 
 export default function LoginPage() {

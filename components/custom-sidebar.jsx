@@ -86,13 +86,13 @@ export function CustomSidebar({ role = "admin" }) {
       label: "Users",
       icon: Users,
       href: "#",
-      active: pathname.includes("/admin/users"),
-      submenuKey: "users",
+      active: pathname.includes("/admin/Users"),
+      submenuKey: "Users",
       submenu: [
         {
           label: "All Users",
           href: "/admin/users",
-          active: pathname === "/admin/users",
+          active: pathname === "/admin/Users",
         },
         {
           label: "Landlords",
