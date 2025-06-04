@@ -1,8 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { format, subMonths, getYear, getMonth } from 'date-fns';
-import api from '@/lib/api/api-client';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import api from "@/lib/api/api-client";
 
 /**
  * Hook for fetching revenue analytics data
@@ -23,38 +22,38 @@ export function useRevenueAnalytics(initialParams = null) {
    */
   const fetchAnalytics = useCallback(async () => {
     if (!shouldFetch) return;
-    
+
     try {
       setLoading(true);
-      
+
       // Build query string from params
       const queryParams = new URLSearchParams();
-      
+
       // Fix: Change 'monthly' to 'month' for the period parameter
       const adjustedParams = { ...params };
-      if (adjustedParams.period === 'monthly') {
-        adjustedParams.period = 'month';
+      if (adjustedParams.period === "monthly") {
+        adjustedParams.period = "month";
       }
-      
+
       Object.entries(adjustedParams).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null && value !== "") {
           queryParams.append(key, value);
         }
       });
-      
+
       const queryString = queryParams.toString();
-      const endpoint = queryString 
+      const endpoint = queryString
         ? `/api/v1/payments/admin/revenue-analytics/?${queryString}`
         : "/api/v1/payments/admin/revenue-analytics/";
-      
+
       const response = await api.get(endpoint);
-      
+
       setAnalytics(response);
       setError(null);
     } catch (err) {
       console.error("Error fetching revenue analytics:", err);
       setError(err);
-      
+
       // Provide default data structure on error
       setAnalytics({
         total_revenue: 0,
@@ -62,7 +61,7 @@ export function useRevenueAnalytics(initialParams = null) {
         rent_revenue: 0,
         transaction_counts: { total: 0, subscription: 0, rent: 0 },
         months: [],
-        plan_breakdown: []
+        plan_breakdown: [],
       });
     } finally {
       setLoading(false);
@@ -76,13 +75,13 @@ export function useRevenueAnalytics(initialParams = null) {
   const updateParams = useCallback((newParams) => {
     // Fix: Ensure we convert 'monthly' to 'month' if it's being set
     const adjustedParams = { ...newParams };
-    if (adjustedParams.period === 'monthly') {
-      adjustedParams.period = 'month';
+    if (adjustedParams.period === "monthly") {
+      adjustedParams.period = "month";
     }
-    
-    setParams(prev => ({
+
+    setParams((prev) => ({
       ...prev,
-      ...adjustedParams
+      ...adjustedParams,
     }));
   }, []);
 
@@ -106,7 +105,7 @@ export function useRevenueAnalytics(initialParams = null) {
     error,
     params,
     updateParams,
-    refreshAnalytics
+    refreshAnalytics,
   };
 }
 
@@ -129,32 +128,32 @@ export function useTransactionHistory(initialFilters = {}) {
   const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Build query string from filters and pagination
       const queryParams = new URLSearchParams();
-      
+
       // Add filters
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null && value !== "") {
           queryParams.append(key, value);
         }
       });
-      
+
       // Add pagination
-      queryParams.append('page', page);
-      queryParams.append('page_size', pageSize);
-      
+      queryParams.append("page", page);
+      queryParams.append("page_size", pageSize);
+
       const queryString = queryParams.toString();
       const endpoint = `/api/v1/payments/admin/transactions/?${queryString}`;
-      
+
       const response = await api.get(endpoint);
-      
+
       setTransactions(response);
       setError(null);
     } catch (err) {
       console.error("Error fetching transaction history:", err);
       setError(err);
-      
+
       // Set empty data on error
       setTransactions({ results: [], total: 0 });
     } finally {
@@ -167,9 +166,9 @@ export function useTransactionHistory(initialFilters = {}) {
    * @param {Object} newFilters - New filters to set
    */
   const updateFilters = useCallback((newFilters) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      ...newFilters
+      ...newFilters,
     }));
     setPage(1); // Reset to first page when filters change
   }, []);
@@ -179,10 +178,13 @@ export function useTransactionHistory(initialFilters = {}) {
    * @param {number} newPage - New page number
    * @param {number} newPageSize - New page size
    */
-  const updatePagination = useCallback((newPage, newPageSize = pageSize) => {
-    setPage(newPage);
-    setPageSize(newPageSize);
-  }, [pageSize]);
+  const updatePagination = useCallback(
+    (newPage, newPageSize = pageSize) => {
+      setPage(newPage);
+      setPageSize(newPageSize);
+    },
+    [pageSize]
+  );
 
   /**
    * Refresh transaction data
@@ -206,7 +208,7 @@ export function useTransactionHistory(initialFilters = {}) {
     filters,
     updateFilters,
     updatePagination,
-    refreshTransactions
+    refreshTransactions,
   };
 }
 
@@ -225,15 +227,17 @@ export function useSubscriptionPlans() {
   const fetchPlans = useCallback(async () => {
     try {
       setLoading(true);
-      
-      const response = await api.get("/api/v1/payments/admin/subscription-plans/");
-      
+
+      const response = await api.get(
+        "/api/v1/payments/admin/subscription-plans/"
+      );
+
       setPlans(response);
       setError(null);
     } catch (err) {
       console.error("Error fetching subscription plans:", err);
       setError(err);
-      
+
       // Set empty data on error
       setPlans([]);
     } finally {
@@ -245,64 +249,81 @@ export function useSubscriptionPlans() {
    * Create a new subscription plan
    * @param {Object} planData - The plan data
    */
-  const createPlan = useCallback(async (planData) => {
-    try {
-      setLoading(true);
-      
-      const response = await api.post("/api/v1/payments/admin/subscription-plans/", planData);
-      
-      await fetchPlans(); // Refresh the plans list
-      return response;
-    } catch (err) {
-      console.error("Error creating subscription plan:", err);
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchPlans]);
+  const createPlan = useCallback(
+    async (planData) => {
+      try {
+        setLoading(true);
+
+        const response = await api.post(
+          "/api/v1/payments/admin/subscription-plans/",
+          planData
+        );
+
+        await fetchPlans(); // Refresh the plans list
+        return response;
+      } catch (err) {
+        console.error("Error creating subscription plan:", err);
+        setError(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchPlans]
+  );
 
   /**
    * Update a subscription plan
    * @param {Object} planData - The updated plan data
    */
-  const updatePlan = useCallback(async (planData) => {
-    try {
-      setLoading(true);
-      
-      const response = await api.put("/api/v1/payments/admin/subscription-plans/", planData);
-      
-      await fetchPlans(); // Refresh the plans list
-      return response;
-    } catch (err) {
-      console.error("Error updating subscription plan:", err);
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchPlans]);
+  const updatePlan = useCallback(
+    async (planData) => {
+      try {
+        setLoading(true);
+
+        const response = await api.put(
+          "/api/v1/payments/admin/subscription-plans/",
+          planData
+        );
+
+        await fetchPlans(); // Refresh the plans list
+        return response;
+      } catch (err) {
+        console.error("Error updating subscription plan:", err);
+        setError(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchPlans]
+  );
 
   /**
    * Delete a subscription plan
    * @param {string|number} planId - The ID of the plan to delete
    */
-  const deletePlan = useCallback(async (planId) => {
-    try {
-      setLoading(true);
-      
-      const response = await api.delete(`/api/v1/payments/admin/subscription-plans/?id=${planId}`);
-      
-      await fetchPlans(); // Refresh the plans list
-      return response;
-    } catch (err) {
-      console.error("Error deleting subscription plan:", err);
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchPlans]);
+  const deletePlan = useCallback(
+    async (planId) => {
+      try {
+        setLoading(true);
+
+        const response = await api.delete(
+          `/api/v1/payments/admin/subscription-plans/?id=${planId}`
+        );
+
+        await fetchPlans(); // Refresh the plans list
+        return response;
+      } catch (err) {
+        console.error("Error deleting subscription plan:", err);
+        setError(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchPlans]
+  );
 
   // Initial fetch
   useEffect(() => {
@@ -316,7 +337,7 @@ export function useSubscriptionPlans() {
     refreshPlans: fetchPlans,
     createPlan,
     updatePlan,
-    deletePlan
+    deletePlan,
   };
 }
 
@@ -339,32 +360,32 @@ export function useLandlordSubscriptions(initialFilters = {}) {
   const fetchSubscriptions = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Build query string from filters and pagination
       const queryParams = new URLSearchParams();
-      
+
       // Add filters
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null && value !== "") {
           queryParams.append(key, value);
         }
       });
-      
+
       // Add pagination
-      queryParams.append('page', page);
-      queryParams.append('page_size', pageSize);
-      
+      queryParams.append("page", page);
+      queryParams.append("page_size", pageSize);
+
       const queryString = queryParams.toString();
       const endpoint = `/api/v1/payments/admin/subscriptions/?${queryString}`;
-      
+
       const response = await api.get(endpoint);
-      
+
       setSubscriptions(response);
       setError(null);
     } catch (err) {
       console.error("Error fetching landlord subscriptions:", err);
       setError(err);
-      
+
       // Set empty data on error
       setSubscriptions({ results: [], total: 0 });
     } finally {
@@ -377,9 +398,9 @@ export function useLandlordSubscriptions(initialFilters = {}) {
    * @param {Object} newFilters - New filters to set
    */
   const updateFilters = useCallback((newFilters) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      ...newFilters
+      ...newFilters,
     }));
     setPage(1); // Reset to first page when filters change
   }, []);
@@ -389,31 +410,40 @@ export function useLandlordSubscriptions(initialFilters = {}) {
    * @param {number} newPage - New page number
    * @param {number} newPageSize - New page size
    */
-  const updatePagination = useCallback((newPage, newPageSize = pageSize) => {
-    setPage(newPage);
-    setPageSize(newPageSize);
-  }, [pageSize]);
+  const updatePagination = useCallback(
+    (newPage, newPageSize = pageSize) => {
+      setPage(newPage);
+      setPageSize(newPageSize);
+    },
+    [pageSize]
+  );
 
   /**
    * Update a landlord's subscription
    * @param {Object} subscriptionData - Data containing landlord_id and plan_id
    */
-  const updateLandlordSubscription = useCallback(async (subscriptionData) => {
-    try {
-      setLoading(true);
-      
-      const response = await api.post("/api/v1/payments/admin/subscriptions/", subscriptionData);
-      
-      await fetchSubscriptions(); // Refresh the list
-      return response;
-    } catch (err) {
-      console.error("Error updating landlord subscription:", err);
-      setError(err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchSubscriptions]);
+  const updateLandlordSubscription = useCallback(
+    async (subscriptionData) => {
+      try {
+        setLoading(true);
+
+        const response = await api.post(
+          "/api/v1/payments/admin/subscriptions/",
+          subscriptionData
+        );
+
+        await fetchSubscriptions(); // Refresh the list
+        return response;
+      } catch (err) {
+        console.error("Error updating landlord subscription:", err);
+        setError(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchSubscriptions]
+  );
 
   /**
    * Refresh subscriptions data
@@ -438,7 +468,7 @@ export function useLandlordSubscriptions(initialFilters = {}) {
     updateFilters,
     updatePagination,
     updateLandlordSubscription,
-    refreshSubscriptions
+    refreshSubscriptions,
   };
 }
 
@@ -458,16 +488,16 @@ export function useFailedPayments(limit = 50) {
   const fetchFailedPayments = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const endpoint = `/api/v1/payments/admin/failed-payments/?limit=${limit}`;
       const response = await api.get(endpoint);
-      
+
       setPayments(response);
       setError(null);
     } catch (err) {
       console.error("Error fetching failed payments:", err);
       setError(err);
-      
+
       // Provide empty data on error
       setPayments([]);
     } finally {
@@ -491,7 +521,7 @@ export function useFailedPayments(limit = 50) {
     payments,
     loading,
     error,
-    refreshPayments
+    refreshPayments,
   };
 }
 
@@ -510,19 +540,22 @@ export function useTransactionDetails(transactionId) {
    */
   const fetchTransactionDetails = useCallback(async () => {
     if (!transactionId) return;
-    
+
     try {
       setLoading(true);
-      
+
       const endpoint = `/api/v1/payments/admin/transactions/${transactionId}/`;
       const response = await api.get(endpoint);
-      
+
       setTransaction(response);
       setError(null);
     } catch (err) {
-      console.error(`Error fetching transaction details for ID ${transactionId}:`, err);
+      console.error(
+        `Error fetching transaction details for ID ${transactionId}:`,
+        err
+      );
       setError(err);
-      
+
       // Provide null data on error
       setTransaction(null);
     } finally {
@@ -548,7 +581,7 @@ export function useTransactionDetails(transactionId) {
     transaction,
     loading,
     error,
-    refreshTransaction
+    refreshTransaction,
   };
 }
 
@@ -567,16 +600,16 @@ export function useSubscriptionStatistics() {
   const fetchStatistics = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const endpoint = "/api/v1/payments/admin/subscription-statistics/";
       const response = await api.get(endpoint);
-      
+
       setStatistics(response);
       setError(null);
     } catch (err) {
       console.error("Error fetching subscription statistics:", err);
       setError(err);
-      
+
       // Provide null data on error
       setStatistics(null);
     } finally {
@@ -600,7 +633,7 @@ export function useSubscriptionStatistics() {
     statistics,
     loading,
     error,
-    refreshStatistics
+    refreshStatistics,
   };
 }
 
@@ -616,22 +649,25 @@ export function useLandlordPaymentHistory(landlordId) {
 
   const fetchPaymentHistory = useCallback(async () => {
     if (!landlordId) return;
-    
+
     try {
       setLoading(true);
-      
+
       const endpoint = `/api/v1/payments/admin/landlord/${landlordId}/payment-history/`;
       const response = await api.get(endpoint);
-      
+
       setHistory(response);
       setError(null);
     } catch (err) {
-      console.error(`Error fetching payment history for landlord ${landlordId}:`, err);
+      console.error(
+        `Error fetching payment history for landlord ${landlordId}:`,
+        err
+      );
       setError(err);
-      
+
       // Provide default data structure on error
       setHistory({
-        transactions: []
+        transactions: [],
       });
     } finally {
       setLoading(false);
@@ -653,6 +689,6 @@ export function useLandlordPaymentHistory(landlordId) {
     history,
     loading,
     error,
-    refreshHistory
+    refreshHistory,
   };
 }

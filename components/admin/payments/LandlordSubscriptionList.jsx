@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { 
-  Search, Filter, Eye, AlertTriangle, RefreshCw, CalendarClock, 
-  Clock, CheckCircle2, XCircle, Download, Share, MoreHorizontal
+   Filter, Eye, AlertTriangle, RefreshCw, 
+  Clock, CheckCircle2, XCircle, Download, MoreHorizontal
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { 

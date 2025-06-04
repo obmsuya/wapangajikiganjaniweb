@@ -23,9 +23,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CloudflarePageHeader } from '@/components/cloudflare/PageHeader';
 import { useUserDetails, useUserOperations } from '@/hooks/useAdminData';
-import { UpdateUserStatusDialog } from '@/components/admin/UpdateUserStatusDialog';
-import { DeleteUserDialog } from '@/components/admin/DeleteUserDialog';
-import { ResetPasswordDialog } from '@/components/admin/ResetPasswordDialog';
+import { UpdateUserStatusDialog } from '@/components/admin/users/UpdateUserStatusDialog';
+import { DeleteUserDialog } from '@/components/admin/users/DeleteUserDialog';
+import { ResetPasswordDialog } from '@/components/admin/users/ResetPasswordDialog';
 import { LandlordDetails } from '@/components/admin/LandlordDetails';
 import { TenantDetails } from '@/components/admin/TenantDetails';
 
