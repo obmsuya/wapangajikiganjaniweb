@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import AdminTenantService from '@/services/admin/admin-tenant';
@@ -40,7 +40,7 @@ export function useDashboardSummary() {
     summary,
     loading,
     error,
-    refreshSummary
+    refreshSummary,
   };
 }
 
@@ -50,7 +50,10 @@ export function useDashboardSummary() {
  * @returns {Object} The properties data, loading state, error, and helper functions
  */
 export function usePropertiesList(initialFilters = {}) {
-  const [properties, setProperties] = useState({ properties: [], pagination: { total: 0 } });
+  const [properties, setProperties] = useState({
+    properties: [],
+    pagination: { total: 0 },
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
@@ -60,14 +63,14 @@ export function usePropertiesList(initialFilters = {}) {
   const fetchProperties = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Add pagination to filters
       const queryParams = {
         ...filters,
         page,
-        limit
+        limit,
       };
-      
+
       const response = await AdminTenantService.getPropertiesList(queryParams);
       setProperties(response);
       setError(null);
@@ -81,17 +84,20 @@ export function usePropertiesList(initialFilters = {}) {
   }, [filters, page, limit]);
 
   const updateFilters = useCallback((newFilters) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      ...newFilters
+      ...newFilters,
     }));
     setPage(1); // Reset to first page when filters change
   }, []);
 
-  const updatePagination = useCallback((newPage, newLimit = limit) => {
-    setPage(newPage);
-    setLimit(newLimit);
-  }, [limit]);
+  const updatePagination = useCallback(
+    (newPage, newLimit = limit) => {
+      setPage(newPage);
+      setLimit(newLimit);
+    },
+    [limit]
+  );
 
   const refreshProperties = useCallback(() => {
     fetchProperties();
@@ -112,7 +118,7 @@ export function usePropertiesList(initialFilters = {}) {
     filters,
     updateFilters,
     updatePagination,
-    refreshProperties
+    refreshProperties,
   };
 }
 
@@ -122,7 +128,10 @@ export function usePropertiesList(initialFilters = {}) {
  * @returns {Object} The tenants data, loading state, error, and helper functions
  */
 export function useTenantsList(initialFilters = {}) {
-  const [tenants, setTenants] = useState({ tenants: [], pagination: { total: 0 } });
+  const [tenants, setTenants] = useState({
+    tenants: [],
+    pagination: { total: 0 },
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
@@ -132,14 +141,14 @@ export function useTenantsList(initialFilters = {}) {
   const fetchTenants = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Add pagination to filters
       const queryParams = {
         ...filters,
         page,
-        limit
+        limit,
       };
-      
+
       const response = await AdminTenantService.getTenantsList(queryParams);
       setTenants(response);
       setError(null);
@@ -153,17 +162,20 @@ export function useTenantsList(initialFilters = {}) {
   }, [filters, page, limit]);
 
   const updateFilters = useCallback((newFilters) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      ...newFilters
+      ...newFilters,
     }));
     setPage(1); // Reset to first page when filters change
   }, []);
 
-  const updatePagination = useCallback((newPage, newLimit = limit) => {
-    setPage(newPage);
-    setLimit(newLimit);
-  }, [limit]);
+  const updatePagination = useCallback(
+    (newPage, newLimit = limit) => {
+      setPage(newPage);
+      setLimit(newLimit);
+    },
+    [limit]
+  );
 
   const refreshTenants = useCallback(() => {
     fetchTenants();
@@ -184,7 +196,7 @@ export function useTenantsList(initialFilters = {}) {
     filters,
     updateFilters,
     updatePagination,
-    refreshTenants
+    refreshTenants,
   };
 }
 
@@ -200,14 +212,17 @@ export function usePropertyDetails(propertyId) {
 
   const fetchPropertyDetails = useCallback(async () => {
     if (!propertyId) return;
-    
+
     try {
       setLoading(true);
       const response = await AdminTenantService.getPropertyDetails(propertyId);
       setProperty(response);
       setError(null);
     } catch (err) {
-      console.error(`Error fetching property details for ID ${propertyId}:`, err);
+      console.error(
+        `Error fetching property details for ID ${propertyId}:`,
+        err
+      );
       setError(err);
       setProperty(null);
     } finally {
@@ -230,6 +245,6 @@ export function usePropertyDetails(propertyId) {
     property,
     loading,
     error,
-    refreshProperty
+    refreshProperty,
   };
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { 
-  XCircle, AlertTriangle, RefreshCw, Eye, 
+   AlertTriangle, RefreshCw, Eye, 
   Phone, Search, Download, ArrowRightCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -25,11 +25,6 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
 import { CloudflareTable } from '@/components/cloudflare/Table';
 import { useFailedPayments } from '@/hooks/admin/useAdminPayment';
 import TransactionDetailsContent from './TransactionDetailsContent';

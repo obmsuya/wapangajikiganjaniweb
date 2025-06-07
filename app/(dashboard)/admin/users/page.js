@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { useUsersList, useUserOperations } from '@/hooks/admin/useAdminData';
 import { CloudflarePageHeader } from '@/components/cloudflare/PageHeader';
 import { CloudflareTable } from '@/components/cloudflare/Table';
-import { UserFormDialog } from '@/components/admin/UserFormDialog';
-import { UserFilters } from '@/components/admin/UserFilters';
+import { UserFormDialog } from '@/components/admin/users/UserFormDialog';
+import { UserFilters } from '@/components/admin/users/UserFilters';
 
 export default function AdminUsersPage() {
   const router = useRouter();

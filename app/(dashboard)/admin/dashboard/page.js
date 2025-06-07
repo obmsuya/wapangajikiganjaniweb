@@ -6,7 +6,6 @@ import { Plus, Download, BarChart3, PieChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   CloudflarePageHeader, 
-  CloudflareBreadcrumbs 
 } from '@/components/cloudflare/Breadcrumbs';
 import { CloudflareDashboardStats } from '@/components/cloudflare/DashboardStats';
 import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from '@/components/cloudflare/Card';
