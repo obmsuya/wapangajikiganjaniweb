@@ -17,7 +17,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { CloudflarePageHeader } from '@/components/cloudflare/PageHeader';
-import { useUserDetails } from '@/hooks/useAdminData';
+import { useUserDetails } from '@/hooks/admin/useAdminData';
 import { toast } from "sonner";
 
 export default function EditUserPage({ params }) {

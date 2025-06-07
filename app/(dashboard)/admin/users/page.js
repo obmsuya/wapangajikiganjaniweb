@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useUsersList, useUserOperations } from '@/hooks/useAdminData';
+import { useUsersList, useUserOperations } from '@/hooks/admin/useAdminData';
 import { CloudflarePageHeader } from '@/components/cloudflare/PageHeader';
 import { CloudflareTable } from '@/components/cloudflare/Table';
 import { UserFormDialog } from '@/components/admin/UserFormDialog';

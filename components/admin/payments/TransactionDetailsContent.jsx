@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { useTransactionDetails } from '@/hooks/useAdminPayment';
+import { useTransactionDetails } from '@/hooks/admin/useAdminPayment';
 
 /**
  * Transaction detail content component for displaying transaction information

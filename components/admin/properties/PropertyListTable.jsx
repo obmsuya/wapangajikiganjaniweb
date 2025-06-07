@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { usePropertiesList, usePropertyDetails } from '@/hooks/useAdminProperties';
+import { usePropertiesList, usePropertyDetails } from '@/hooks/admin/useAdminProperties';
 import { CloudflareTable } from '@/components/cloudflare/Table';
 import { 
   Dialog, 

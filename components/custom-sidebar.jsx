@@ -16,7 +16,8 @@ import {
   X,
   ChevronDown,
   Sun,
-  Moon
+  Moon,
+  Handshake
 } from "lucide-react";
 
 // Sidebar Item Component
@@ -86,13 +87,13 @@ export function CustomSidebar({ role = "admin" }) {
       label: "Users",
       icon: Users,
       href: "#",
-      active: pathname.includes("/admin/Users"),
-      submenuKey: "Users",
+      active: pathname.includes("/admin/users"),
+      submenuKey: "users",
       submenu: [
         {
           label: "All Users",
           href: "/admin/users",
-          active: pathname === "/admin/Users",
+          active: pathname === "/admin/users",
         },
         {
           label: "Landlords",
@@ -106,6 +107,12 @@ export function CustomSidebar({ role = "admin" }) {
       icon: Building2,
       href: "/admin/properties",
       active: pathname.includes("/admin/properties"),
+    },
+    {
+      label: "Partners",
+      icon: Handshake,
+      href: "/admin/partner",
+      active: pathname.includes("/admin/partner"),
     },
     {
       label: "Payments",

@@ -1,6 +1,6 @@
 'use client';
 
-import { useDashboardSummary } from '@/hooks/useAdminProperties';
+import { useDashboardSummary } from '@/hooks/admin/useAdminProperties';
 import { Building, Home, UserCheck, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';

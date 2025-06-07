@@ -27,7 +27,7 @@ import {
   Calendar, Clock, CheckCircle2, XCircle, AlertTriangle,
   Building, Phone, User, CalendarClock, FileText, Ban
 } from 'lucide-react';
-import { useLandlordPaymentHistory } from '@/hooks/useAdminPayment';
+import { useLandlordPaymentHistory } from '@/hooks/admin/useAdminPayment';
 
 /**
  * Subscription detail content component for the landlord subscription dialog

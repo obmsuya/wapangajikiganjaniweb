@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CloudflarePageHeader } from '@/components/cloudflare/PageHeader';
-import { useUserDetails, useUserOperations } from '@/hooks/useAdminData';
+import { useUserDetails, useUserOperations } from '@/hooks/admin/useAdminData';
 import { UpdateUserStatusDialog } from '@/components/admin/UpdateUserStatusDialog';
 import { DeleteUserDialog } from '@/components/admin/DeleteUserDialog';
 import { ResetPasswordDialog } from '@/components/admin/ResetPasswordDialog';

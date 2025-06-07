@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTenantsList } from '@/hooks/useAdminProperties';
+import { useTenantsList } from '@/hooks/admin/useAdminProperties';
 import { CloudflareTable } from '@/components/cloudflare/Table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

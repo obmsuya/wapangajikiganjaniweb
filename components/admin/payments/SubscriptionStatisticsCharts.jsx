@@ -35,7 +35,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { useSubscriptionStatistics } from '@/hooks/useAdminPayment';
+import { useSubscriptionStatistics } from '@/hooks/admin/useAdminPayment';
 
 // Import DataTable components
 import {

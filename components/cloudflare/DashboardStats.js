@@ -12,7 +12,7 @@ import {
   Home,
   User
 } from 'lucide-react';
-import { useDashboardData } from '@/hooks/useAdminData';
+import { useDashboardData } from '@/hooks/admin/useAdminData';
 import { CloudflareCard, CloudflareCardGrid, CloudflareStatCard } from './Card';
 
 /**

@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/popover';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { CloudflareTable } from '@/components/cloudflare/Table';
-import { useTransactionHistory, useTransactionDetails } from '@/hooks/useAdminPayment';
+import { useTransactionHistory, useTransactionDetails } from '@/hooks/admin/useAdminPayment';
 import TransactionDetailsContent from './TransactionDetailsContent';
 
 /**

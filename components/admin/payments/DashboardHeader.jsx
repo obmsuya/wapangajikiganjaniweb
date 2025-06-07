@@ -11,7 +11,7 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { useRevenueAnalytics } from '@/hooks/useAdminPayment';
+import { useRevenueAnalytics } from '@/hooks/admin/useAdminPayment';
 
 /**
  * Dashboard header component that displays title, statistics summary, and date range selector

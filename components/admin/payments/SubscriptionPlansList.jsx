@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useSubscriptionPlans } from '@/hooks/useAdminPayment';
+import { useSubscriptionPlans } from '@/hooks/admin/useAdminPayment';
 import SubscriptionPlanForm from './SubscriptionPlanForm';
 
 /**

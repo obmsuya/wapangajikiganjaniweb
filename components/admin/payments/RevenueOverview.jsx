@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRevenueAnalytics } from '@/hooks/useAdminPayment';
+import { useRevenueAnalytics } from '@/hooks/admin/useAdminPayment';
 import {
   LineChart,
   Line,

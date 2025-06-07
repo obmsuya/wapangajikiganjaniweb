@@ -29,7 +29,7 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { useRevenueAnalytics } from '@/hooks/useAdminPayment';
+import { useRevenueAnalytics } from '@/hooks/admin/useAdminPayment';
 
 /**
  * Revenue analytics chart component with multiple visualizations

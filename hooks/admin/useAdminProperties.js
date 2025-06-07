@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import AdminTenantService from '@/services/admin-tenant';
+import AdminTenantService from '@/services/admin/admin-tenant';
 
 /**
  * Hook for fetching dashboard summary data

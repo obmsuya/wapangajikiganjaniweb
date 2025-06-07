@@ -58,7 +58,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { CloudflareTable } from '@/components/cloudflare/Table';
-import { useSubscriptionDetails, useSubscriptionPlans, useLandlordPaymentHistory } from '@/hooks/useAdminPayment';
+import { useSubscriptionDetails, useSubscriptionPlans, useLandlordPaymentHistory } from '@/hooks/admin/useAdminPayment';
 
 /**
  * Subscription details dialog component

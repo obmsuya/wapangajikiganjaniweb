@@ -31,7 +31,7 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover';
 import { CloudflareTable } from '@/components/cloudflare/Table';
-import { useFailedPayments } from '@/hooks/useAdminPayment';
+import { useFailedPayments } from '@/hooks/admin/useAdminPayment';
 import TransactionDetailsContent from './TransactionDetailsContent';
 
 /**

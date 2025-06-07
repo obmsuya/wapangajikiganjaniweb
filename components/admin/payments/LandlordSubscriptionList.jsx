@@ -42,7 +42,7 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover';
 import { CloudflareTable } from '@/components/cloudflare/Table';
-import { useLandlordSubscriptions, useSubscriptionPlans } from '@/hooks/useAdminPayment';
+import { useLandlordSubscriptions, useSubscriptionPlans } from '@/hooks/admin/useAdminPayment';
 import SubscriptionDetailContent from './SubscriptionDetailContent';
 
 /**
