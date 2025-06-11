@@ -144,6 +144,23 @@ const AuthService = {
     }
   },
 
+    // Register a new user
+    register: async (credentials) => {
+      try {
+        const response = await api.post('/api/v1/auth/register/', credentials);
+        const { user, tokens } = response.data;
+        
+        // Store tokens
+        localStorage.setItem('access_token', tokens.access);
+        localStorage.setItem('refresh_token', tokens.refresh);
+        
+        return user;
+      } catch (error) {
+        console.error('Registration error:', error);
+        throw error;
+      }
+    },
+
   // Check if user is authenticated
   isAuthenticated: () => {
     return !!localStorage.getItem('access_token');
