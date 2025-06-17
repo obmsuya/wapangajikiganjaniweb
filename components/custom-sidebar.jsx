@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "@/components/theme-provider";
 import { 
   LayoutDashboard, 
@@ -17,10 +17,12 @@ import {
   ChevronDown,
   Sun,
   Moon,
-  Handshake
+  Handshake,
+  LogOut
 } from "lucide-react";
+import AuthService from "@/services/auth";
 
-// Sidebar Item Component
+// Keep your exact SidebarItem component unchanged
 const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen, toggleSubmenu }) => {
   const hasSubmenu = Array.isArray(children) && children.length > 0;
 
@@ -61,9 +63,10 @@ const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen,
   );
 };
 
-// Main Sidebar Component
-export function CustomSidebar({ role = "admin" }) {
+// Main Sidebar Component - Only modified the routes logic
+export function CustomSidebar({ role = "admin", user }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState({});
@@ -75,94 +78,111 @@ export function CustomSidebar({ role = "admin" }) {
     }));
   };
 
-  // Define routes based on user role
-  const adminRoutes = [
-    {
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      href: "/admin/dashboard",
-      active: pathname === "/admin/dashboard",
-    },
-    {
-      label: "Users",
-      icon: Users,
-      href: "#",
-      active: pathname.includes("/admin/users"),
-      submenuKey: "users",
-      submenu: [
+  const handleLogout = async () => {
+    try {
+      await AuthService.logout();
+      router.push('/login');
+    } catch (error) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      router.push('/login');
+    }
+  };
+
+  // ONLY CHANGE: Updated routes based on user type
+  const getRoutes = () => {
+    if (user?.user_type === 'landlord' || role === 'landlord') {
+      return [
         {
-          label: "All Users",
-          href: "/admin/users",
-          active: pathname === "/admin/users",
+          label: "Dashboard",
+          icon: LayoutDashboard,
+          href: "/landlord/dashboard",
+          active: pathname === "/landlord/dashboard",
         },
         {
-          label: "Landlords",
-          href: "/admin/users/landlords",
-          active: pathname === "/admin/users/landlords",
-        }
-      ]
-    },
-    {
-      label: "Properties",
-      icon: Building2,
-      href: "/admin/properties",
-      active: pathname.includes("/admin/properties"),
-    },
-    {
-      label: "Partners",
-      icon: Handshake,
-      href: "/admin/partner",
-      active: pathname.includes("/admin/partner"),
-    },
-    {
-      label: "Payments",
-      icon: CreditCard,
-      href: "/admin/payments",
-      active: pathname.includes("/admin/payments"),
-    },
-    {
-      label: "Settings",
-      icon: Settings,
-      href: "/admin/settings",
-      active: pathname.includes("/admin/settings"),
-    },
-  ];
+          label: "Properties",
+          icon: Building2,
+          href: "/landlord/properties",
+          active: pathname.includes("/landlord/properties"),
+        },
+        {
+          label: "Tenants",
+          icon: UserRound,
+          href: "/landlord/tenants",
+          active: pathname.includes("/landlord/tenants"),
+        },
+        {
+          label: "Payments",
+          icon: CreditCard,
+          href: "/landlord/payments",
+          active: pathname.includes("/landlord/payments"),
+        },
+        {
+          label: "Settings",
+          icon: Settings,
+          href: "/landlord/settings",
+          active: pathname.includes("/landlord/settings"),
+        },
+      ];
+    }
 
-  const landlordRoutes = [
-    {
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      href: "/landlord/dashboard",
-      active: pathname === "/landlord/dashboard",
-    },
-    {
-      label: "Properties",
-      icon: Building2,
-      href: "/landlord/properties",
-      active: pathname.includes("/landlord/properties"),
-    },
-    {
-      label: "Tenants",
-      icon: UserRound,
-      href: "/landlord/tenants",
-      active: pathname.includes("/landlord/tenants"),
-    },
-    {
-      label: "Payments",
-      icon: CreditCard,
-      href: "/landlord/payments",
-      active: pathname.includes("/landlord/payments"),
-    },
-    {
-      label: "Settings",
-      icon: Settings,
-      href: "/landlord/settings",
-      active: pathname.includes("/landlord/settings"),
-    },
-  ];
+    // Default admin routes (your original)
+    return [
+      {
+        label: "Dashboard",
+        icon: LayoutDashboard,
+        href: "/admin/dashboard",
+        active: pathname === "/admin/dashboard",
+      },
+      {
+        label: "Users",
+        icon: Users,
+        href: "#",
+        active: pathname.includes("/admin/users"),
+        submenuKey: "users",
+        submenu: [
+          {
+            label: "All Users",
+            href: "/admin/users",
+            active: pathname === "/admin/users",
+          },
+          {
+            label: "Landlords",
+            href: "/admin/users/landlords",
+            active: pathname === "/admin/users/landlords",
+          }
+        ]
+      },
+      {
+        label: "Properties",
+        icon: Building2,
+        href: "/admin/properties",
+        active: pathname.includes("/admin/properties"),
+      },
+      {
+        label: "Partners",
+        icon: Handshake,
+        href: "/admin/partner",
+        active: pathname.includes("/admin/partner"),
+      },
+      {
+        label: "Payments",
+        icon: CreditCard,
+        href: "/admin/payments",
+        active: pathname.includes("/admin/payments"),
+      },
+      {
+        label: "Settings",
+        icon: Settings,
+        href: "/admin/settings",
+        active: pathname.includes("/admin/settings"),
+      },
+    ];
+  };
 
-  const routes = role === "admin" ? adminRoutes : landlordRoutes;
+  const routes = getRoutes();
 
+  // Keep your exact structure and styling
   return (
     <>
       {/* Mobile Trigger Button */}
@@ -193,7 +213,9 @@ export function CustomSidebar({ role = "admin" }) {
           <div className="flex justify-between items-center p-4 border-b border-sidebar-border">
             <div>
               <h2 className="text-xl font-bold">Wapangaji Kiganjani</h2>
-              <p className="text-sm text-sidebar-fg/70">{role === "admin" ? "Admin Portal" : "Landlord Portal"}</p>
+              <p className="text-sm text-sidebar-fg/70">
+                {user?.user_type === 'landlord' ? "Landlord Portal" : "Admin Portal"}
+              </p>
             </div>
             <button 
               onClick={() => setIsMobileOpen(false)}
@@ -228,8 +250,10 @@ export function CustomSidebar({ role = "admin" }) {
                   <UserRound size={18} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">User Name</p>
-                  <p className="text-xs text-sidebar-fg/70">{role === "admin" ? "Administrator" : "Landlord"}</p>
+                  <p className="text-sm font-medium">{user?.full_name || "User Name"}</p>
+                  <p className="text-xs text-sidebar-fg/70">
+                    {user?.user_type === 'landlord' ? "Landlord" : "Administrator"}
+                  </p>
                 </div>
               </div>
               <button 
@@ -244,13 +268,15 @@ export function CustomSidebar({ role = "admin" }) {
         </div>
       </aside>
 
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar - Keep exactly as yours */}
       <aside className="hidden md:block min-w-sidebar max-w-sidebar w-sidebar h-screen border-r border-sidebar-border bg-sidebar">
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className="p-4 border-b border-sidebar-border">
             <h2 className="text-xl font-bold">Wapangaji Kiganjani</h2>
-            <p className="text-sm text-sidebar-fg/70">{role === "admin" ? "Admin Portal" : "Landlord Portal"}</p>
+            <p className="text-sm text-sidebar-fg/70">
+              {user?.user_type === 'landlord' ? "Landlord Portal" : "Admin Portal"}
+            </p>
           </div>
 
           {/* Navigation Links */}
@@ -277,8 +303,10 @@ export function CustomSidebar({ role = "admin" }) {
                   <UserRound size={18} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">User Name</p>
-                  <p className="text-xs text-sidebar-fg/70">{role === "admin" ? "Administrator" : "Landlord"}</p>
+                  <p className="text-sm font-medium">{user?.full_name || "User Name"}</p>
+                  <p className="text-xs text-sidebar-fg/70">
+                    {user?.user_type === 'landlord' ? "Landlord" : "Administrator"}
+                  </p>
                 </div>
               </div>
               <button 

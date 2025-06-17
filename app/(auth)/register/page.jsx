@@ -76,22 +76,40 @@ export default function RegisterPage() {
     if (!validateForm()) return;
     
     setIsLoading(true);
+    console.log('Starting registration with data:', { ...formData, password: '[HIDDEN]' });
+    
     try {
       const { confirm_password, ...registrationData } = formData;
       const userData = { ...registrationData, user_type: 'landlord' };
-
+  
+      console.log('Sending registration request with:', { ...userData, password: '[HIDDEN]' });
+      
       const user = await AuthService.register(userData);
+      
+      console.log('Registration successful, user:', user);
+      
+      // Check if tokens are stored
+      const accessToken = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
+      console.log('Tokens stored:', { 
+        hasAccessToken: !!accessToken, 
+        hasRefreshToken: !!refreshToken 
+      });
       
       customToast.success("Welcome to Wapangaji Kiganjani!", {
         description: "Account created! Let's set up your first property.",
       });
       
+      // Updated redirect path for landlord
       setTimeout(() => {
-        router.push("/property-setup");
+        console.log('Redirecting to:', "/landlord/setup/welcome");
+        router.push("/landlord/setup/welcome");
       }, 500);
     } catch (error) {
+      console.error('Registration failed with error:', error);
+      
       customToast.error("Registration failed", {
-        description: error.response?.data?.error || "Please try again."
+        description: error.message || "Please try again."
       });
     } finally {
       setIsLoading(false);
@@ -117,18 +135,28 @@ export default function RegisterPage() {
     <div className="min-h-screen relative overflow-hidden">
       {/* Theme Toggle */}
       <motion.button
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
         className="fixed top-6 right-6 z-50 p-3 rounded-full bg-card border border-card-border shadow-lg hover:shadow-xl transition-all duration-300"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
         <AnimatePresence mode="wait">
-          {theme === 'dark' ? (
-            <motion.div key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+          {theme === "dark" ? (
+            <motion.div
+              key="sun"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+            >
               <Sun className="w-5 h-5 text-yellow-500" />
             </motion.div>
           ) : (
-            <motion.div key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+            <motion.div
+              key="moon"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: -90, opacity: 0 }}
+            >
               <Moon className="w-5 h-5 text-blue-600" />
             </motion.div>
           )}
@@ -151,7 +179,10 @@ export default function RegisterPage() {
               className="max-w-lg"
             >
               <div className="mb-12">
-                <motion.div className="flex items-center gap-3 mb-6" whileHover={{ scale: 1.05 }}>
+                <motion.div
+                  className="flex items-center gap-3 mb-6"
+                  whileHover={{ scale: 1.05 }}
+                >
                   <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center">
                     <Building2 className="w-7 h-7 text-white" />
                   </div>
@@ -159,15 +190,18 @@ export default function RegisterPage() {
                     Wapangaji Kiganjani
                   </h1>
                 </motion.div>
-                
+
                 <h2 className="text-4xl xl:text-5xl font-bold text-foreground mb-6 leading-tight">
                   Start Building Your
-                  <span className="block text-primary-600">Property Empire Today</span>
+                  <span className="block text-primary-600">
+                    Property Empire Today
+                  </span>
                 </h2>
-                
+
                 <p className="text-lg text-muted-foreground leading-relaxed mb-8">
-                  Join thousands of successful landlords who trust Wapangaji Kiganjani 
-                  to manage their properties efficiently and grow their investments.
+                  Join thousands of successful landlords who trust Wapangaji
+                  Kiganjani to manage their properties efficiently and grow
+                  their investments.
                 </p>
               </div>
 
@@ -184,8 +218,12 @@ export default function RegisterPage() {
                       <benefit.icon className="w-6 h-6 text-primary-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground mb-1">{benefit.title}</h3>
-                      <p className="text-sm text-muted-foreground">{benefit.desc}</p>
+                      <h3 className="font-semibold text-foreground mb-1">
+                        {benefit.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {benefit.desc}
+                      </p>
                     </div>
                   </motion.div>
                 ))}
@@ -211,12 +249,20 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Create Account</h3>
-                  <p className="text-muted-foreground">Start managing properties today</p>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">
+                    Create Account
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Start managing properties today
+                  </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
                     <Input
                       label="Full Name"
                       name="full_name"
@@ -228,7 +274,11 @@ export default function RegisterPage() {
                     />
                   </motion.div>
 
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
                     <Input
                       label="Phone Number"
                       name="phone_number"
@@ -240,7 +290,11 @@ export default function RegisterPage() {
                     />
                   </motion.div>
 
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                  >
                     <div className="relative">
                       <Input
                         label="Password"
@@ -257,20 +311,33 @@ export default function RegisterPage() {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-9 text-muted-foreground hover:text-foreground"
                       >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
                       </button>
                     </div>
                     {formData.password && (
                       <div className="mt-2">
                         <Progress value={passwordStrength()} className="h-2" />
                         <p className="text-xs text-muted-foreground mt-1">
-                          Password strength: {passwordStrength() < 50 ? 'Weak' : passwordStrength() < 75 ? 'Good' : 'Strong'}
+                          Password strength:{" "}
+                          {passwordStrength() < 50
+                            ? "Weak"
+                            : passwordStrength() < 75
+                            ? "Good"
+                            : "Strong"}
                         </p>
                       </div>
                     )}
                   </motion.div>
 
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
                     <div className="relative">
                       <Input
                         label="Confirm Password"
@@ -284,66 +351,90 @@ export default function RegisterPage() {
                       />
                       <button
                         type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         className="absolute right-3 top-9 text-muted-foreground hover:text-foreground"
                       >
-                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
                       </button>
                     </div>
-                    {formData.confirm_password && formData.password === formData.confirm_password && (
-                      <div className="flex items-center gap-1 mt-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        <span className="text-xs text-green-600">Passwords match</span>
-                      </div>
-                    )}
+                    {formData.confirm_password &&
+                      formData.password === formData.confirm_password && (
+                        <div className="flex items-center gap-1 mt-2">
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          <span className="text-xs text-green-600">
+                            Passwords match
+                          </span>
+                        </div>
+                      )}
                   </motion.div>
 
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
                     <Button 
                       type="submit" 
                       className="w-full h-12 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                      isLoading={isLoading}
+                      disabled={isLoading}
                     >
                       {isLoading ? "Creating Account..." : "Create Account"}
                     </Button>
                   </motion.div>
                 </form>
 
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-8 text-center">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="mt-8 text-center"
+                >
                   <p className="text-sm text-muted-foreground">
                     Already have an account?{" "}
-                    <Link 
-                     href="/login" 
-                     className="text-primary-600 hover:text-primary-700 font-semibold hover:underline"
-                   >
-                     Sign in
-                   </Link>
-                 </p>
-               </motion.div>
+                    <Link
+                      href="/login"
+                      className="text-primary-600 hover:text-primary-700 font-semibold hover:underline"
+                    >
+                      Sign in
+                    </Link>
+                  </p>
+                </motion.div>
 
-               {/* Terms */}
-               <motion.div 
-                 initial={{ opacity: 0 }} 
-                 animate={{ opacity: 1 }} 
-                 transition={{ delay: 0.7 }} 
-                 className="mt-6 text-center"
-               >
-                 <p className="text-xs text-muted-foreground">
-                   By creating an account, you agree to our{" "}
-                   <Link href="/terms" className="text-primary-600 hover:underline">
-                     Terms of Service
-                   </Link>{" "}
-                   and{" "}
-                   <Link href="/privacy" className="text-primary-600 hover:underline">
-                     Privacy Policy
-                   </Link>
-                 </p>
-               </motion.div>
-             </CardContent>
-           </Card>
-         </motion.div>
-       </div>
-     </div>
-   </div>
- );
+                {/* Terms */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                  className="mt-6 text-center"
+                >
+                  <p className="text-xs text-muted-foreground">
+                    By creating an account, you agree to our{" "}
+                    <Link
+                      href="/terms"
+                      className="text-primary-600 hover:underline"
+                    >
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link
+                      href="/privacy"
+                      className="text-primary-600 hover:underline"
+                    >
+                      Privacy Policy
+                    </Link>
+                  </p>
+                </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
 }

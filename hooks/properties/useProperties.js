@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import PropertyService from '@/services/property';
+import PropertyService from '@/services/landlord/property';
 
 /**
  * Hook for property creation multi-step form
