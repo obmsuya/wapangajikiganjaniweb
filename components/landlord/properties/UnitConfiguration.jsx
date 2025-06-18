@@ -1,9 +1,9 @@
 // components/landlord/properties/UnitConfiguration.jsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, Edit, Trash2, DollarSign, Home, Users } from "lucide-react";
+import { Edit, Trash2, DollarSign, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { usePropertyCreation } from "@/hooks/properties/useProperties";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const paymentFrequencies = [
   { value: 'monthly', label: 'Monthly' },
@@ -29,25 +28,35 @@ const unitStatuses = [
   { value: 'reserved', label: 'Reserved', color: 'bg-purple-100 text-purple-800' }
 ];
 
-export default function UnitConfiguration({ onValidationChange }) {
-  const { propertyData, floorData, addUnitData } = usePropertyCreation();
+export default function UnitConfiguration({ 
+  onValidationChange, 
+  propertyData, 
+  floorData, 
+  addUnitData 
+}) {
   const [units, setUnits] = useState([]);
   const [editingUnit, setEditingUnit] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [errors, setErrors] = useState({});
 
   // Generate available units from floor plans
-  const generateAvailableUnits = useCallback(() => {
-    const availableUnits = [];
+  const availableUnits = useMemo(() => {
+    if (!floorData || typeof floorData !== 'object') {
+      return [];
+    }
+
+    const generatedUnits = [];
     
     Object.entries(floorData).forEach(([floorNumber, floor]) => {
-      if (floor.units_ids && floor.units_ids.length > 0) {
-        floor.units_ids.forEach((unitId, index) => {
-          availableUnits.push({
-            id: `${floorNumber}-${unitId}`,
-            svg_id: unitId,
+      if (floor && floor.units_ids && Array.isArray(floor.units_ids) && floor.units_ids.length > 0) {
+        floor.units_ids.forEach((gridCellId, index) => {
+          const unitId = `${floorNumber}-${gridCellId}`;
+          
+          const unitData = {
+            id: unitId,
+            svg_id: gridCellId,
             floor_no: parseInt(floorNumber),
-            unit_name: `A${unitId}`,
+            unit_name: `Floor${floorNumber}-Unit${index + 1}`,
             area_sqm: 150,
             bedrooms: 1,
             status: 'vacant',
@@ -61,24 +70,27 @@ export default function UnitConfiguration({ onValidationChange }) {
             },
             included_in_rent: false,
             cost_allocation: 'tenant',
-            notes: ''
-          });
+            notes: '',
+            floor_number: parseInt(floorNumber) - 1,
+            svg_geom: `<rect width="40" height="40" x="0" y="0" id="unit-${gridCellId}" fill="green" stroke="gray" stroke-width="2" />`,
+            block: propertyData.block || 'A'
+          };
+          
+          generatedUnits.push(unitData);
         });
       }
     });
     
-    return availableUnits;
-  }, [floorData]);
+    return generatedUnits;
+  }, [floorData, propertyData.block]);
 
   useEffect(() => {
-    const availableUnits = generateAvailableUnits();
     setUnits(availableUnits);
-  }, [generateAvailableUnits]);
+  }, [availableUnits]);
 
-  const validateConfiguration = useCallback(() => {
+  const isConfigurationValid = useMemo(() => {
     const newErrors = {};
     
-    // Check if at least one unit has rent amount configured
     const hasConfiguredUnits = units.some(unit => unit.rent_amount > 0);
     
     if (units.length === 0) {
@@ -89,39 +101,55 @@ export default function UnitConfiguration({ onValidationChange }) {
 
     setErrors(newErrors);
     const isValid = Object.keys(newErrors).length === 0 && hasConfiguredUnits;
-    onValidationChange?.(isValid);
     return isValid;
-  }, [units, onValidationChange]);
+  }, [units]);
 
   useEffect(() => {
-    validateConfiguration();
-  }, [validateConfiguration]);
+    if (onValidationChange) {
+      onValidationChange(isConfigurationValid);
+    }
+  }, [isConfigurationValid, onValidationChange]);
 
-  const handleEditUnit = (unit) => {
+  const handleEditUnit = useCallback((unit) => {
     setEditingUnit(unit);
     setIsDialogOpen(true);
-  };
+  }, []);
 
-  const handleSaveUnit = (unitData) => {
-    const updatedUnits = units.map(unit => 
-      unit.id === unitData.id ? unitData : unit
+  const handleSaveUnit = useCallback((unitData) => {
+    setUnits(prevUnits => 
+      prevUnits.map(unit => 
+        unit.id === unitData.id ? unitData : unit
+      )
     );
-    setUnits(updatedUnits);
     
-    // Add to property store
-    addUnitData(unitData);
+    if (addUnitData) {
+      addUnitData(unitData);
+    }
     
     setIsDialogOpen(false);
     setEditingUnit(null);
-  };
+  }, [addUnitData]);
 
-  const getConfiguredUnitsCount = () => {
+  const handleCloseDialog = useCallback(() => {
+    setIsDialogOpen(false);
+    setEditingUnit(null);
+  }, []);
+
+  const configuredUnitsCount = useMemo(() => {
     return units.filter(unit => unit.rent_amount > 0).length;
-  };
+  }, [units]);
 
-  const getTotalRentAmount = () => {
+  const totalRentAmount = useMemo(() => {
     return units.reduce((total, unit) => total + (unit.rent_amount || 0), 0);
-  };
+  }, [units]);
+
+  const unitsByFloor = useMemo(() => {
+    return units.reduce((acc, unit) => {
+      if (!acc[unit.floor_no]) acc[unit.floor_no] = [];
+      acc[unit.floor_no].push(unit);
+      return acc;
+    }, {});
+  }, [units]);
 
   return (
     <div className="space-y-8">
@@ -151,7 +179,7 @@ export default function UnitConfiguration({ onValidationChange }) {
             <div className="flex items-center gap-4">
               <Edit className="w-8 h-8 text-green-600" />
               <div>
-                <p className="text-2xl font-bold">{getConfiguredUnitsCount()}</p>
+                <p className="text-2xl font-bold">{configuredUnitsCount}</p>
                 <p className="text-sm text-muted-foreground">Configured Units</p>
               </div>
             </div>
@@ -163,7 +191,7 @@ export default function UnitConfiguration({ onValidationChange }) {
             <div className="flex items-center gap-4">
               <DollarSign className="w-8 h-8 text-purple-600" />
               <div>
-                <p className="text-2xl font-bold">TSh {getTotalRentAmount().toLocaleString()}</p>
+                <p className="text-2xl font-bold">TSh {totalRentAmount.toLocaleString()}</p>
                 <p className="text-sm text-muted-foreground">Total Monthly Rent</p>
               </div>
             </div>
@@ -180,19 +208,18 @@ export default function UnitConfiguration({ onValidationChange }) {
           {units.length === 0 ? (
             <div className="text-center py-8">
               <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                No units available. Please configure your floor plans first.
-              </p>
+              <div className="space-y-2">
+                <p className="text-muted-foreground">
+                  No units available. Please configure your floor plans first.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Go back to the Floor Plans step and design your layout by selecting units on the grid, then click "Save Floor Plan".
+                </p>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
-              {Object.entries(
-                units.reduce((acc, unit) => {
-                  if (!acc[unit.floor_no]) acc[unit.floor_no] = [];
-                  acc[unit.floor_no].push(unit);
-                  return acc;
-                }, {})
-              ).map(([floorNumber, floorUnits]) => (
+              {Object.entries(unitsByFloor).map(([floorNumber, floorUnits]) => (
                 <div key={floorNumber}>
                   <h4 className="font-medium text-lg mb-3">Floor {floorNumber}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -207,6 +234,9 @@ export default function UnitConfiguration({ onValidationChange }) {
                             <h5 className="font-medium">{unit.unit_name}</h5>
                             <p className="text-sm text-muted-foreground">
                               {unit.area_sqm} sqm • {unit.bedrooms} bedroom(s)
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Grid Cell: {unit.svg_id}
                             </p>
                           </div>
                           <Badge className={unitStatuses.find(s => s.value === unit.status)?.color}>
@@ -258,10 +288,7 @@ export default function UnitConfiguration({ onValidationChange }) {
       <UnitConfigDialog
         unit={editingUnit}
         isOpen={isDialogOpen}
-        onClose={() => {
-          setIsDialogOpen(false);
-          setEditingUnit(null);
-        }}
+        onClose={handleCloseDialog}
         onSave={handleSaveUnit}
       />
     </div>
@@ -274,22 +301,31 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
 
   useEffect(() => {
     if (unit) {
-      setFormData(unit);
+      setFormData({
+        ...unit,
+        utilities: unit.utilities || {
+          electricity: false,
+          water: false,
+          wifi: false
+        }
+      });
     }
   }, [unit]);
 
-  const handleSave = () => {
-    onSave(formData);
-  };
+  const handleSave = useCallback(() => {
+    if (onSave && formData.id) {
+      onSave(formData);
+    }
+  }, [formData, onSave]);
 
-  const handleChange = (field, value) => {
+  const handleChange = useCallback((field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
-  const handleUtilityChange = (utility, checked) => {
+  const handleUtilityChange = useCallback((utility, checked) => {
     setFormData(prev => ({
       ...prev,
       utilities: {
@@ -297,7 +333,7 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
         [utility]: checked
       }
     }));
-  };
+  }, []);
 
   if (!unit) return null;
 
@@ -332,7 +368,9 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
                 </SelectTrigger>
                 <SelectContent>
                   {[1, 2, 3, 4, 5].map(num => (
-                    <SelectItem key={num} value={num.toString()}>{num} Bedroom{num > 1 ? 's' : ''}</SelectItem>
+                    <SelectItem key={num} value={num.toString()}>
+                      {num} Bedroom{num > 1 ? 's' : ''}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -344,7 +382,7 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
                 id="area"
                 type="number"
                 value={formData.area_sqm || ''}
-                onChange={(e) => handleChange('area_sqm', parseFloat(e.target.value))}
+                onChange={(e) => handleChange('area_sqm', parseFloat(e.target.value) || 0)}
                 placeholder="150"
               />
             </div>
@@ -377,7 +415,7 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
                 id="rent_amount"
                 type="number"
                 value={formData.rent_amount || ''}
-                onChange={(e) => handleChange('rent_amount', parseFloat(e.target.value))}
+                onChange={(e) => handleChange('rent_amount', parseFloat(e.target.value) || 0)}
                 placeholder="500000"
               />
             </div>
@@ -465,12 +503,12 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
         <div className="flex gap-2 justify-end">
           <Button variant="outline" onClick={onClose}>
             Cancel
-            </Button>
-         <Button onClick={handleSave}>
-           Save Unit
-         </Button>
-       </div>
-     </DialogContent>
-   </Dialog>
- );
+          </Button>
+          <Button onClick={handleSave}>
+            Save Unit
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

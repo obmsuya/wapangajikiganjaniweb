@@ -1,7 +1,7 @@
 // components/landlord/properties/PropertySummary.jsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
   Building2, 
@@ -18,20 +18,67 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { usePropertyCreation } from "@/hooks/properties/useProperties";
 import customToast from "@/components/ui/custom-toast";
 
-export default function PropertySummary({ onComplete }) {
-  const { 
-    propertyData, 
-    floorData, 
-    units, 
-    saveProperty, 
-    totalUnits,
-    isLoading 
-  } = usePropertyCreation();
-
+export default function PropertySummary({ 
+  onComplete, 
+  propertyData, 
+  floorData, 
+  saveProperty,
+  isLoading 
+}) {
   const [validationIssues, setValidationIssues] = useState([]);
+
+  // Generate units from floorData (similar to UnitConfiguration)
+  const units = useMemo(() => {
+    if (!floorData || typeof floorData !== 'object') {
+      return [];
+    }
+
+    const generatedUnits = [];
+    
+    Object.entries(floorData).forEach(([floorNumber, floor]) => {
+      if (floor && floor.units_ids && Array.isArray(floor.units_ids) && floor.units_ids.length > 0) {
+        floor.units_ids.forEach((gridCellId, index) => {
+          const unitId = `${floorNumber}-${gridCellId}`;
+          
+          const unitData = {
+            id: unitId,
+            svg_id: gridCellId,
+            floor_no: parseInt(floorNumber),
+            unit_name: `Floor${floorNumber}-Unit${index + 1}`,
+            area_sqm: 150,
+            bedrooms: 1,
+            status: 'vacant',
+            rent_amount: 0, // Default, should be configured
+            payment_freq: 'monthly',
+            meter_number: '',
+            utilities: {
+              electricity: false,
+              water: false,
+              wifi: false
+            },
+            included_in_rent: false,
+            cost_allocation: 'tenant',
+            notes: '',
+            floor_number: parseInt(floorNumber) - 1,
+            svg_geom: `<rect width="40" height="40" x="0" y="0" id="unit-${gridCellId}" fill="green" stroke="gray" stroke-width="2" />`,
+            block: propertyData.block || 'A'
+          };
+          
+          generatedUnits.push(unitData);
+        });
+      }
+    });
+    
+    return generatedUnits;
+  }, [floorData, propertyData.block]);
+
+  const totalUnits = useMemo(() => {
+    return Object.values(floorData || {}).reduce((total, floor) => {
+      return total + (floor?.units_total || 0);
+    }, 0);
+  }, [floorData]);
 
   useEffect(() => {
     validatePropertyData();
@@ -52,7 +99,7 @@ export default function PropertySummary({ onComplete }) {
     }
 
     // Floor plan validation
-    if (Object.keys(floorData).length === 0) {
+    if (Object.keys(floorData || {}).length === 0) {
       issues.push("At least one floor plan is required");
     }
 
@@ -147,7 +194,7 @@ export default function PropertySummary({ onComplete }) {
               {propertyData.prop_image && (
                 <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-100">
                   <img
-                    src={propertyData.prop_image.uri}
+                    src={propertyData.prop_image.uri || propertyData.prop_image}
                     alt="Property"
                     className="w-full h-full object-cover"
                   />
@@ -237,7 +284,7 @@ export default function PropertySummary({ onComplete }) {
 
               {/* Floor Breakdown */}
               <div className="space-y-3">
-                {Object.entries(floorData).map(([floorNumber, floor]) => (
+                {Object.entries(floorData || {}).map(([floorNumber, floor]) => (
                   <div key={floorNumber} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <span className="font-medium">Floor {floorNumber}</span>

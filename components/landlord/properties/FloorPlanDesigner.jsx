@@ -1,131 +1,141 @@
 // components/landlord/properties/FloorPlanDesigner.jsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Grid3X3, RotateCcw, Trash2, Eye, Plus } from "lucide-react";
+import { Grid3X3, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { usePropertyCreation, useFloorPlan } from "@/hooks/properties/useProperties";
+import { useFloorPlan } from "@/hooks/properties/useProperties";
 
 const GRID_SIZE = 8;
 const CELL_SIZE = 40;
 
-export default function FloorPlanDesigner({ onValidationChange }) {
-  const { propertyData, updateFloorData } = usePropertyCreation();
+export default function FloorPlanDesigner({ 
+  onValidationChange, 
+  propertyData, 
+  floorData, 
+  updateFloorData 
+}) {
   const {
     selectedUnits,
     currentFloor,
-    floorData,
     setCurrentFloor,
     toggleUnit,
     clearSelection,
     saveFloorPlan,
     generateSVGString
-  } = useFloorPlan();
+  } = useFloorPlan(updateFloorData, floorData);
 
   const [errors, setErrors] = useState({});
   const [previewMode, setPreviewMode] = useState(false);
 
-  // Generate floor numbers based on property type
-  const getFloorNumbers = () => {
-    const floors = [];
+  const floors = useMemo(() => {
+    if (!propertyData?.total_floors) return [];
+    
+    const floorNumbers = [];
     for (let i = 1; i <= propertyData.total_floors; i++) {
-      floors.push(i);
+      floorNumbers.push(i);
     }
-    return floors;
-  };
+    return floorNumbers;
+  }, [propertyData?.total_floors]);
 
-  const floors = getFloorNumbers();
-
-  const validateFloorPlan = useCallback(() => {
+  const isFloorPlanValid = useMemo(() => {
     const newErrors = {};
     let hasValidFloor = false;
 
-    // Check if at least one floor has units
-    floors.forEach(floorNum => {
-      const floor = floorData[floorNum];
-      if (floor && floor.units_total > 0) {
-        hasValidFloor = true;
+    if (floors.length > 0) {
+      floors.forEach(floorNum => {
+        const floor = floorData?.[floorNum];
+        if (floor && floor.units_total > 0) {
+          hasValidFloor = true;
+        }
+      });
+
+      if (!hasValidFloor) {
+        newErrors.floors = 'Please add at least one unit to any floor';
       }
-    });
-
-    if (!hasValidFloor) {
-      newErrors.floors = 'Please add at least one unit to any floor';
-    }
-
-    // Check current floor has units if it's been worked on
-    if (selectedUnits.length === 0 && floorData[currentFloor]) {
-      newErrors.currentFloor = `Floor ${currentFloor} needs at least one unit`;
+    } else {
+      newErrors.floors = 'Property must have at least one floor';
     }
 
     setErrors(newErrors);
-    const isValid = Object.keys(newErrors).length === 0 && hasValidFloor;
-    onValidationChange?.(isValid);
-    return isValid;
-  }, [floors, floorData, selectedUnits, currentFloor, onValidationChange]);
+    return Object.keys(newErrors).length === 0 && hasValidFloor;
+  }, [floors, floorData]);
 
   useEffect(() => {
-    validateFloorPlan();
-  }, [validateFloorPlan]);
+    if (onValidationChange) {
+      onValidationChange(isFloorPlanValid);
+    }
+  }, [isFloorPlanValid, onValidationChange]);
 
-  const handleCellClick = (cellIndex) => {
-    if (previewMode) return;
+  const handleCellClick = useCallback((cellIndex) => {
+    if (previewMode || !toggleUnit) return;
     toggleUnit(cellIndex);
-  };
+  }, [previewMode, toggleUnit]);
 
-  const handleSaveCurrentFloor = () => {
-    if (selectedUnits.length === 0) {
+  const handleSaveCurrentFloor = useCallback(() => {
+    if (!selectedUnits || selectedUnits.length === 0) {
       setErrors(prev => ({ ...prev, currentFloor: 'Please select at least one unit' }));
       return;
     }
 
-    const svgString = generateSVGString(selectedUnits);
-    const floorPlanData = {
-      floor_number: currentFloor,
-      units_ids: selectedUnits,
-      units_total: selectedUnits.length,
-      layout_data: svgString,
-      area: selectedUnits.length * 150 // Approximate area calculation
-    };
+    try {
+      const svgString = generateSVGString(selectedUnits);
+      const floorPlanData = {
+        floor_number: currentFloor,
+        units_ids: [...selectedUnits],
+        units_total: selectedUnits.length,
+        layout_data: svgString,
+        area: selectedUnits.length * 150
+      };
 
-    saveFloorPlan(currentFloor, floorPlanData);
-    updateFloorData(currentFloor, floorPlanData);
+      saveFloorPlan(currentFloor, floorPlanData);
+      
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.currentFloor;
+        return newErrors;
+      });
+      
+    } catch (error) {
+      console.error('Error saving floor plan:', error);
+      setErrors(prev => ({ 
+        ...prev, 
+        currentFloor: 'Failed to save floor plan. Please try again.' 
+      }));
+    }
+  }, [selectedUnits, currentFloor, generateSVGString, saveFloorPlan]);
+
+  const handleFloorChange = useCallback((floorNumber) => {
+    if (!setCurrentFloor) return;
+
+    const currentFloorData = floorData?.[currentFloor];
+    const hasUnsavedChanges = selectedUnits && selectedUnits.length > 0 && !currentFloorData;
     
-    setErrors(prev => ({ ...prev, currentFloor: null }));
-  };
-
-  const handleFloorChange = (floorNumber) => {
-    // Save current floor before switching
-    if (selectedUnits.length > 0 && !floorData[currentFloor]) {
+    if (hasUnsavedChanges) {
       handleSaveCurrentFloor();
     }
     
     setCurrentFloor(floorNumber);
+  }, [selectedUnits, currentFloor, floorData, setCurrentFloor, handleSaveCurrentFloor]);
+
+  const handleClearFloor = useCallback(() => {
+    if (!clearSelection) return;
     
-    // Load existing floor data if available
-    const existingFloor = floorData[floorNumber];
-    if (existingFloor && existingFloor.units_ids) {
-      // This would need to be handled by the hook
-      clearSelection();
-      existingFloor.units_ids.forEach(unitId => {
-        // Add units back to selection
-      });
-    } else {
-      clearSelection();
-    }
-  };
-
-  const handleClearFloor = () => {
     clearSelection();
-    setErrors(prev => ({ ...prev, currentFloor: null }));
-  };
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.currentFloor;
+      return newErrors;
+    });
+  }, [clearSelection]);
 
-  const generateGrid = () => {
+  const gridCells = useMemo(() => {
     const cells = [];
     for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
-      const isSelected = selectedUnits.includes(i);
+      const isSelected = selectedUnits?.includes(i) || false;
       const x = (i % GRID_SIZE) * CELL_SIZE;
       const y = Math.floor(i / GRID_SIZE) * CELL_SIZE;
 
@@ -158,11 +168,39 @@ export default function FloorPlanDesigner({ onValidationChange }) {
       );
     }
     return cells;
-  };
+  }, [selectedUnits, previewMode, handleCellClick]);
 
-  const getTotalUnits = () => {
-    return Object.values(floorData).reduce((total, floor) => total + (floor.units_total || 0), 0);
-  };
+  const totalUnits = useMemo(() => {
+    if (!floorData || typeof floorData !== 'object') return 0;
+    return Object.values(floorData).reduce((total, floor) => {
+      return total + (floor?.units_total || 0);
+    }, 0);
+  }, [floorData]);
+
+  const configuredFloorsCount = useMemo(() => {
+    if (!floorData || typeof floorData !== 'object') return 0;
+    return Object.keys(floorData).length;
+  }, [floorData]);
+
+  if (!floors.length) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Floor Plan Design</h2>
+          <p className="text-muted-foreground">
+            Design the layout for each floor by selecting units on the grid
+          </p>
+        </div>
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">
+              Please configure your property details first to set the number of floors.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -196,15 +234,15 @@ export default function FloorPlanDesigner({ onValidationChange }) {
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Floor {floorNum}</span>
-                    {floorData[floorNum] && (
+                    {floorData?.[floorNum] && (
                       <Badge variant="secondary">
                         {floorData[floorNum].units_total} units
                       </Badge>
                     )}
                   </div>
-                  {floorData[floorNum] && (
+                  {floorData?.[floorNum] && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Configured
+                      Configured ✓
                     </p>
                   )}
                 </motion.button>
@@ -221,23 +259,23 @@ export default function FloorPlanDesigner({ onValidationChange }) {
               <div>
                 <p className="text-sm text-muted-foreground">Selected Units</p>
                 <p className="text-2xl font-bold text-primary-600">
-                  {selectedUnits.length}
+                  {selectedUnits?.length || 0}
                 </p>
               </div>
               
               <div className="space-y-2">
                 <Button
                   onClick={handleSaveCurrentFloor}
-                  disabled={selectedUnits.length === 0}
+                  disabled={!selectedUnits || selectedUnits.length === 0}
                   className="w-full"
-                  variant={selectedUnits.length > 0 ? "default" : "outline"}
+                  variant={selectedUnits && selectedUnits.length > 0 ? "default" : "outline"}
                 >
                   Save Floor Plan
                 </Button>
                 
                 <Button
                   onClick={handleClearFloor}
-                  disabled={selectedUnits.length === 0}
+                  disabled={!selectedUnits || selectedUnits.length === 0}
                   variant="outline"
                   className="w-full"
                 >
@@ -274,13 +312,13 @@ export default function FloorPlanDesigner({ onValidationChange }) {
                 <div className="flex justify-between">
                   <span>Configured Floors:</span>
                   <span className="font-medium">
-                    {Object.keys(floorData).length}
+                    {configuredFloorsCount}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Total Units:</span>
                   <span className="font-medium text-primary-600">
-                    {getTotalUnits()}
+                    {totalUnits}
                   </span>
                 </div>
               </div>
@@ -327,7 +365,7 @@ export default function FloorPlanDesigner({ onValidationChange }) {
                       height: GRID_SIZE * CELL_SIZE
                     }}
                   >
-                    {generateGrid()}
+                    {gridCells}
                   </div>
                 </div>
 
@@ -362,7 +400,7 @@ export default function FloorPlanDesigner({ onValidationChange }) {
           <ul className="text-sm text-blue-800 space-y-1">
             <li>• Select different floors using the tabs on the left</li>
             <li>• Click on grid cells to add/remove units for the current floor</li>
-            <li>• Save each floor before moving to the next one</li>
+            <li>• **IMPORTANT**: Save each floor before moving to the next one</li>
             <li>• Use preview mode to see how your layout will look</li>
             <li>• Each selected cell represents one rental unit</li>
           </ul>

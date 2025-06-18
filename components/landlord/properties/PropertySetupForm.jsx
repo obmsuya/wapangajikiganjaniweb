@@ -23,9 +23,11 @@ const steps = [
 ];
 
 export default function PropertySetupForm({ onComplete, onCancel }) {
+  // Get ALL needed data and functions from the hook
   const {
     currentStep,
     propertyData,
+    floorData,
     isLoading,
     error,
     nextStep,
@@ -34,7 +36,10 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
     saveProperty,
     resetForm,
     totalUnits,
-    maxSteps
+    maxSteps,
+    updatePropertyData,
+    updateFloorData,
+    addUnitData
   } = usePropertyCreation();
 
   const [canProceed, setCanProceed] = useState(false);
@@ -67,8 +72,8 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
   };
 
   const renderStepContent = () => {
-    const stepProps = {
-      propertyData,
+    // Pass ALL the needed props to each component
+    const baseProps = {
       onValidationChange: setCanProceed,
       onNext: handleNext,
       onPrevious: handlePrevious
@@ -76,17 +81,58 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
 
     switch (currentStep) {
       case 1:
-        return <PropertyBasicInfo {...stepProps} />;
+        return (
+          <PropertyBasicInfo 
+            {...baseProps}
+            propertyData={propertyData}
+            updatePropertyData={updatePropertyData}
+          />
+        );
       case 2:
-        return <PropertyTypeSelection {...stepProps} />;
+        return (
+          <PropertyTypeSelection 
+            {...baseProps}
+            propertyData={propertyData}
+            updatePropertyData={updatePropertyData}
+          />
+        );
       case 3:
-        return <FloorPlanDesigner {...stepProps} />;
+        return (
+          <FloorPlanDesigner 
+            {...baseProps}
+            propertyData={propertyData}
+            floorData={floorData}
+            updateFloorData={updateFloorData}
+          />
+        );
       case 4:
-        return <UnitConfiguration {...stepProps} />;
+        return (
+          <UnitConfiguration 
+            {...baseProps}
+            propertyData={propertyData}
+            floorData={floorData}
+            addUnitData={addUnitData}
+          />
+        );
       case 5:
-        return <PropertySummary {...stepProps} onComplete={handleComplete} />;
+        return (
+          <PropertySummary 
+            {...baseProps}
+            propertyData={propertyData}
+            floorData={floorData}
+            saveProperty={saveProperty}
+            isLoading={isLoading}
+            onComplete={handleComplete}
+          />
+        );
       default:
-        return <PropertyBasicInfo {...stepProps} />;
+        return (
+          <PropertyBasicInfo 
+            {...baseProps}
+            propertyData={propertyData}
+            updatePropertyData={updatePropertyData}
+          />
+        );
     }
   };
 

@@ -25,7 +25,7 @@ export function usePropertyCreation() {
     category: 'Single Floor',
     total_floors: 1,
     
-    // Step 3: Floor Plans
+    // Step 3: Floor Plans - THIS IS THE KEY STATE
     floors: {},
     
     // Step 4: Unit Details
@@ -46,6 +46,7 @@ export function usePropertyCreation() {
   }, []);
 
   const updateFloorData = useCallback((floorNumber, floorData) => {
+    console.log('Updating floor data:', floorNumber, floorData); // Debug log
     setPropertyData(prev => ({
       ...prev,
       floors: {
@@ -56,10 +57,14 @@ export function usePropertyCreation() {
   }, []);
 
   const addUnitData = useCallback((unitData) => {
-    setPropertyData(prev => ({
-      ...prev,
-      units: [...prev.units, unitData]
-    }));
+    setPropertyData(prev => {
+      // Remove existing unit with same ID and add updated one
+      const filteredUnits = prev.units.filter(unit => unit.id !== unitData.id);
+      return {
+        ...prev,
+        units: [...filteredUnits, unitData]
+      };
+    });
   }, []);
 
   const getTotalUnits = useCallback(() => {
@@ -166,10 +171,16 @@ export function usePropertyCreation() {
     setError(null);
   }, []);
 
+  // Debug: Log floor data changes
+  useEffect(() => {
+    console.log('Property floors updated:', propertyData.floors);
+  }, [propertyData.floors]);
+
   return {
     // State
     currentStep,
     propertyData,
+    floorData: propertyData.floors, // Expose floor data directly
     isLoading,
     error,
     
@@ -186,6 +197,86 @@ export function usePropertyCreation() {
     // Computed
     totalUnits: getTotalUnits(),
     maxSteps: 5
+  };
+}
+
+/**
+ * Hook for floor plan management - INTEGRATED WITH MAIN PROPERTY STATE
+ * @param {Function} updateFloorData - Function to update main property state
+ * @param {Object} existingFloorData - Existing floor data from main state
+ * @returns {Object} Floor plan state and management functions
+ */
+export function useFloorPlan(updateFloorData, existingFloorData = {}) {
+  const [selectedUnits, setSelectedUnits] = useState([]);
+  const [currentFloor, setCurrentFloor] = useState(1);
+
+  // Load existing floor data when floor changes
+  useEffect(() => {
+    const floorData = existingFloorData[currentFloor];
+    if (floorData && floorData.units_ids) {
+      setSelectedUnits(floorData.units_ids);
+    } else {
+      setSelectedUnits([]);
+    }
+  }, [currentFloor, existingFloorData]);
+
+  const addUnit = useCallback((unitId) => {
+    setSelectedUnits(prev => [...prev, unitId]);
+  }, []);
+
+  const removeUnit = useCallback((unitId) => {
+    setSelectedUnits(prev => prev.filter(id => id !== unitId));
+  }, []);
+
+  const toggleUnit = useCallback((unitId) => {
+    setSelectedUnits(prev => 
+      prev.includes(unitId) 
+        ? prev.filter(id => id !== unitId)
+        : [...prev, unitId]
+    );
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedUnits([]);
+  }, []);
+
+  const saveFloorPlan = useCallback((floor, data) => {
+    const floorPlanData = {
+      ...data,
+      units_ids: selectedUnits,
+      units_total: selectedUnits.length
+    };
+    
+    console.log('Saving floor plan:', floor, floorPlanData); // Debug log
+    
+    // Update the main property state immediately
+    if (updateFloorData) {
+      updateFloorData(floor, floorPlanData);
+    }
+  }, [selectedUnits, updateFloorData]);
+
+  const generateSVGString = useCallback((units) => {
+    const GRID_SIZE = 8;
+    const CELL_SIZE = 40;
+    const svgRects = units.map(unitIndex => {
+      const x = (unitIndex % GRID_SIZE) * CELL_SIZE;
+      const y = Math.floor(unitIndex / GRID_SIZE) * CELL_SIZE;
+      return `<rect width="${CELL_SIZE}" height="${CELL_SIZE}" x="${x}" y="${y}" id="unit-${unitIndex}" fill="#2B4B80" stroke="white" stroke-width="2" />`;
+    }).join('');
+    return `<svg width="${GRID_SIZE * CELL_SIZE}" height="${GRID_SIZE * CELL_SIZE}" xmlns="http://www.w3.org/2000/svg">${svgRects}</svg>`;
+  }, []);
+
+  return {
+    selectedUnits,
+    currentFloor,
+    floorData: existingFloorData, // Return the actual floor data from main state
+    setCurrentFloor,
+    addUnit,
+    removeUnit,
+    toggleUnit,
+    clearSelection,
+    saveFloorPlan,
+    generateSVGString
   };
 }
 
@@ -282,70 +373,5 @@ export function usePropertyDetails(propertyId) {
     loading,
     error,
     refreshProperty
-  };
-}
-
-/**
- * Hook for floor plan management
- * @returns {Object} Floor plan state and management functions
- */
-export function useFloorPlan() {
-  const [selectedUnits, setSelectedUnits] = useState([]);
-  const [currentFloor, setCurrentFloor] = useState(1);
-  const [floorData, setFloorData] = useState({});
-
-  const addUnit = useCallback((unitId) => {
-    setSelectedUnits(prev => [...prev, unitId]);
-  }, []);
-
-  const removeUnit = useCallback((unitId) => {
-    setSelectedUnits(prev => prev.filter(id => id !== unitId));
-  }, []);
-
-  const toggleUnit = useCallback((unitId) => {
-    setSelectedUnits(prev => 
-      prev.includes(unitId) 
-        ? prev.filter(id => id !== unitId)
-        : [...prev, unitId]
-    );
-  }, []);
-
-  const clearSelection = useCallback(() => {
-    setSelectedUnits([]);
-  }, []);
-
-  const saveFloorPlan = useCallback((floor, data) => {
-    setFloorData(prev => ({
-      ...prev,
-      [floor]: {
-        ...data,
-        units_ids: selectedUnits,
-        units_total: selectedUnits.length
-      }
-    }));
-  }, [selectedUnits]);
-
-  const generateSVGString = useCallback((units) => {
-    const GRID_SIZE = 8;
-    const CELL_SIZE = 40;
-    const svgRects = units.map(unitIndex => {
-      const x = (unitIndex % GRID_SIZE) * CELL_SIZE;
-      const y = Math.floor(unitIndex / GRID_SIZE) * CELL_SIZE;
-      return `<rect width="${CELL_SIZE}" height="${CELL_SIZE}" x="${x}" y="${y}" fill="#2B4B80" stroke="white" stroke-width="2" />`;
-    }).join('');
-    return `<svg width="${GRID_SIZE * CELL_SIZE}" height="${GRID_SIZE * CELL_SIZE}" xmlns="http://www.w3.org/2000/svg">${svgRects}</svg>`;
-  }, []);
-
-  return {
-    selectedUnits,
-    currentFloor,
-    floorData,
-    setCurrentFloor,
-    addUnit,
-    removeUnit,
-    toggleUnit,
-    clearSelection,
-    saveFloorPlan,
-    generateSVGString
   };
 }
