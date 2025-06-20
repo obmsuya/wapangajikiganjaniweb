@@ -28,8 +28,8 @@ export function usePropertyCreation() {
     // Step 3: Floor Plans - THIS IS THE KEY STATE
     floors: {},
     
-    // Step 4: Unit Details
-    units: [],
+    // Step 4: Unit Details - CONFIGURED UNITS STATE
+    units: {},
     
     // Additional fields
     owner: '',
@@ -57,15 +57,20 @@ export function usePropertyCreation() {
   }, []);
 
   const addUnitData = useCallback((unitData) => {
-    setPropertyData(prev => {
-      // Remove existing unit with same ID and add updated one
-      const filteredUnits = prev.units.filter(unit => unit.id !== unitData.id);
-      return {
-        ...prev,
-        units: [...filteredUnits, unitData]
-      };
-    });
+    console.log('Adding/updating unit data:', unitData); // Debug log
+    setPropertyData(prev => ({
+      ...prev,
+      units: {
+        ...prev.units,
+        [unitData.id]: unitData
+      }
+    }));
   }, []);
+
+  // Get configured units as an array
+  const getConfiguredUnits = useCallback(() => {
+    return Object.values(propertyData.units);
+  }, [propertyData.units]);
 
   const getTotalUnits = useCallback(() => {
     return Object.values(propertyData.floors).reduce(
@@ -91,6 +96,8 @@ export function usePropertyCreation() {
     setError(null);
     
     try {
+      const configuredUnits = getConfiguredUnits();
+      
       // Format data to match backend expectations
       const formattedData = {
         owner: propertyData.owner,
@@ -107,7 +114,7 @@ export function usePropertyCreation() {
         floors: Object.keys(propertyData.floors).map((floorKey) => {
           const floor = parseInt(floorKey);
           const floorPlan = propertyData.floors[floor];
-          const floorUnits = propertyData.units.filter(unit => unit.floor_no === floor);
+          const floorUnits = configuredUnits.filter(unit => unit.floor_no === floor);
           
           return {
             floor: {
@@ -142,6 +149,7 @@ export function usePropertyCreation() {
         })
       };
 
+      console.log('Saving property with data:', formattedData); // Debug log
       const response = await PropertyService.createProperty(formattedData);
       return response;
     } catch (err) {
@@ -150,7 +158,7 @@ export function usePropertyCreation() {
     } finally {
       setIsLoading(false);
     }
-  }, [propertyData, getTotalUnits]);
+  }, [propertyData, getTotalUnits, getConfiguredUnits]);
 
   const resetForm = useCallback(() => {
     setPropertyData({
@@ -161,7 +169,7 @@ export function usePropertyCreation() {
       category: 'Single Floor',
       total_floors: 1,
       floors: {},
-      units: [],
+      units: {},
       owner: '',
       total_area: 300,
       total_units: 0,
@@ -171,16 +179,21 @@ export function usePropertyCreation() {
     setError(null);
   }, []);
 
-  // Debug: Log floor data changes
+  // Debug: Log state changes
   useEffect(() => {
-    console.log('Property floors updated:', propertyData.floors);
-  }, [propertyData.floors]);
+    console.log('Property state updated:', {
+      floors: Object.keys(propertyData.floors),
+      units: Object.keys(propertyData.units),
+      totalUnits: getTotalUnits()
+    });
+  }, [propertyData.floors, propertyData.units, getTotalUnits]);
 
   return {
     // State
     currentStep,
     propertyData,
     floorData: propertyData.floors, // Expose floor data directly
+    configuredUnits: getConfiguredUnits(), // Expose configured units
     isLoading,
     error,
     

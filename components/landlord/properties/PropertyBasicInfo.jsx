@@ -7,13 +7,22 @@ import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { usePropertyCreation } from "@/hooks/properties/useProperties";
 
-export default function PropertyBasicInfo({ onValidationChange }) {
-  const { propertyData, updatePropertyData } = usePropertyCreation();
+export default function PropertyBasicInfo({ 
+  onValidationChange, 
+  propertyData, 
+  updatePropertyData 
+}) {
   const [dragActive, setDragActive] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
+
+  // Initialize image preview from existing data
+  useEffect(() => {
+    if (propertyData.prop_image?.uri) {
+      setImagePreview(propertyData.prop_image.uri);
+    }
+  }, [propertyData.prop_image]);
 
   const validateForm = useCallback(() => {
     const newErrors = {};

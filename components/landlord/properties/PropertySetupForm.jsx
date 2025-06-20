@@ -28,6 +28,7 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
     currentStep,
     propertyData,
     floorData,
+    configuredUnits,
     isLoading,
     error,
     nextStep,
@@ -120,6 +121,7 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
             {...baseProps}
             propertyData={propertyData}
             floorData={floorData}
+            configuredUnits={configuredUnits}
             saveProperty={saveProperty}
             isLoading={isLoading}
             onComplete={handleComplete}

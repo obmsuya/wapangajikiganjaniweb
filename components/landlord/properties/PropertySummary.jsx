@@ -24,15 +24,16 @@ export default function PropertySummary({
   onComplete, 
   propertyData, 
   floorData, 
+  configuredUnits = [],
   saveProperty,
   isLoading 
 }) {
   const [validationIssues, setValidationIssues] = useState([]);
 
-  // Generate units from floorData (similar to UnitConfiguration)
+  // Merge configured units with generated units from floorData
   const units = useMemo(() => {
     if (!floorData || typeof floorData !== 'object') {
-      return [];
+      return configuredUnits;
     }
 
     const generatedUnits = [];
@@ -42,7 +43,10 @@ export default function PropertySummary({
         floor.units_ids.forEach((gridCellId, index) => {
           const unitId = `${floorNumber}-${gridCellId}`;
           
-          const unitData = {
+          // Check if this unit has been configured
+          const configuredUnit = configuredUnits.find(unit => unit.id === unitId);
+          
+          const unitData = configuredUnit || {
             id: unitId,
             svg_id: gridCellId,
             floor_no: parseInt(floorNumber),
@@ -72,7 +76,7 @@ export default function PropertySummary({
     });
     
     return generatedUnits;
-  }, [floorData, propertyData.block]);
+  }, [floorData, configuredUnits]);
 
   const totalUnits = useMemo(() => {
     return Object.values(floorData || {}).reduce((total, floor) => {
