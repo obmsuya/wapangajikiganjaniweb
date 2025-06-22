@@ -1,10 +1,50 @@
-// app/(dashboard)/layout.jsx
-import { CustomSidebar } from "@/components/custom-sidebar";
+"use client";
 
-export default function DashboardLayout({ children }) { 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CustomSidebar } from "@/components/custom-sidebar";
+import AuthService from "@/services/auth";
+
+export default function DashboardLayout({ children }) {
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          router.push('/login');
+          return;
+        }
+
+        const userData = await AuthService.getCurrentUser();
+        if (!userData) {
+          router.push('/login');
+          return;
+        }
+
+        setUser(userData);
+      } catch (error) {
+        router.push('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!user) return null;
+
   return (
     <div className="flex h-screen overflow-hidden">
-      <CustomSidebar role="admin" />
+      <CustomSidebar role={user.user_type === 'landlord' ? 'landlord' : 'admin'} user={user} />
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto p-4 md:p-6">
           {children}

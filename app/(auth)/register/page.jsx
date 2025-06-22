@@ -1,4 +1,4 @@
-// app/(auth)/register/page.jsx
+// app/(auth)/register/page.jsx - FIXED VERSION
 "use client";
 
 import { useState } from "react";
@@ -382,6 +382,7 @@ export default function RegisterPage() {
                     <Button 
                       type="submit" 
                       className="w-full h-12 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                      isLoading={isLoading}
                       disabled={isLoading}
                     >
                       {isLoading ? "Creating Account..." : "Create Account"}

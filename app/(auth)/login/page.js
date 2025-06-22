@@ -75,7 +75,7 @@ export default function LoginPage() {
             router.push("/admin/dashboard");
             break;
           case 'landlord':
-            router.push("/landlord/dashboard");
+            router.push("/landlord/properties");
             break;
           case 'manager':
             router.push("/manager/dashboard");

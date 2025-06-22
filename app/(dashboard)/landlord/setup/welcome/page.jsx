@@ -40,11 +40,11 @@ export default function WelcomePage() {
   const router = useRouter();
 
   const handleGetStarted = () => {
-    router.push("/landlord/properties/setup");
+    router.push("/landlord/setup");
   };
 
   const handleSkipSetup = () => {
-    router.push("/landlord/dashboard");
+    router.push("/landlord/properties");
   };
 
   return (
