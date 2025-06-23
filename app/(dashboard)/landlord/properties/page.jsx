@@ -10,7 +10,6 @@ import { CloudflareCard } from "@/components/cloudflare/Card";
 import { CloudflarePageHeader } from "@/components/cloudflare/Breadcrumbs";
 import { useDashboard } from "@/hooks/landlord/useDashboard";
 import PropertyCard from "@/components/landlord/properties/PropertyCard";
-import PropertyDetailsDialog from "@/components/landlord/properties/PropertyDetailsDialog";
 
 export default function PropertiesPage() {
   const router = useRouter();
@@ -20,11 +19,9 @@ export default function PropertiesPage() {
     loading, 
     error, 
     searchProperties, 
-    refreshDashboard,
-    getPropertyDetails
+    refreshDashboard
   } = useDashboard();
   
-  const [selectedProperty, setSelectedProperty] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Handle search with debounce
@@ -42,27 +39,10 @@ export default function PropertiesPage() {
     setSearchTerm(e.target.value);
   };
 
-  const handlePropertyClick = (property) => {
-    setSelectedProperty(property);
+  const handleNavigateToSetup = () => {
+    // Navigate to property setup - adjust route as needed
+    window.location.href = "/landlord/setup";
   };
-
-  const handleCloseDetails = () => {
-    setSelectedProperty(null);
-  };
-
-  const handlePropertyUpdated = () => {
-    // Refresh the dashboard data when property is updated
-    refreshDashboard();
-    // Re-fetch the specific property data if it's currently selected
-    if (selectedProperty) {
-      // You might want to refetch the selected property data here
-      // to show the most up-to-date information
-    }
-  };
-
-const handleNavigateToSetup = () => {
-  router.push("/landlord/setup");
-};
 
   const stats = dashboardStats || {
     totalProperties: 0,
@@ -201,7 +181,6 @@ const handleNavigateToSetup = () => {
               <PropertyCard
                 key={property.id}
                 property={property}
-                onClick={() => handlePropertyClick(property)}
               />
             ))}
           </div>
@@ -214,16 +193,6 @@ const handleNavigateToSetup = () => {
               Found {properties.length} propert{properties.length === 1 ? 'y' : 'ies'} matching "{searchTerm}"
             </p>
           </div>
-        )}
-
-        {/* Property Details Dialog */}
-        {selectedProperty && (
-          <PropertyDetailsDialog
-            property={selectedProperty}
-            isOpen={!!selectedProperty}
-            onClose={handleCloseDetails}
-            onPropertyUpdated={handlePropertyUpdated}
-          />
         )}
       </div>
     </div>

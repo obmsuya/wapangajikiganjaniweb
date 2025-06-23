@@ -37,7 +37,7 @@ export default function PropertySetupPage() {
     
     setIsExiting(true);
     setTimeout(() => {
-      router.push("/landlord/dashboard");
+      router.push("/landlord/properties");
     }, 300);
   };
 

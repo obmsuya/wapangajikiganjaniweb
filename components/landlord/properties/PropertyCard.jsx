@@ -1,99 +1,193 @@
 // components/landlord/properties/PropertyCard.jsx
 "use client";
 
-import { MapPin, Home, Users, DollarSign, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { 
+  Building2, 
+  MapPin, 
+  Users, 
+  DollarSign, 
+  Home,
+  Eye,
+  TrendingUp
+} from "lucide-react";
 import { CloudflareCard } from "@/components/cloudflare/Card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-export default function PropertyCard({ property, onClick }) {
-  const stats = property.stats || {};
-  const occupancyRate = stats.occupancyRate || 0;
-  const monthlyRevenue = stats.monthlyRevenue || 0;
+export default function PropertyCard({ property }) {
+  const router = useRouter();
+  const [imageError, setImageError] = useState(false);
+
+  if (!property) return null;
+
+  // Calculate property statistics
+  const totalUnits = property.units?.length || 0;
+  const occupiedUnits = property.units?.filter(unit => unit.current_tenant)?.length || 0;
+  const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+  
+  // Calculate monthly revenue from occupied units
+  const monthlyRevenue = property.units?.reduce((total, unit) => {
+    if (unit.current_tenant && unit.current_tenant.rent_amount) {
+      return total + parseFloat(unit.current_tenant.rent_amount);
+    }
+    return total;
+  }, 0) || 0;
+
+  // Get property image
+  const propertyImage = property.images?.[0]?.image_url || property.prop_image;
+
+  const handleCardClick = () => {
+    router.push(`/landlord/properties/${property.id}`);
+  };
+
+  const handleViewDetails = (e) => {
+    e.stopPropagation();
+    router.push(`/landlord/properties/${property.id}`);
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
 
   const getOccupancyColor = (rate) => {
-    if (rate >= 90) return "bg-green-100 text-green-800";
-    if (rate >= 70) return "bg-yellow-100 text-yellow-800";
-    return "bg-red-100 text-red-800";
+    if (rate >= 80) return "bg-green-100 text-green-800 border-green-200";
+    if (rate >= 50) return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    return "bg-red-100 text-red-800 border-red-200";
   };
 
   return (
     <CloudflareCard 
-      className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
-      onClick={onClick}
+      className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-slate-200 overflow-hidden"
+      onClick={handleCardClick}
     >
       {/* Property Image */}
-      <div className="relative h-48 bg-gray-200 rounded-t-lg overflow-hidden">
-        {property.prop_image ? (
+      <div className="relative h-52 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
+        {propertyImage && !imageError ? (
           <img
-            src={property.prop_image}
-            alt={property.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            src={propertyImage}
+            alt={property.name || property.property_name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            onError={handleImageError}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-            <Home className="w-16 h-16 text-white opacity-50" />
+          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+            <Home className="w-16 h-16 text-white opacity-70" />
           </div>
         )}
         
         {/* Occupancy Badge */}
-        <div className="absolute top-3 right-3">
-          <Badge className={getOccupancyColor(occupancyRate)}>
+        <div className="absolute top-4 right-4">
+          <Badge className={`${getOccupancyColor(occupancyRate)} font-semibold text-xs px-3 py-1 rounded-lg shadow-sm border`}>
             {occupancyRate}% Occupied
           </Badge>
         </div>
+
+        {/* Property Type Badge */}
+        <div className="absolute top-4 left-4">
+          <Badge className="bg-white/90 text-slate-700 font-medium text-xs px-3 py-1 rounded-lg shadow-sm border border-white/50">
+            {property.category || 'Property'}
+          </Badge>
+        </div>
+
+        {/* Hover Overlay */}
+        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+          <Button
+            size="sm"
+            className="bg-white text-slate-900 hover:bg-slate-100 rounded-xl px-6 shadow-lg"
+            onClick={handleViewDetails}
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            View Details
+          </Button>
+        </div>
       </div>
 
-      {/* Property Details */}
-      <div className="p-4">
-        <div className="mb-3">
-          <h3 className="font-semibold text-lg text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
-            {property.name}
+      {/* Property Content */}
+      <div className="p-6">
+        {/* Property Header */}
+        <div className="mb-4">
+          <h3 className="font-bold text-xl text-slate-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-1">
+            {property.name || property.property_name}
           </h3>
-          <div className="flex items-center text-sm text-gray-500">
-            <MapPin className="w-4 h-4 mr-1" />
-            <span>{property.location}</span>
+          
+          <div className="flex items-center text-slate-600 mb-3">
+            <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span className="text-sm line-clamp-1">{property.location || property.address}</span>
+          </div>
+
+          {/* Property Description */}
+          {property.description && (
+            <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
+              {property.description}
+            </p>
+          )}
+        </div>
+
+        {/* Statistics Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="bg-slate-50 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-4 h-4 text-slate-600" />
+              <span className="text-xs text-slate-500 uppercase tracking-wide">Units</span>
+            </div>
+            <p className="font-bold text-lg text-slate-900">{occupiedUnits}/{totalUnits}</p>
+          </div>
+
+          <div className="bg-slate-50 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="w-4 h-4 text-slate-600" />
+              <span className="text-xs text-slate-500 uppercase tracking-wide">Monthly</span>
+            </div>
+            <p className="font-bold text-lg text-slate-900">
+              TSh {(monthlyRevenue / 1000).toFixed(0)}K
+            </p>
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="flex items-center">
-            <Users className="w-4 h-4 text-gray-400 mr-2" />
-            <div>
-              <p className="text-sm font-medium">{stats.occupiedUnits || 0}/{stats.totalUnits || 0}</p>
-              <p className="text-xs text-gray-500">Units</p>
-            </div>
+        {/* Property Details */}
+        <div className="space-y-2 mb-4">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-slate-500">Floors:</span>
+            <span className="font-medium text-slate-700">
+              {property.total_floors || 1} floor{(property.total_floors || 1) !== 1 ? 's' : ''}
+            </span>
           </div>
           
-          <div className="flex items-center">
-            <DollarSign className="w-4 h-4 text-gray-400 mr-2" />
-            <div>
-              <p className="text-sm font-medium">TSh {monthlyRevenue.toLocaleString()}</p>
-              <p className="text-xs text-gray-500">Monthly</p>
+          {property.total_area && (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-500">Area:</span>
+              <span className="font-medium text-slate-700">{property.total_area} sq m</span>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Property Type & Floors */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">{property.category}</span>
-          <span className="text-gray-500">{property.total_floors} floor{property.total_floors !== 1 ? 's' : ''}</span>
-        </div>
-
-        {/* Revenue Trend Indicator */}
-        {occupancyRate > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
+        {/* Revenue Indicator */}
+        {monthlyRevenue > 0 && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-3 border border-green-100">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">Revenue potential</span>
-              <div className="flex items-center">
-                <TrendingUp className="w-3 h-3 text-green-500 mr-1" />
-                <span className="text-xs text-green-600">
-                  TSh {(monthlyRevenue * 12).toLocaleString()}/yr
-                </span>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-green-800">Annual Revenue</span>
               </div>
+              <span className="text-sm font-bold text-green-700">
+                TSh {((monthlyRevenue * 12) / 1000000).toFixed(1)}M
+              </span>
             </div>
           </div>
         )}
+
+        {/* Action Button */}
+        <div className="mt-6">
+          <Button 
+            className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+            onClick={handleViewDetails}
+          >
+            <Building2 className="w-5 h-5 mr-2" />
+            Manage Property
+          </Button>
+        </div>
       </div>
     </CloudflareCard>
   );
