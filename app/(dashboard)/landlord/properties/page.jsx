@@ -19,7 +19,6 @@ export default function PropertiesPage() {
     loading, 
     error, 
     searchProperties, 
-    refreshDashboard
   } = useDashboard();
   
   const [searchTerm, setSearchTerm] = useState("");

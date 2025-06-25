@@ -7,22 +7,14 @@ const DashboardService = {
   // Get comprehensive dashboard statistics
   getDashboardStats: async () => {
     try {
-      // Get properties and tenants data in parallel
-      const [propertiesResponse, tenantsResponse] = await Promise.all([
-        PropertyService.getProperties(),
-        TenantService.getTenants()
-      ]);
+      // Get properties with units and tenant data
+      const propertiesResponse = await PropertyService.getProperties();
+      const properties = Array.isArray(propertiesResponse) ? propertiesResponse : propertiesResponse.results || [];
 
-      const properties = propertiesResponse.results || propertiesResponse;
-      const tenants = tenantsResponse.results || tenantsResponse;
-
-      // Calculate statistics
+      // Calculate statistics from the transformed property data
       const stats = {
         totalProperties: properties.length,
-        totalUnits: properties.reduce((total, property) => {
-          return total + (property.total_units || 0);
-        }, 0),
-        totalTenants: tenants.length,
+        totalUnits: 0,
         occupiedUnits: 0,
         vacantUnits: 0,
         totalMonthlyRent: 0,
@@ -30,24 +22,22 @@ const DashboardService = {
         occupancyRate: 0
       };
 
-      // Calculate more detailed stats by iterating through properties
-      for (const property of properties) {
-        if (property.property_floor && Array.isArray(property.property_floor)) {
-          for (const floor of property.property_floor) {
-            if (floor.units_floor && Array.isArray(floor.units_floor)) {
-              for (const unit of floor.units_floor) {
-                stats.totalMonthlyRent += parseFloat(unit.rent_amount || 0);
-                
-                if (unit.status === 'occupied') {
-                  stats.occupiedUnits++;
-                } else if (unit.status === 'available') {
-                  stats.vacantUnits++;
-                }
-              }
+      // Calculate stats using the units array from PropertyService
+      properties.forEach(property => {
+        if (property.units && Array.isArray(property.units)) {
+          property.units.forEach(unit => {
+            stats.totalUnits++;
+            stats.totalMonthlyRent += parseFloat(unit.rent_amount || 0);
+            
+            // Check if unit has a current tenant
+            if (unit.current_tenant && unit.current_tenant.id) {
+              stats.occupiedUnits++;
+            } else {
+              stats.vacantUnits++;
             }
-          }
+          });
         }
-      }
+      });
 
       // Calculate occupancy rate
       if (stats.totalUnits > 0) {
@@ -64,63 +54,41 @@ const DashboardService = {
   // Get properties with detailed unit and tenant information
   getPropertiesWithDetails: async (filters = {}) => {
     try {
+      // Use PropertyService which already includes units and tenant data
       const response = await PropertyService.getProperties(filters);
-      const properties = response.results || response;
+      const properties = Array.isArray(response) ? response : response.results || [];
 
-      // Enhance each property with additional calculated data
-      const enhancedProperties = await Promise.all(
-        properties.map(async (property) => {
-          const enhancedProperty = { ...property };
-          
-          // Calculate property-specific stats
-          let totalUnits = 0;
-          let occupiedUnits = 0;
-          let monthlyRevenue = 0;
-          const unitsList = [];
+      // Enhance each property with calculated stats
+      const enhancedProperties = properties.map(property => {
+        let totalUnits = 0;
+        let occupiedUnits = 0;
+        let monthlyRevenue = 0;
 
-          if (property.property_floor && Array.isArray(property.property_floor)) {
-            for (const floor of property.property_floor) {
-              if (floor.units_floor && Array.isArray(floor.units_floor)) {
-                for (const unit of floor.units_floor) {
-                  totalUnits++;
-                  monthlyRevenue += parseFloat(unit.rent_amount || 0);
-                  
-                  // Get tenant information for occupied units
-                  let tenantInfo = null;
-                  if (unit.status === 'occupied') {
-                    occupiedUnits++;
-                    try {
-                      const tenantResponse = await TenantService.getTenantByUnit(unit.id);
-                      tenantInfo = tenantResponse;
-                    } catch (error) {
-                      console.warn(`Could not fetch tenant for unit ${unit.id}:`, error);
-                    }
-                  }
-
-                  unitsList.push({
-                    ...unit,
-                    floorNumber: floor.floor_no,
-                    tenant: tenantInfo
-                  });
-                }
-              }
+        // Use the units array that PropertyService already provides
+        if (property.units && Array.isArray(property.units)) {
+          property.units.forEach(unit => {
+            totalUnits++;
+            monthlyRevenue += parseFloat(unit.rent_amount || 0);
+            
+            // Check if unit has a current tenant
+            if (unit.current_tenant && unit.current_tenant.id) {
+              occupiedUnits++;
             }
-          }
+          });
+        }
 
-          enhancedProperty.stats = {
+        return {
+          ...property,
+          stats: {
             totalUnits,
             occupiedUnits,
             vacantUnits: totalUnits - occupiedUnits,
             occupancyRate: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0,
             monthlyRevenue,
             annualRevenue: monthlyRevenue * 12
-          };
-
-          enhancedProperty.units = unitsList;
-
-          return enhancedProperty;
-        })
-      );
+          }
+        };
+      });
 
       return enhancedProperties;
     } catch (error) {
@@ -136,41 +104,24 @@ const DashboardService = {
         throw new Error("Property ID is required");
       }
 
+      // Use PropertyService which already fetches units and tenant data
       const property = await PropertyService.getPropertyDetails(propertyId);
       
-      // Enhance with unit and tenant details
-      const unitsList = [];
+      // Calculate stats from the units array
       let totalUnits = 0;
       let occupiedUnits = 0;
       let monthlyRevenue = 0;
 
-      if (property.property_floor && Array.isArray(property.property_floor)) {
-        for (const floor of property.property_floor) {
-          if (floor.units_floor && Array.isArray(floor.units_floor)) {
-            for (const unit of floor.units_floor) {
-              totalUnits++;
-              monthlyRevenue += parseFloat(unit.rent_amount || 0);
-              
-              // Get tenant information for occupied units
-              let tenantInfo = null;
-              if (unit.status === 'occupied') {
-                occupiedUnits++;
-                try {
-                  const tenantResponse = await TenantService.getTenantByUnit(unit.id);
-                  tenantInfo = tenantResponse;
-                } catch (error) {
-                  console.warn(`Could not fetch tenant for unit ${unit.id}:`, error);
-                }
-              }
-
-              unitsList.push({
-                ...unit,
-                floorNumber: floor.floor_no,
-                tenant: tenantInfo
-              });
-            }
+      if (property.units && Array.isArray(property.units)) {
+        property.units.forEach(unit => {
+          totalUnits++;
+          monthlyRevenue += parseFloat(unit.rent_amount || 0);
+          
+          // Check if unit has a current tenant
+          if (unit.current_tenant && unit.current_tenant.id) {
+            occupiedUnits++;
           }
-        }
+        });
       }
 
       return {
@@ -182,8 +133,7 @@ const DashboardService = {
           occupancyRate: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0,
           monthlyRevenue,
           annualRevenue: monthlyRevenue * 12
-        },
-        units: unitsList
+        }
       };
     } catch (error) {
       console.error(`Error fetching property details for ID ${propertyId}:`, error);
@@ -191,61 +141,173 @@ const DashboardService = {
     }
   },
 
-  // Get recent activity (payments, new tenants, etc.)
+  // Search properties by name or location
+  searchProperties: async (searchTerm) => {
+    try {
+      if (!searchTerm) {
+        return [];
+      }
+
+      // Get all properties and filter client-side for now
+      // You could add a search parameter to your backend later
+      const properties = await this.getPropertiesWithDetails();
+      
+      return properties.filter(property => 
+        property.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        property.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        property.address?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    } catch (error) {
+      console.error("Error searching properties:", error);
+      throw error;
+    }
+  },
+
+  // Get recent activity (new tenants, recent assignments, etc.)
   getRecentActivity: async (limit = 10) => {
     try {
-      // This would combine recent activities from different sources
-      // For now, we'll get recent tenants as activity
+      // Get recent tenants
       const tenantsResponse = await TenantService.getTenants({ 
         ordering: '-created_at',
         limit 
       });
       
-      const tenants = tenantsResponse.results || tenantsResponse;
+      const tenants = Array.isArray(tenantsResponse) ? tenantsResponse : tenantsResponse.results || [];
       
-      return tenants.map(tenant => ({
-        id: tenant.id,
+      // Transform into activity feed format
+      const activities = tenants.slice(0, limit).map(tenant => ({
+        id: `tenant_${tenant.id}`,
         type: 'tenant_added',
         title: `New tenant: ${tenant.full_name}`,
-        description: `Added to property`,
+        description: tenant.active_occupancy ? 
+          `Assigned to ${tenant.active_occupancy.property} - ${tenant.active_occupancy.unit}` : 
+          'Added to system',
         timestamp: tenant.created_at,
         data: tenant
       }));
+
+      return activities;
     } catch (error) {
       console.error("Error fetching recent activity:", error);
-      throw error;
+      // Return empty array instead of throwing to prevent dashboard from breaking
+      return [];
     }
   },
 
-  // Get financial overview for a specific period
+  // Get financial overview for dashboard
   getFinancialOverview: async (period = 'month') => {
     try {
       const properties = await this.getPropertiesWithDetails();
       
-      let totalRevenue = 0;
       let totalExpectedRevenue = 0;
-      let collectionRate = 0;
+      let totalActualRevenue = 0;
+      let occupiedUnitsRevenue = 0;
 
       properties.forEach(property => {
-        totalExpectedRevenue += property.stats.monthlyRevenue;
-        // In a real implementation, you'd calculate actual collected revenue
-        totalRevenue += property.stats.monthlyRevenue * 0.9; // Assuming 90% collection
+        if (property.units && Array.isArray(property.units)) {
+          property.units.forEach(unit => {
+            const rentAmount = parseFloat(unit.rent_amount || 0);
+            totalExpectedRevenue += rentAmount;
+            
+            // If unit has a tenant, count as actual revenue
+            if (unit.current_tenant && unit.current_tenant.id) {
+              occupiedUnitsRevenue += rentAmount;
+            }
+          });
+        }
       });
 
-      if (totalExpectedRevenue > 0) {
-        collectionRate = Math.round((totalRevenue / totalExpectedRevenue) * 100);
-      }
+      // For now, assume actual revenue equals occupied units revenue
+      // In a real implementation, you'd fetch actual payment data
+      totalActualRevenue = occupiedUnitsRevenue;
+
+      const collectionRate = totalExpectedRevenue > 0 ? 
+        Math.round((totalActualRevenue / totalExpectedRevenue) * 100) : 0;
 
       return {
         period,
-        totalRevenue,
         totalExpectedRevenue,
+        totalActualRevenue,
         collectionRate,
-        outstandingAmount: totalExpectedRevenue - totalRevenue,
-        properties: properties.length
+        outstandingAmount: totalExpectedRevenue - totalActualRevenue,
+        propertiesCount: properties.length,
+        occupiedUnitsRevenue
       };
     } catch (error) {
       console.error("Error fetching financial overview:", error);
+      throw error;
+    }
+  },
+
+  // Get overview stats for specific property
+  getPropertyOverview: async (propertyId) => {
+    try {
+      const property = await this.getPropertyDetails(propertyId);
+      
+      return {
+        property: {
+          id: property.id,
+          name: property.name,
+          location: property.location,
+          category: property.category
+        },
+        stats: property.stats,
+        units: property.units || []
+      };
+    } catch (error) {
+      console.error(`Error fetching property overview for ID ${propertyId}:`, error);
+      throw error;
+    }
+  },
+
+  // Get units summary for dashboard
+  getUnitsSummary: async () => {
+    try {
+      const properties = await this.getPropertiesWithDetails();
+      
+      const summary = {
+        totalUnits: 0,
+        occupiedUnits: 0,
+        vacantUnits: 0,
+        maintenanceUnits: 0,
+        unitsByProperty: {}
+      };
+
+      properties.forEach(property => {
+        const propertyStats = {
+          total: 0,
+          occupied: 0,
+          vacant: 0,
+          maintenance: 0
+        };
+
+        if (property.units && Array.isArray(property.units)) {
+          property.units.forEach(unit => {
+            summary.totalUnits++;
+            propertyStats.total++;
+
+            if (unit.current_tenant && unit.current_tenant.id) {
+              summary.occupiedUnits++;
+              propertyStats.occupied++;
+            } else if (unit.status === 'maintenance') {
+              summary.maintenanceUnits++;
+              propertyStats.maintenance++;
+            } else {
+              summary.vacantUnits++;
+              propertyStats.vacant++;
+            }
+          });
+        }
+
+        summary.unitsByProperty[property.id] = {
+          name: property.name,
+          ...propertyStats
+        };
+      });
+
+      return summary;
+    } catch (error) {
+      console.error("Error fetching units summary:", error);
       throw error;
     }
   }

@@ -1,8 +1,9 @@
 // hooks/properties/useProperties.js
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import PropertyService from '@/services/landlord/property';
+import TenantService from '@/services/landlord/tenant';
 
 /**
  * Hook for property creation multi-step form
@@ -13,7 +14,10 @@ export function usePropertyCreation() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Form data state matching mobile implementation
+  // Prevent duplicate submissions
+  const saveInProgress = useRef(false);
+  
+  // Form data state matching your backend structure
   const [propertyData, setPropertyData] = useState({
     // Step 1: Basic Info
     name: '',
@@ -25,10 +29,10 @@ export function usePropertyCreation() {
     category: 'Single Floor',
     total_floors: 1,
     
-    // Step 3: Floor Plans - THIS IS THE KEY STATE
+    // Step 3: Floor Plans
     floors: {},
     
-    // Step 4: Unit Details - CONFIGURED UNITS STATE
+    // Step 4: Unit Details
     units: {},
     
     // Additional fields
@@ -46,7 +50,7 @@ export function usePropertyCreation() {
   }, []);
 
   const updateFloorData = useCallback((floorNumber, floorData) => {
-    console.log('Updating floor data:', floorNumber, floorData); // Debug log
+    console.log('Updating floor data:', floorNumber, floorData);
     setPropertyData(prev => ({
       ...prev,
       floors: {
@@ -57,7 +61,7 @@ export function usePropertyCreation() {
   }, []);
 
   const addUnitData = useCallback((unitData) => {
-    console.log('Adding/updating unit data:', unitData); // Debug log
+    console.log('Adding/updating unit data:', unitData);
     setPropertyData(prev => ({
       ...prev,
       units: {
@@ -67,7 +71,6 @@ export function usePropertyCreation() {
     }));
   }, []);
 
-  // Get configured units as an array
   const getConfiguredUnits = useCallback(() => {
     return Object.values(propertyData.units);
   }, [propertyData.units]);
@@ -92,13 +95,20 @@ export function usePropertyCreation() {
   }, []);
 
   const saveProperty = useCallback(async () => {
+    // CRITICAL: Prevent duplicate submissions
+    if (saveInProgress.current || isLoading) {
+      console.log('Save already in progress, preventing duplicate submission');
+      return;
+    }
+
+    saveInProgress.current = true;
     setIsLoading(true);
     setError(null);
     
     try {
       const configuredUnits = getConfiguredUnits();
       
-      // Format data to match backend expectations
+      // Format data to match your backend's expected structure
       const formattedData = {
         owner: propertyData.owner,
         name: propertyData.name,
@@ -108,30 +118,30 @@ export function usePropertyCreation() {
         total_units: getTotalUnits(),
         total_floors: propertyData.total_floors,
         total_area: propertyData.total_area,
-        block: propertyData.block,
-        prop_image: propertyData.prop_image?.base64 || '',
+        prop_image: propertyData.prop_image?.base64 || propertyData.prop_image || '',
         
+        // Format floors correctly for your backend (with 'floor' wrapper)
         floors: Object.keys(propertyData.floors).map((floorKey) => {
           const floor = parseInt(floorKey);
           const floorPlan = propertyData.floors[floor];
           const floorUnits = configuredUnits.filter(unit => unit.floor_no === floor);
           
+          // Return object with 'floor' key as your backend expects
           return {
             floor: {
-              floor_no: floor - 1, // 0-based indexing
-              units_ids: floorPlan.units_ids || [],
-              units_total: floorPlan.units_total,
-              layout_data: floorPlan.layout_data,
-              area: floorPlan.area || 300,
+              floor_no: floor - 1, // 0-based indexing as your backend expects
+              units_total: floorPlan.units_total || floorUnits.length,
+              layout_type: floorPlan.layout_type || 'rectangular',
+              creation_method: floorPlan.creation_method || 'manual',
+              layout_data: floorPlan.layout_data || '',
               units: floorUnits.map(unit => ({
-                utilities: {
-                  electricity: unit.utilities?.electricity?.toString() || 'false',
-                  water: unit.utilities?.water?.toString() || 'false',
-                  wifi: unit.utilities?.wifi?.toString() || 'false',
+                utilities: unit.utilities || {
+                  electricity: false,
+                  water: false,
+                  wifi: false
                 },
                 svg_id: unit.svg_id,
                 svg_geom: unit.svg_geom || `<rect width="40" height="40" x="0" y="0" id="${unit.svg_id}" fill="green" stroke="gray" stroke-width="2" />`,
-                block: unit.block || 'A',
                 floor_number: floor - 1,
                 unit_name: unit.unit_name || `A${unit.svg_id}`,
                 area_sqm: unit.area_sqm || 150,
@@ -140,8 +150,6 @@ export function usePropertyCreation() {
                 rent_amount: unit.rent_amount || 0,
                 payment_freq: unit.payment_freq || 'monthly',
                 meter_number: unit.meter_number || '',
-                included_in_rent: unit.included_in_rent?.toString() || 'false',
-                cost_allocation: unit.cost_allocation || 'landlord',
                 notes: unit.notes || ''
               }))
             }
@@ -149,16 +157,20 @@ export function usePropertyCreation() {
         })
       };
 
-      console.log('Saving property with data:', formattedData); // Debug log
+      console.log('Saving property with formatted data:', formattedData);
       const response = await PropertyService.createProperty(formattedData);
+      console.log('Property saved successfully:', response);
+      
       return response;
     } catch (err) {
+      console.error('Error saving property:', err);
       setError(err.message || 'Failed to save property');
       throw err;
     } finally {
       setIsLoading(false);
+      saveInProgress.current = false;
     }
-  }, [propertyData, getTotalUnits, getConfiguredUnits]);
+  }, [propertyData, getTotalUnits, getConfiguredUnits, isLoading]);
 
   const resetForm = useCallback(() => {
     setPropertyData({
@@ -177,23 +189,15 @@ export function usePropertyCreation() {
     });
     setCurrentStep(1);
     setError(null);
+    saveInProgress.current = false;
   }, []);
-
-  // Debug: Log state changes
-  useEffect(() => {
-    console.log('Property state updated:', {
-      floors: Object.keys(propertyData.floors),
-      units: Object.keys(propertyData.units),
-      totalUnits: getTotalUnits()
-    });
-  }, [propertyData.floors, propertyData.units, getTotalUnits]);
 
   return {
     // State
     currentStep,
     propertyData,
-    floorData: propertyData.floors, // Expose floor data directly
-    configuredUnits: getConfiguredUnits(), // Expose configured units
+    floorData: propertyData.floors,
+    configuredUnits: getConfiguredUnits(),
     isLoading,
     error,
     
@@ -214,89 +218,7 @@ export function usePropertyCreation() {
 }
 
 /**
- * Hook for floor plan management - INTEGRATED WITH MAIN PROPERTY STATE
- * @param {Function} updateFloorData - Function to update main property state
- * @param {Object} existingFloorData - Existing floor data from main state
- * @returns {Object} Floor plan state and management functions
- */
-export function useFloorPlan(updateFloorData, existingFloorData = {}) {
-  const [selectedUnits, setSelectedUnits] = useState([]);
-  const [currentFloor, setCurrentFloor] = useState(1);
-
-  // Load existing floor data when floor changes
-  useEffect(() => {
-    const floorData = existingFloorData[currentFloor];
-    if (floorData && floorData.units_ids) {
-      setSelectedUnits(floorData.units_ids);
-    } else {
-      setSelectedUnits([]);
-    }
-  }, [currentFloor, existingFloorData]);
-
-  const addUnit = useCallback((unitId) => {
-    setSelectedUnits(prev => [...prev, unitId]);
-  }, []);
-
-  const removeUnit = useCallback((unitId) => {
-    setSelectedUnits(prev => prev.filter(id => id !== unitId));
-  }, []);
-
-  const toggleUnit = useCallback((unitId) => {
-    setSelectedUnits(prev => 
-      prev.includes(unitId) 
-        ? prev.filter(id => id !== unitId)
-        : [...prev, unitId]
-    );
-  }, []);
-
-  const clearSelection = useCallback(() => {
-    setSelectedUnits([]);
-  }, []);
-
-  const saveFloorPlan = useCallback((floor, data) => {
-    const floorPlanData = {
-      ...data,
-      units_ids: selectedUnits,
-      units_total: selectedUnits.length
-    };
-    
-    console.log('Saving floor plan:', floor, floorPlanData); // Debug log
-    
-    // Update the main property state immediately
-    if (updateFloorData) {
-      updateFloorData(floor, floorPlanData);
-    }
-  }, [selectedUnits, updateFloorData]);
-
-  const generateSVGString = useCallback((units) => {
-    const GRID_SIZE = 8;
-    const CELL_SIZE = 40;
-    const svgRects = units.map(unitIndex => {
-      const x = (unitIndex % GRID_SIZE) * CELL_SIZE;
-      const y = Math.floor(unitIndex / GRID_SIZE) * CELL_SIZE;
-      return `<rect width="${CELL_SIZE}" height="${CELL_SIZE}" x="${x}" y="${y}" id="unit-${unitIndex}" fill="#2B4B80" stroke="white" stroke-width="2" />`;
-    }).join('');
-    return `<svg width="${GRID_SIZE * CELL_SIZE}" height="${GRID_SIZE * CELL_SIZE}" xmlns="http://www.w3.org/2000/svg">${svgRects}</svg>`;
-  }, []);
-
-  return {
-    selectedUnits,
-    currentFloor,
-    floorData: existingFloorData, // Return the actual floor data from main state
-    setCurrentFloor,
-    addUnit,
-    removeUnit,
-    toggleUnit,
-    clearSelection,
-    saveFloorPlan,
-    generateSVGString
-  };
-}
-
-/**
  * Hook for fetching properties list with pagination and filtering
- * @param {Object} initialFilters - Initial filters for properties
- * @returns {Object} The properties data, loading state, error, and helper functions
  */
 export function usePropertiesList(initialFilters = {}) {
   const [properties, setProperties] = useState([]);
@@ -308,7 +230,17 @@ export function usePropertiesList(initialFilters = {}) {
     try {
       setLoading(true);
       const response = await PropertyService.getProperties(filters);
-      setProperties(response.results || response);
+      console.log('Fetched properties:', response);
+      
+      // Handle different response formats from your backend
+      if (Array.isArray(response)) {
+        setProperties(response);
+      } else if (response.results && Array.isArray(response.results)) {
+        setProperties(response.results);
+      } else {
+        setProperties([]);
+      }
+      
       setError(null);
     } catch (err) {
       console.error("Error fetching properties:", err);
@@ -345,9 +277,7 @@ export function usePropertiesList(initialFilters = {}) {
 }
 
 /**
- * Hook for fetching property details
- * @param {string|number} propertyId - The ID of the property
- * @returns {Object} The property details, loading state, error, and refresh function
+ * Hook for fetching property details with tenant information
  */
 export function usePropertyDetails(propertyId) {
   const [property, setProperty] = useState(null);
@@ -359,7 +289,12 @@ export function usePropertyDetails(propertyId) {
 
     try {
       setLoading(true);
+      console.log(`Fetching property details for ID: ${propertyId}`);
+      
+      // Fetch property details
       const response = await PropertyService.getPropertyDetails(propertyId);
+      console.log('Property details response:', response);
+      
       setProperty(response);
       setError(null);
     } catch (err) {
@@ -386,5 +321,182 @@ export function usePropertyDetails(propertyId) {
     loading,
     error,
     refreshProperty
+  };
+}
+
+/**
+ * Hook for floor plan management
+ */
+export function useFloorPlan(updateFloorData, existingFloorData = {}) {
+  const [selectedUnits, setSelectedUnits] = useState([]);
+  const [currentFloor, setCurrentFloor] = useState(1);
+
+  useEffect(() => {
+    const floorData = existingFloorData[currentFloor];
+    if (floorData && floorData.units_ids) {
+      setSelectedUnits(floorData.units_ids);
+    } else {
+      setSelectedUnits([]);
+    }
+  }, [currentFloor, existingFloorData]);
+
+  const addUnit = useCallback((unitId) => {
+    setSelectedUnits(prev => [...prev, unitId]);
+  }, []);
+
+  const removeUnit = useCallback((unitId) => {
+    setSelectedUnits(prev => prev.filter(id => id !== unitId));
+  }, []);
+
+  const toggleUnit = useCallback((unitId) => {
+    setSelectedUnits(prev => 
+      prev.includes(unitId) 
+        ? prev.filter(id => id !== unitId)
+        : [...prev, unitId]
+    );
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedUnits([]);
+  }, []);
+
+  const saveFloorPlan = useCallback((floor, data) => {
+    const floorPlanData = {
+      ...data,
+      units_ids: selectedUnits,
+      units_total: selectedUnits.length
+    };
+    
+    console.log('Saving floor plan:', floor, floorPlanData);
+    
+    if (updateFloorData) {
+      updateFloorData(floor, floorPlanData);
+    }
+  }, [selectedUnits, updateFloorData]);
+
+  const generateSVGString = useCallback((units) => {
+    const GRID_SIZE = 8;
+    const CELL_SIZE = 40;
+    const svgRects = units.map(unitIndex => {
+      const x = (unitIndex % GRID_SIZE) * CELL_SIZE;
+      const y = Math.floor(unitIndex / GRID_SIZE) * CELL_SIZE;
+      return `<rect width="${CELL_SIZE}" height="${CELL_SIZE}" x="${x}" y="${y}" id="unit-${unitIndex}" fill="#2B4B80" stroke="white" stroke-width="2" />`;
+    }).join('');
+    return `<svg width="${GRID_SIZE * CELL_SIZE}" height="${GRID_SIZE * CELL_SIZE}" xmlns="http://www.w3.org/2000/svg">${svgRects}</svg>`;
+  }, []);
+
+  return {
+    selectedUnits,
+    currentFloor,
+    floorData: existingFloorData,
+    setCurrentFloor,
+    addUnit,
+    removeUnit,
+    toggleUnit,
+    clearSelection,
+    saveFloorPlan,
+    generateSVGString
+  };
+}
+
+/**
+ * Hook for tenant management operations
+ */
+export function useTenantOperations() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const assignTenant = useCallback(async (assignmentData) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Assigning tenant with data:', assignmentData);
+      const result = await TenantService.assignTenantToUnit(assignmentData);
+      
+      return result;
+    } catch (err) {
+      console.error('Error assigning tenant:', err);
+      setError(err.message || 'Failed to assign tenant');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const vacateTenant = useCallback(async (tenantId, vacationData) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Vacating tenant:', tenantId, vacationData);
+      const result = await TenantService.vacateTenant(tenantId, vacationData);
+      
+      return result;
+    } catch (err) {
+      console.error('Error vacating tenant:', err);
+      setError(err.message || 'Failed to vacate tenant');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getTenantHistory = useCallback(async (tenantId) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const result = await TenantService.getTenantHistory(tenantId);
+      return result;
+    } catch (err) {
+      console.error('Error fetching tenant history:', err);
+      setError(err.message || 'Failed to fetch tenant history');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const addTenantNote = useCallback(async (tenantId, noteData) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const result = await TenantService.addTenantNote(tenantId, noteData);
+      return result;
+    } catch (err) {
+      console.error('Error adding tenant note:', err);
+      setError(err.message || 'Failed to add tenant note');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const sendTenantReminder = useCallback(async (tenantId, reminderData) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const result = await TenantService.sendTenantReminder(tenantId, reminderData);
+      return result;
+    } catch (err) {
+      console.error('Error sending tenant reminder:', err);
+      setError(err.message || 'Failed to send reminder');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    loading,
+    error,
+    assignTenant,
+    vacateTenant,
+    getTenantHistory,
+    addTenantNote,
+    sendTenantReminder
   };
 }

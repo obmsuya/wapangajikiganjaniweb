@@ -1,7 +1,7 @@
 // components/landlord/properties/PropertySummary.jsx
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { 
   Building2, 
@@ -29,6 +29,10 @@ export default function PropertySummary({
   isLoading 
 }) {
   const [validationIssues, setValidationIssues] = useState([]);
+  const [isCreating, setIsCreating] = useState(false);
+  
+  // CRITICAL: Prevent multiple submissions with ref
+  const submissionInProgress = useRef(false);
 
   // Merge configured units with generated units from floorData
   const units = useMemo(() => {
@@ -54,7 +58,7 @@ export default function PropertySummary({
             area_sqm: 150,
             bedrooms: 1,
             status: 'vacant',
-            rent_amount: 0, // Default, should be configured
+            rent_amount: 0,
             payment_freq: 'monthly',
             meter_number: '',
             utilities: {
@@ -76,7 +80,7 @@ export default function PropertySummary({
     });
     
     return generatedUnits;
-  }, [floorData, configuredUnits]);
+  }, [floorData, configuredUnits, propertyData.block]);
 
   const totalUnits = useMemo(() => {
     return Object.values(floorData || {}).reduce((total, floor) => {
@@ -84,11 +88,7 @@ export default function PropertySummary({
     }, 0);
   }, [floorData]);
 
-  useEffect(() => {
-    validatePropertyData();
-  }, [propertyData, floorData, units]);
-
-  const validatePropertyData = () => {
+  const validatePropertyData = useCallback(() => {
     const issues = [];
 
     // Basic property validation
@@ -114,9 +114,20 @@ export default function PropertySummary({
     }
 
     setValidationIssues(issues);
-  };
+  }, [propertyData, floorData, units]);
 
-  const handleCreateProperty = async () => {
+  useEffect(() => {
+    validatePropertyData();
+  }, [validatePropertyData]);
+
+  // FIXED: Completely prevent duplicate submissions
+  const handleCreateProperty = useCallback(async () => {
+    // CRITICAL: Check if submission is already in progress
+    if (submissionInProgress.current || isCreating || isLoading) {
+      console.log('Submission already in progress, blocking duplicate');
+      return;
+    }
+
     if (validationIssues.length > 0) {
       customToast.error("Validation Error", {
         description: "Please fix the issues before creating the property."
@@ -124,34 +135,55 @@ export default function PropertySummary({
       return;
     }
 
+    // CRITICAL: Set submission flag immediately
+    submissionInProgress.current = true;
+    setIsCreating(true);
+
     try {
+      console.log("Starting property creation...");
+      
       const result = await saveProperty();
+      console.log("Property created successfully:", result);
+      
       customToast.success("Property Created Successfully!", {
         description: "Your property is now ready for tenant management."
       });
-      onComplete?.(result);
+      
+      // Call onComplete only once
+      if (onComplete) {
+        onComplete(result);
+      }
     } catch (error) {
+      console.error("Property creation failed:", error);
       customToast.error("Creation Failed", {
-        description: "Failed to create property. Please try again."
+        description: error.message || "Failed to create property. Please try again."
       });
+    } finally {
+      // CRITICAL: Reset flags in finally block
+      setIsCreating(false);
+      submissionInProgress.current = false;
     }
-  };
+  }, [isCreating, isLoading, validationIssues, saveProperty, onComplete]);
 
-  const getTotalMonthlyRent = () => {
+  const getTotalMonthlyRent = useCallback(() => {
     return units.reduce((total, unit) => total + (unit.rent_amount || 0), 0);
-  };
+  }, [units]);
 
-  const getConfiguredUnitsCount = () => {
+  const getConfiguredUnitsCount = useCallback(() => {
     return units.filter(unit => unit.rent_amount > 0).length;
-  };
+  }, [units]);
 
-  const getUnitsByFloor = () => {
+  const getUnitsByFloor = useCallback(() => {
     return units.reduce((acc, unit) => {
       if (!acc[unit.floor_no]) acc[unit.floor_no] = [];
       acc[unit.floor_no].push(unit);
       return acc;
     }, {});
-  };
+  }, [units]);
+
+  const totalMonthlyRent = getTotalMonthlyRent();
+  const configuredUnitsCount = getConfiguredUnitsCount();
+  const unitsByFloor = getUnitsByFloor();
 
   return (
     <div className="space-y-8">
@@ -201,7 +233,17 @@ export default function PropertySummary({
                     src={propertyData.prop_image.uri || propertyData.prop_image}
                     alt="Property"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextElementSibling.style.display = 'flex';
+                    }}
                   />
+                  <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center" style={{display: 'none'}}>
+                    <div className="text-center">
+                      <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">Image not available</p>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -245,13 +287,13 @@ export default function PropertySummary({
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <p className="text-2xl font-bold text-green-600">
-                    TSh {getTotalMonthlyRent().toLocaleString()}
+                    TSh {totalMonthlyRent.toLocaleString()}
                   </p>
                   <p className="text-sm text-green-700">Monthly Rent Potential</p>
                 </div>
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <p className="text-2xl font-bold text-blue-600">
-                    TSh {(getTotalMonthlyRent() * 12).toLocaleString()}
+                    TSh {(totalMonthlyRent * 12).toLocaleString()}
                   </p>
                   <p className="text-sm text-blue-700">Annual Rent Potential</p>
                 </div>
@@ -277,11 +319,11 @@ export default function PropertySummary({
                   <p className="text-sm text-muted-foreground">Total Units</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">{getConfiguredUnitsCount()}</p>
+                  <p className="text-2xl font-bold text-green-600">{configuredUnitsCount}</p>
                   <p className="text-sm text-muted-foreground">Configured</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-600">{totalUnits - getConfiguredUnitsCount()}</p>
+                  <p className="text-2xl font-bold text-gray-600">{totalUnits - configuredUnitsCount}</p>
                   <p className="text-sm text-muted-foreground">Pending</p>
                 </div>
               </div>
@@ -312,7 +354,7 @@ export default function PropertySummary({
             </CardHeader>
             <CardContent className="max-h-96 overflow-y-auto">
               <div className="space-y-4">
-                {Object.entries(getUnitsByFloor()).map(([floorNumber, floorUnits]) => (
+                {Object.entries(unitsByFloor).map(([floorNumber, floorUnits]) => (
                   <div key={floorNumber}>
                     <h5 className="font-medium mb-2">Floor {floorNumber}</h5>
                     <div className="space-y-2">
@@ -369,16 +411,16 @@ export default function PropertySummary({
               <Button
                 variant="outline"
                 onClick={() => window.history.back()}
-                disabled={isLoading}
+                disabled={isCreating || isLoading}
               >
                 Back to Edit
               </Button>
               <Button
                 onClick={handleCreateProperty}
-                disabled={validationIssues.length > 0 || isLoading}
+                disabled={validationIssues.length > 0 || isCreating || isLoading}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {isLoading ? (
+                {(isCreating || isLoading) ? (
                   <>
                     <motion.div
                       animate={{ rotate: 360 }}
