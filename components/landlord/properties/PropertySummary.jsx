@@ -1,7 +1,7 @@
 // components/landlord/properties/PropertySummary.jsx
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
   Building2, 
@@ -9,448 +9,610 @@ import {
   Home, 
   Users, 
   DollarSign, 
-  Edit, 
-  CheckCircle, 
+  Eye, 
+  Download,
+  CheckCircle,
   AlertCircle,
+  Grid3X3,
+  Layers,
   Image as ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import customToast from "@/components/ui/custom-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function PropertySummary({ 
-  onComplete, 
   propertyData, 
   floorData, 
-  configuredUnits = [],
+  configuredUnits,
   saveProperty,
-  isLoading 
+  isLoading,
+  onComplete,
+  onValidationChange
 }) {
-  const [validationIssues, setValidationIssues] = useState([]);
-  const [isCreating, setIsCreating] = useState(false);
-  
-  // CRITICAL: Prevent multiple submissions with ref
-  const submissionInProgress = useRef(false);
+  const [selectedFloorPreview, setSelectedFloorPreview] = useState(null);
+  const [showLayoutDialog, setShowLayoutDialog] = useState(false);
+  const [validationResults, setValidationResults] = useState({});
 
-  // Merge configured units with generated units from floorData
-  const units = useMemo(() => {
-    if (!floorData || typeof floorData !== 'object') {
-      return configuredUnits;
+  // Calculate comprehensive summary data
+  const summaryData = useMemo(() => {
+    const floors = Object.keys(floorData || {});
+    const totalUnits = floors.reduce((sum, floorNum) => {
+      return sum + (floorData[floorNum]?.units_total || 0);
+    }, 0);
+
+    const configuredUnitsArray = configuredUnits || [];
+    const totalRent = configuredUnitsArray.reduce((sum, unit) => {
+      return sum + (parseFloat(unit.rent_amount) || 0);
+    }, 0);
+
+    const configuredFloorsCount = floors.length;
+    const unitsWithRent = configuredUnitsArray.filter(unit => unit.rent_amount > 0).length;
+
+    return {
+      totalFloors: propertyData?.total_floors || 0,
+      configuredFloors: configuredFloorsCount,
+      totalUnits,
+      configuredUnits: configuredUnitsArray.length,
+      unitsWithRent,
+      totalMonthlyRent: totalRent,
+      averageRentPerUnit: totalUnits > 0 ? totalRent / totalUnits : 0,
+      completionPercentage: propertyData?.total_floors > 0 
+        ? Math.round((configuredFloorsCount / propertyData.total_floors) * 100) 
+        : 0
+    };
+  }, [propertyData, floorData, configuredUnits]);
+
+  // Validate the complete property setup
+  useEffect(() => {
+    const results = {
+      basicInfo: validateBasicInfo(),
+      floors: validateFloors(),
+      units: validateUnits(),
+      overall: false
+    };
+
+    results.overall = results.basicInfo.valid && results.floors.valid && results.units.valid;
+    setValidationResults(results);
+
+    if (onValidationChange) {
+      onValidationChange(results.overall);
+    }
+  }, [propertyData, floorData, configuredUnits, onValidationChange]);
+
+  const validateBasicInfo = () => {
+    const errors = [];
+    if (!propertyData?.name) errors.push('Property name is required');
+    if (!propertyData?.location) errors.push('Property location is required');
+    if (!propertyData?.category) errors.push('Property category is required');
+    if (!propertyData?.total_floors || propertyData.total_floors < 1) {
+      errors.push('Total floors must be at least 1');
     }
 
-    const generatedUnits = [];
+    return { valid: errors.length === 0, errors };
+  };
+
+  const validateFloors = () => {
+    const errors = [];
+    const configuredFloors = Object.keys(floorData || {});
     
-    Object.entries(floorData).forEach(([floorNumber, floor]) => {
-      if (floor && floor.units_ids && Array.isArray(floor.units_ids) && floor.units_ids.length > 0) {
-        floor.units_ids.forEach((gridCellId, index) => {
-          const unitId = `${floorNumber}-${gridCellId}`;
-          
-          // Check if this unit has been configured
-          const configuredUnit = configuredUnits.find(unit => unit.id === unitId);
-          
-          const unitData = configuredUnit || {
-            id: unitId,
-            svg_id: gridCellId,
-            floor_no: parseInt(floorNumber),
-            unit_name: `Floor${floorNumber}-Unit${index + 1}`,
-            area_sqm: 150,
-            bedrooms: 1,
-            status: 'vacant',
-            rent_amount: 0,
-            payment_freq: 'monthly',
-            meter_number: '',
-            utilities: {
-              electricity: false,
-              water: false,
-              wifi: false
-            },
-            included_in_rent: false,
-            cost_allocation: 'tenant',
-            notes: '',
-            floor_number: parseInt(floorNumber) - 1,
-            svg_geom: `<rect width="40" height="40" x="0" y="0" id="unit-${gridCellId}" fill="green" stroke="gray" stroke-width="2" />`,
-            block: propertyData.block || 'A'
-          };
-          
-          generatedUnits.push(unitData);
-        });
+    if (configuredFloors.length === 0) {
+      errors.push('At least one floor must be configured');
+    }
+
+    configuredFloors.forEach(floorNum => {
+      const floor = floorData[floorNum];
+      if (!floor.units_ids || floor.units_ids.length === 0) {
+        errors.push(`Floor ${floorNum} has no units configured`);
+      }
+      if (!floor.layout_data) {
+        errors.push(`Floor ${floorNum} is missing layout data`);
       }
     });
+
+    return { valid: errors.length === 0, errors };
+  };
+
+  const validateUnits = () => {
+    const errors = [];
+    const unitsArray = configuredUnits || [];
     
-    return generatedUnits;
-  }, [floorData, configuredUnits, propertyData.block]);
-
-  const totalUnits = useMemo(() => {
-    return Object.values(floorData || {}).reduce((total, floor) => {
-      return total + (floor?.units_total || 0);
-    }, 0);
-  }, [floorData]);
-
-  const validatePropertyData = useCallback(() => {
-    const issues = [];
-
-    // Basic property validation
-    if (!propertyData.name?.trim()) {
-      issues.push("Property name is required");
-    }
-    if (!propertyData.location?.trim()) {
-      issues.push("Property location is required");
-    }
-    if (!propertyData.address?.trim()) {
-      issues.push("Property address is required");
+    if (unitsArray.length === 0) {
+      errors.push('At least one unit must be configured');
     }
 
-    // Floor plan validation
-    if (Object.keys(floorData || {}).length === 0) {
-      issues.push("At least one floor plan is required");
+    const unitsWithoutRent = unitsArray.filter(unit => !unit.rent_amount || unit.rent_amount <= 0);
+    if (unitsWithoutRent.length > 0) {
+      errors.push(`${unitsWithoutRent.length} units have no rent amount set`);
     }
 
-    // Units validation
-    const configuredUnits = units.filter(unit => unit.rent_amount > 0);
-    if (configuredUnits.length === 0) {
-      issues.push("At least one unit must have rent amount configured");
-    }
+    return { valid: errors.length === 0, errors };
+  };
 
-    setValidationIssues(issues);
-  }, [propertyData, floorData, units]);
-
-  useEffect(() => {
-    validatePropertyData();
-  }, [validatePropertyData]);
-
-  // FIXED: Completely prevent duplicate submissions
-  const handleCreateProperty = useCallback(async () => {
-    // CRITICAL: Check if submission is already in progress
-    if (submissionInProgress.current || isCreating || isLoading) {
-      console.log('Submission already in progress, blocking duplicate');
-      return;
-    }
-
-    if (validationIssues.length > 0) {
-      customToast.error("Validation Error", {
-        description: "Please fix the issues before creating the property."
+  const handleViewFloorLayout = (floorNumber) => {
+    const floor = floorData[floorNumber];
+    if (floor && floor.layout_preview) {
+      setSelectedFloorPreview({
+        floorNumber,
+        ...floor.layout_preview
       });
-      return;
+      setShowLayoutDialog(true);
     }
+  };
 
-    // CRITICAL: Set submission flag immediately
-    submissionInProgress.current = true;
-    setIsCreating(true);
+  const handleDownloadAllLayouts = () => {
+    Object.entries(floorData).forEach(([floorNum, floor]) => {
+      if (floor.layout_data) {
+        const blob = new Blob([floor.layout_data], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${propertyData.name}-floor-${floorNum}-layout.svg`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    });
+  };
 
+  const handleCreateProperty = async () => {
     try {
-      console.log("Starting property creation...");
-      
       const result = await saveProperty();
-      console.log("Property created successfully:", result);
-      
-      customToast.success("Property Created Successfully!", {
-        description: "Your property is now ready for tenant management."
-      });
-      
-      // Call onComplete only once
       if (onComplete) {
         onComplete(result);
       }
     } catch (error) {
-      console.error("Property creation failed:", error);
-      customToast.error("Creation Failed", {
-        description: error.message || "Failed to create property. Please try again."
-      });
-    } finally {
-      // CRITICAL: Reset flags in finally block
-      setIsCreating(false);
-      submissionInProgress.current = false;
+      console.error('Failed to create property:', error);
     }
-  }, [isCreating, isLoading, validationIssues, saveProperty, onComplete]);
-
-  const getTotalMonthlyRent = useCallback(() => {
-    return units.reduce((total, unit) => total + (unit.rent_amount || 0), 0);
-  }, [units]);
-
-  const getConfiguredUnitsCount = useCallback(() => {
-    return units.filter(unit => unit.rent_amount > 0).length;
-  }, [units]);
-
-  const getUnitsByFloor = useCallback(() => {
-    return units.reduce((acc, unit) => {
-      if (!acc[unit.floor_no]) acc[unit.floor_no] = [];
-      acc[unit.floor_no].push(unit);
-      return acc;
-    }, {});
-  }, [units]);
-
-  const totalMonthlyRent = getTotalMonthlyRent();
-  const configuredUnitsCount = getConfiguredUnitsCount();
-  const unitsByFloor = getUnitsByFloor();
+  };
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-foreground mb-2">Review & Create Property</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Property Summary</h2>
         <p className="text-muted-foreground">
-          Review all your property details before creating
+          Review your property configuration before creating
         </p>
       </div>
 
-      {/* Validation Issues */}
-      {validationIssues.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-800 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" />
-              Issues to Fix
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-1">
-              {validationIssues.map((issue, index) => (
-                <li key={index} className="text-red-700 text-sm">
-                  • {issue}
-                </li>
-              ))}
-            </ul>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <Building2 className="w-8 h-8 text-blue-600" />
+              <div>
+                <p className="text-2xl font-bold text-blue-900">{summaryData.configuredFloors}</p>
+                <p className="text-sm text-blue-700">of {summaryData.totalFloors} floors</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column - Property Overview */}
-        <div className="space-y-6">
-          {/* Property Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
-                Property Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {propertyData.prop_image && (
-                <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-100">
-                  <img
-                    src={propertyData.prop_image.uri || propertyData.prop_image}
-                    alt="Property"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextElementSibling.style.display = 'flex';
-                    }}
-                  />
-                  <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center" style={{display: 'none'}}>
-                    <div className="text-center">
-                      <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">Image not available</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div>
-                  <h4 className="font-medium text-foreground">{propertyData.name}</h4>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>{propertyData.location}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {propertyData.address}
-                  </p>
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Type:</span>
-                    <p className="font-medium">{propertyData.category}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Floors:</span>
-                    <p className="font-medium">{propertyData.total_floors}</p>
-                  </div>
-                </div>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <Home className="w-8 h-8 text-green-600" />
+              <div>
+                <p className="text-2xl font-bold text-green-900">{summaryData.totalUnits}</p>
+                <p className="text-sm text-green-700">total units</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Financial Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
-                Financial Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">
-                    TSh {totalMonthlyRent.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-green-700">Monthly Rent Potential</p>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">
-                    TSh {(totalMonthlyRent * 12).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-blue-700">Annual Rent Potential</p>
-                </div>
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <DollarSign className="w-8 h-8 text-purple-600" />
+              <div>
+                <p className="text-2xl font-bold text-purple-900">
+                  TSh {summaryData.totalMonthlyRent.toLocaleString()}
+                </p>
+                <p className="text-sm text-purple-700">monthly rent</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Right Column - Floor & Unit Details */}
-        <div className="space-y-6">
-          {/* Units Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Home className="w-5 h-5" />
-                Units Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary-600">{totalUnits}</p>
-                  <p className="text-sm text-muted-foreground">Total Units</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">{configuredUnitsCount}</p>
-                  <p className="text-sm text-muted-foreground">Configured</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-600">{totalUnits - configuredUnitsCount}</p>
-                  <p className="text-sm text-muted-foreground">Pending</p>
-                </div>
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <Users className="w-8 h-8 text-orange-600" />
+              <div>
+                <p className="text-2xl font-bold text-orange-900">{summaryData.completionPercentage}%</p>
+                <p className="text-sm text-orange-700">completed</p>
               </div>
-
-              {/* Floor Breakdown */}
-              <div className="space-y-3">
-                {Object.entries(floorData || {}).map(([floorNumber, floor]) => (
-                  <div key={floorNumber} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <span className="font-medium">Floor {floorNumber}</span>
-                      <p className="text-sm text-muted-foreground">
-                        {floor.units_total} units
-                      </p>
-                    </div>
-                    <Badge variant="outline">
-                      {units.filter(u => u.floor_no === parseInt(floorNumber) && u.rent_amount > 0).length} / {floor.units_total} configured
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Unit Details by Floor */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Unit Details</CardTitle>
-            </CardHeader>
-            <CardContent className="max-h-96 overflow-y-auto">
-              <div className="space-y-4">
-                {Object.entries(unitsByFloor).map(([floorNumber, floorUnits]) => (
-                  <div key={floorNumber}>
-                    <h5 className="font-medium mb-2">Floor {floorNumber}</h5>
-                    <div className="space-y-2">
-                      {floorUnits.map((unit) => (
-                        <div key={unit.id} className="flex items-center justify-between p-2 border rounded">
-                          <div>
-                            <span className="font-medium text-sm">{unit.unit_name}</span>
-                            <p className="text-xs text-muted-foreground">
-                              {unit.bedrooms} bed • {unit.area_sqm} sqm
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            {unit.rent_amount > 0 ? (
-                              <>
-                                <p className="font-medium text-sm">TSh {unit.rent_amount.toLocaleString()}</p>
-                                <p className="text-xs text-muted-foreground">{unit.payment_freq}</p>
-                              </>
-                            ) : (
-                              <Badge variant="outline" className="text-xs">Not configured</Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Action Buttons */}
-      <Card>
-        <CardContent className="p-6">
+      {/* Main Content */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="floors">Floor Plans</TabsTrigger>
+          <TabsTrigger value="units">Units</TabsTrigger>
+          <TabsTrigger value="validation">Validation</TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Property Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5" />
+                  Property Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Name</label>
+                    <p className="font-semibold">{propertyData?.name || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Category</label>
+                    <p className="font-semibold">{propertyData?.category || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Location</label>
+                    <p className="font-semibold">{propertyData?.location || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Total Floors</label>
+                    <p className="font-semibold">{propertyData?.total_floors || 0}</p>
+                  </div>
+                </div>
+                {propertyData?.address && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Address</label>
+                    <p className="font-semibold">{propertyData.address}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Property Image */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5" />
+                  Property Image
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {propertyData?.prop_image ? (
+                  <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                    <img
+                      src={typeof propertyData.prop_image === 'string' 
+                        ? propertyData.prop_image 
+                        : propertyData.prop_image.base64 || ''}
+                      alt={propertyData.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextElementSibling.style.display = 'flex';
+                      }}
+                    />
+                    <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center" style={{display: 'none'}}>
+                      <div className="text-center">
+                        <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">Image preview not available</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No image uploaded</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Floor Plans Tab */}
+        <TabsContent value="floors" className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {validationIssues.length === 0 ? (
+            <h3 className="text-lg font-semibold">Floor Layouts</h3>
+            <Button onClick={handleDownloadAllLayouts} variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Download All Layouts
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Object.entries(floorData || {}).map(([floorNumber, floor]) => (
+              <Card key={floorNumber} className="relative">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Floor {floorNumber}</span>
+                    <Badge variant="secondary">
+                      {floor.units_total} units
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Layout Preview */}
+                  {floor.layout_preview && floor.layout_preview.svg ? (
+                    <div className="aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-2">
+                      <div 
+                        className="w-full h-full flex items-center justify-center"
+                        dangerouslySetInnerHTML={{ __html: floor.layout_preview.svg }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <Grid3X3 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">No layout preview</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Floor Stats */}
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500">Units:</span>
+                      <span className="font-medium ml-2">{floor.units_total}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Type:</span>
+                      <span className="font-medium ml-2 capitalize">
+                        {floor.layout_preview?.layout_type || 'Custom'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <Button
+                    onClick={() => handleViewFloorLayout(floorNumber)}
+                    disabled={!floor.layout_preview}
+                    className="w-full"
+                    size="sm"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Layout
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Units Tab */}
+        <TabsContent value="units" className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Unit Configuration Summary</h3>
+            
+            {Object.entries(floorData || {}).map(([floorNumber, floor]) => {
+              const floorUnits = (configuredUnits || []).filter(unit => unit.floor_no === parseInt(floorNumber));
+              
+              return (
+                <Card key={floorNumber}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Floor {floorNumber}</span>
+                      <Badge variant="outline">
+                        {floorUnits.length} units configured
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {floorUnits.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {floorUnits.map((unit, index) => (
+                          <div key={unit.id} className="p-4 border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium">{unit.unit_name}</h4>
+                              <Badge variant={unit.rent_amount > 0 ? "default" : "secondary"}>
+                                {unit.rent_amount > 0 ? "Configured" : "Pending"}
+                              </Badge>
+                            </div>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Rent:</span>
+                                <span className="font-medium">
+                                  {unit.rent_amount > 0 
+                                    ? `TSh ${parseFloat(unit.rent_amount).toLocaleString()}` 
+                                    : 'Not set'
+                                  }
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Area:</span>
+                                <span className="font-medium">{unit.area_sqm || 150} sqm</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Bedrooms:</span>
+                                <span className="font-medium">{unit.bedrooms || 1}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">
+                        No units configured for this floor
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        {/* Validation Tab */}
+        <TabsContent value="validation" className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Configuration Validation</h3>
+            
+            {/* Basic Info Validation */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {validationResults.basicInfo?.valid ? (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                  )}
+                  Basic Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {validationResults.basicInfo?.valid ? (
+                  <p className="text-green-600">✓ All basic information is complete</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {validationResults.basicInfo?.errors?.map((error, index) => (
+                      <li key={index} className="text-red-600">• {error}</li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Floors Validation */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {validationResults.floors?.valid ? (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                  )}
+                  Floor Configuration
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {validationResults.floors?.valid ? (
+                  <p className="text-green-600">✓ All floors are properly configured</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {validationResults.floors?.errors?.map((error, index) => (
+                      <li key={index} className="text-red-600">• {error}</li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Units Validation */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {validationResults.units?.valid ? (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                  )}
+                  Unit Configuration
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {validationResults.units?.valid ? (
+                  <p className="text-green-600">✓ All units are properly configured</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {validationResults.units?.errors?.map((error, index) => (
+                      <li key={index} className="text-red-600">• {error}</li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Create Property Button */}
+      <div className="flex items-center justify-center pt-8">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <h3 className="text-lg font-semibold mb-2">Ready to Create Property?</h3>
+            <p className="text-gray-600 mb-4">
+              {validationResults.overall 
+                ? "Your property configuration is complete and ready to be created."
+                : "Please resolve the validation issues before creating the property."
+              }
+            </p>
+            <Button
+              onClick={handleCreateProperty}
+              disabled={!validationResults.overall || isLoading}
+              className="w-full bg-green-600 hover:bg-green-700"
+              size="lg"
+            >
+              {isLoading ? (
                 <>
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <span className="text-green-700 font-medium">Ready to create property</span>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-4 h-4 mr-2"
+                  >
+                    <Layers className="w-4 h-4" />
+                  </motion.div>
+                  Creating Property...
                 </>
               ) : (
                 <>
-                  <AlertCircle className="w-5 h-5 text-red-500" />
-                  <span className="text-red-700 font-medium">
-                    {validationIssues.length} issue{validationIssues.length > 1 ? 's' : ''} to fix
-                  </span>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Create Property
                 </>
               )}
-            </div>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => window.history.back()}
-                disabled={isCreating || isLoading}
-              >
-                Back to Edit
-              </Button>
-              <Button
-                onClick={handleCreateProperty}
-                disabled={validationIssues.length > 0 || isCreating || isLoading}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {(isCreating || isLoading) ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"
-                    />
-                    Creating Property...
-                  </>
-                ) : (
-                  "Create Property"
-                )}
-              </Button>
+      {/* Layout Preview Dialog */}
+      <Dialog open={showLayoutDialog} onOpenChange={setShowLayoutDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              Floor {selectedFloorPreview?.floorNumber} Layout Preview
+            </DialogTitle>
+          </DialogHeader>
+          {selectedFloorPreview && (
+            <div className="space-y-4">
+              <div className="aspect-square bg-gray-50 rounded-lg border p-4">
+                <div 
+                  className="w-full h-full flex items-center justify-center"
+                  dangerouslySetInnerHTML={{ __html: selectedFloorPreview.svg }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500">Units Count:</span>
+                  <span className="font-medium ml-2">{selectedFloorPreview.units_count}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Layout Type:</span>
+                  <span className="font-medium ml-2 capitalize">{selectedFloorPreview.layout_type}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Dimensions:</span>
+                  <span className="font-medium ml-2">
+                    {selectedFloorPreview.dimensions?.width} × {selectedFloorPreview.dimensions?.height}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Efficiency:</span>
+                  <span className="font-medium ml-2">{selectedFloorPreview.metadata?.layout_efficiency}%</span>
+                </div>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Next Steps Info */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4">
-          <h4 className="font-medium text-blue-900 mb-2">What happens next?</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Your property will be created and saved to your account</li>
-            <li>• You can start adding tenants to individual units</li>
-            <li>• Set up payment collection and rent tracking</li>
-            <li>• Access your property management dashboard</li>
-            <li>• You can always edit property details later</li>
-          </ul>
-        </CardContent>
-      </Card>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

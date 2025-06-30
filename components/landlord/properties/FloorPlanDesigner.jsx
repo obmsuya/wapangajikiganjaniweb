@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Grid3X3, Trash2, Eye } from "lucide-react";
+import { Grid3X3, Trash2, Eye, Save, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,11 +25,13 @@ export default function FloorPlanDesigner({
     toggleUnit,
     clearSelection,
     saveFloorPlan,
-    generateSVGString
+    generateSVGString,
+    generateLayoutPreview
   } = useFloorPlan(updateFloorData, floorData);
 
   const [errors, setErrors] = useState({});
   const [previewMode, setPreviewMode] = useState(false);
+  const [layoutPreview, setLayoutPreview] = useState(null);
 
   const floors = useMemo(() => {
     if (!propertyData?.total_floors) return [];
@@ -70,6 +72,16 @@ export default function FloorPlanDesigner({
     }
   }, [isFloorPlanValid, onValidationChange]);
 
+  // Generate layout preview whenever selected units change
+  useEffect(() => {
+    if (selectedUnits && selectedUnits.length > 0) {
+      const preview = generateLayoutPreview(selectedUnits);
+      setLayoutPreview(preview);
+    } else {
+      setLayoutPreview(null);
+    }
+  }, [selectedUnits, generateLayoutPreview]);
+
   const handleCellClick = useCallback((cellIndex) => {
     if (previewMode || !toggleUnit) return;
     toggleUnit(cellIndex);
@@ -82,13 +94,23 @@ export default function FloorPlanDesigner({
     }
 
     try {
+      // Generate comprehensive layout data
       const svgString = generateSVGString(selectedUnits);
+      const layoutPreviewData = generateLayoutPreview(selectedUnits);
+      
       const floorPlanData = {
         floor_number: currentFloor,
         units_ids: [...selectedUnits],
         units_total: selectedUnits.length,
         layout_data: svgString,
-        area: selectedUnits.length * 150
+        layout_preview: layoutPreviewData,
+        area: selectedUnits.length * 150,
+        grid_configuration: {
+          grid_size: GRID_SIZE,
+          cell_size: CELL_SIZE,
+          selected_cells: selectedUnits,
+          layout_type: 'manual_grid'
+        }
       };
 
       saveFloorPlan(currentFloor, floorPlanData);
@@ -106,7 +128,7 @@ export default function FloorPlanDesigner({
         currentFloor: 'Failed to save floor plan. Please try again.' 
       }));
     }
-  }, [selectedUnits, currentFloor, generateSVGString, saveFloorPlan]);
+  }, [selectedUnits, currentFloor, generateSVGString, generateLayoutPreview, saveFloorPlan]);
 
   const handleFloorChange = useCallback((floorNumber) => {
     if (!setCurrentFloor) return;
@@ -125,12 +147,29 @@ export default function FloorPlanDesigner({
     if (!clearSelection) return;
     
     clearSelection();
+    setLayoutPreview(null);
     setErrors(prev => {
       const newErrors = { ...prev };
       delete newErrors.currentFloor;
       return newErrors;
     });
   }, [clearSelection]);
+
+  const handlePreviewToggle = useCallback(() => {
+    setPreviewMode(!previewMode);
+  }, [previewMode]);
+
+  const handleDownloadLayout = useCallback(() => {
+    if (!layoutPreview) return;
+    
+    const blob = new Blob([layoutPreview.svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `floor-${currentFloor}-layout.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [layoutPreview, currentFloor]);
 
   const gridCells = useMemo(() => {
     const cells = [];
@@ -144,12 +183,12 @@ export default function FloorPlanDesigner({
           key={i}
           onClick={() => handleCellClick(i)}
           className={`
-            w-10 h-10 border border-gray-300 cursor-pointer transition-all duration-200
+            w-10 h-10 border-2 cursor-pointer transition-all duration-200 relative
             ${isSelected 
-              ? 'bg-primary-600 border-primary-700 shadow-md' 
-              : 'bg-white hover:bg-gray-100'
+              ? 'bg-blue-500 border-blue-600 shadow-lg transform scale-105' 
+              : 'bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400'
             }
-            ${previewMode ? 'cursor-default' : 'hover:shadow-sm'}
+            ${previewMode ? 'cursor-default' : 'hover:shadow-md'}
           `}
           style={{
             position: 'absolute',
@@ -159,10 +198,13 @@ export default function FloorPlanDesigner({
         >
           {isSelected && (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-white text-xs font-medium">
-                {i + 1}
+              <span className="text-white text-xs font-bold">
+                {selectedUnits.indexOf(i) + 1}
               </span>
             </div>
+          )}
+          {isSelected && !previewMode && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full"></div>
           )}
         </div>
       );
@@ -181,6 +223,10 @@ export default function FloorPlanDesigner({
     if (!floorData || typeof floorData !== 'object') return 0;
     return Object.keys(floorData).length;
   }, [floorData]);
+
+  const currentFloorData = useMemo(() => {
+    return floorData?.[currentFloor];
+  }, [floorData, currentFloor]);
 
   if (!floors.length) {
     return (
@@ -270,6 +316,7 @@ export default function FloorPlanDesigner({
                   className="w-full"
                   variant={selectedUnits && selectedUnits.length > 0 ? "default" : "outline"}
                 >
+                  <Save className="w-4 h-4 mr-2" />
                   Save Floor Plan
                 </Button>
                 
@@ -286,7 +333,7 @@ export default function FloorPlanDesigner({
 
               <div className="flex items-center gap-2">
                 <Button
-                  onClick={() => setPreviewMode(!previewMode)}
+                  onClick={handlePreviewToggle}
                   variant="ghost"
                   size="sm"
                   className="flex-1"
@@ -294,9 +341,40 @@ export default function FloorPlanDesigner({
                   <Eye className="w-4 h-4 mr-2" />
                   {previewMode ? 'Edit Mode' : 'Preview'}
                 </Button>
+                
+                {layoutPreview && (
+                  <Button
+                    onClick={handleDownloadLayout}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
+
+          {/* Layout Preview Card */}
+          {layoutPreview && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Layout Preview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4">
+                  <div 
+                    className="w-full h-full flex items-center justify-center"
+                    dangerouslySetInnerHTML={{ __html: layoutPreview.svg }}
+                  />
+                </div>
+                <div className="mt-4 text-sm text-muted-foreground">
+                  <p>Units: {layoutPreview.units_count}</p>
+                  <p>Configuration: {layoutPreview.layout_type}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Summary */}
           <Card>
@@ -344,8 +422,8 @@ export default function FloorPlanDesigner({
               <div className="space-y-4">
                 <div className="text-sm text-muted-foreground">
                   {previewMode 
-                    ? "Preview mode - Units are displayed as they will appear"
-                    : "Click on grid cells to select/deselect units for this floor"
+                    ? "Preview mode - Units are displayed as they will appear in the final layout"
+                    : "Click on grid cells to select/deselect units for this floor. Selected cells will become rental units."
                   }
                 </div>
 
@@ -369,17 +447,42 @@ export default function FloorPlanDesigner({
                   </div>
                 </div>
 
-                {/* Legend */}
+                {/* Enhanced Legend */}
                 <div className="flex items-center justify-center gap-6 text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-white border border-gray-300 rounded"></div>
+                    <div className="w-4 h-4 bg-white border-2 border-gray-300 rounded"></div>
                     <span>Available Space</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-primary-600 rounded"></div>
+                    <div className="w-4 h-4 bg-blue-500 border-2 border-blue-600 rounded"></div>
                     <span>Selected Unit</span>
                   </div>
+                  {previewMode && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                      <span>Active Selection</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Current Floor Status */}
+                {currentFloorData && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="font-medium text-green-900 mb-2">Floor {currentFloor} Status</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-green-700">Units Configured:</span>
+                        <span className="font-medium ml-2">{currentFloorData.units_total}</span>
+                      </div>
+                      <div>
+                        <span className="text-green-700">Layout Type:</span>
+                        <span className="font-medium ml-2 capitalize">
+                          {currentFloorData.grid_configuration?.layout_type || 'Manual Grid'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -393,7 +496,7 @@ export default function FloorPlanDesigner({
         </div>
       ))}
 
-      {/* Instructions */}
+      {/* Enhanced Instructions */}
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="p-4">
           <h4 className="font-medium text-blue-900 mb-2">How to use the Floor Designer:</h4>
@@ -403,6 +506,8 @@ export default function FloorPlanDesigner({
             <li>• **IMPORTANT**: Save each floor before moving to the next one</li>
             <li>• Use preview mode to see how your layout will look</li>
             <li>• Each selected cell represents one rental unit</li>
+            <li>• Download layouts as SVG files for your records</li>
+            <li>• The layout preview shows exactly how units will appear to tenants</li>
           </ul>
         </CardContent>
       </Card>

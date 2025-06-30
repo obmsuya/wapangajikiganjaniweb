@@ -1,4 +1,4 @@
-// app/(auth)/register/page.jsx - FIXED VERSION
+// app/(auth)/register/page.jsx - COPIED FROM WORKING LOGIN PAGE
 "use client";
 
 import { useState } from "react";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import AuthService from "@/services/auth";
 
 const registerSchema = z.object({
@@ -37,7 +38,6 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     full_name: "",
     phone_number: "",
@@ -76,40 +76,46 @@ export default function RegisterPage() {
     if (!validateForm()) return;
     
     setIsLoading(true);
-    console.log('Starting registration with data:', { ...formData, password: '[HIDDEN]' });
-    
     try {
       const { confirm_password, ...registrationData } = formData;
       const userData = { ...registrationData, user_type: 'landlord' };
-  
-      console.log('Sending registration request with:', { ...userData, password: '[HIDDEN]' });
       
       const user = await AuthService.register(userData);
       
-      console.log('Registration successful, user:', user);
-      
-      // Check if tokens are stored
-      const accessToken = localStorage.getItem('access_token');
-      const refreshToken = localStorage.getItem('refresh_token');
-      console.log('Tokens stored:', { 
-        hasAccessToken: !!accessToken, 
-        hasRefreshToken: !!refreshToken 
-      });
-      
       customToast.success("Welcome to Wapangaji Kiganjani!", {
-        description: "Account created! Let's set up your first property.",
+        description: `Hello ${user.full_name}, setting up your account...`,
       });
       
-      // Updated redirect path for landlord
       setTimeout(() => {
-        console.log('Redirecting to:', "/landlord/setup/welcome");
-        router.push("/landlord/setup/welcome");
+        // Route based on user_type
+        switch (user.user_type) {
+          case 'system_admin':
+            router.push("/admin/dashboard");
+            break;
+          case 'landlord':
+            router.push("/landlord/setup/welcome");
+            break;
+          case 'manager':
+            router.push("/manager/dashboard");
+            break;
+          case 'tenant':
+            router.push("/tenant/dashboard");
+            break;
+          case 'partner':
+            router.push("/partner/dashboard");
+            break;
+          default:
+            // Fallback based on is_staff for legacy users
+            if (user.is_staff || user.is_superuser) {
+              router.push("/admin/dashboard");
+            } else {
+              router.push("/landlord/setup/welcome");
+            }
+        }
       }, 500);
     } catch (error) {
-      console.error('Registration failed with error:', error);
-      
       customToast.error("Registration failed", {
-        description: error.message || "Please try again."
+        description: error.response?.data?.error || "Please try again."
       });
     } finally {
       setIsLoading(false);
@@ -135,18 +141,19 @@ export default function RegisterPage() {
     <div className="min-h-screen relative overflow-hidden">
       {/* Theme Toggle */}
       <motion.button
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
         className="fixed top-6 right-6 z-50 p-3 rounded-full bg-card border border-card-border shadow-lg hover:shadow-xl transition-all duration-300"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
         <AnimatePresence mode="wait">
-          {theme === "dark" ? (
+          {theme === 'dark' ? (
             <motion.div
               key="sun"
               initial={{ rotate: -90, opacity: 0 }}
               animate={{ rotate: 0, opacity: 1 }}
               exit={{ rotate: 90, opacity: 0 }}
+              transition={{ duration: 0.3 }}
             >
               <Sun className="w-5 h-5 text-yellow-500" />
             </motion.div>
@@ -156,6 +163,7 @@ export default function RegisterPage() {
               initial={{ rotate: 90, opacity: 0 }}
               animate={{ rotate: 0, opacity: 1 }}
               exit={{ rotate: -90, opacity: 0 }}
+              transition={{ duration: 0.3 }}
             >
               <Moon className="w-5 h-5 text-blue-600" />
             </motion.div>
@@ -163,25 +171,33 @@ export default function RegisterPage() {
         </AnimatePresence>
       </motion.button>
 
-      {/* Background */}
+      {/* Background with proper image handling */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary-600/10 via-background to-primary-500/5" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-600/20 via-primary-500/10 to-primary-700/20" />
+        <div 
+          className="absolute inset-0 opacity-5 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          }}
+        />
       </div>
 
       <div className="relative z-10 min-h-screen flex">
-        {/* Left Panel */}
+        {/* Left Panel - Branding & Features */}
         <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative">
           <div className="w-full flex flex-col justify-center px-12 xl:px-16">
             <motion.div
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
               className="max-w-lg"
             >
+              {/* Logo & Brand */}
               <div className="mb-12">
-                <motion.div
+                <motion.div 
                   className="flex items-center gap-3 mb-6"
                   whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center">
                     <Building2 className="w-7 h-7 text-white" />
@@ -190,21 +206,20 @@ export default function RegisterPage() {
                     Wapangaji Kiganjani
                   </h1>
                 </motion.div>
-
+                
                 <h2 className="text-4xl xl:text-5xl font-bold text-foreground mb-6 leading-tight">
                   Start Building Your
-                  <span className="block text-primary-600">
-                    Property Empire Today
-                  </span>
+                  <span className="block text-primary-600">Property Empire Today</span>
                 </h2>
-
-                <p className="text-lg text-muted-foreground leading-relaxed mb-8">
+                
+                <p className="text-lg text-muted-foreground leading-relaxed">
                   Join thousands of successful landlords who trust Wapangaji
                   Kiganjani to manage their properties efficiently and grow
                   their investments.
                 </p>
               </div>
 
+              {/* Features Grid */}
               <div className="space-y-6">
                 {benefits.map((benefit, index) => (
                   <motion.div
@@ -218,30 +233,48 @@ export default function RegisterPage() {
                       <benefit.icon className="w-6 h-6 text-primary-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground mb-1">
-                        {benefit.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {benefit.desc}
-                      </p>
+                      <h3 className="font-semibold text-foreground mb-1">{benefit.title}</h3>
+                      <p className="text-sm text-muted-foreground">{benefit.desc}</p>
                     </div>
                   </motion.div>
                 ))}
               </div>
+
+              {/* Stats */}
+              <motion.div 
+                className="mt-12 flex gap-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+              >
+                <div>
+                  <div className="text-2xl font-bold text-primary-600">10K+</div>
+                  <div className="text-sm text-muted-foreground">Properties Managed</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-primary-600">50K+</div>
+                  <div className="text-sm text-muted-foreground">Happy Landlords</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-primary-600">99.9%</div>
+                  <div className="text-sm text-muted-foreground">Uptime</div>
+                </div>
+              </motion.div>
             </motion.div>
           </div>
         </div>
 
-        {/* Right Panel */}
+        {/* Right Panel - Register Form */}
         <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center p-6">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             className="w-full max-w-md"
           >
             <Card className="border-0 shadow-2xl bg-card/80 backdrop-blur-sm">
               <CardContent className="p-8">
+                {/* Mobile Logo */}
                 <div className="lg:hidden flex items-center justify-center mb-8">
                   <div className="w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl flex items-center justify-center">
                     <Building2 className="w-8 h-8 text-white" />
@@ -249,19 +282,15 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-foreground mb-2">
-                    Create Account
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Start managing properties today
-                  </p>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Create Account</h3>
+                  <p className="text-muted-foreground">Start managing properties today</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
                   >
                     <Input
                       label="Full Name"
@@ -277,7 +306,7 @@ export default function RegisterPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
                   >
                     <Input
                       label="Phone Number"
@@ -293,31 +322,26 @@ export default function RegisterPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="relative"
                   >
-                    <div className="relative">
-                      <Input
-                        label="Password"
-                        type={showPassword ? "text" : "password"}
-                        name="password"
-                        placeholder="Create a strong password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        error={errors.password}
-                        className="h-12 bg-background/50 pr-12"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-9 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="w-5 h-5" />
-                        ) : (
-                          <Eye className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
+                    <Input
+                      label="Password"
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      placeholder="Create a strong password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      error={errors.password}
+                      className="h-12 bg-background/50 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-9 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
                     {formData.password && (
                       <div className="mt-2">
                         <Progress value={passwordStrength()} className="h-2" />
@@ -336,33 +360,26 @@ export default function RegisterPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="relative"
                   >
-                    <div className="relative">
-                      <Input
-                        label="Confirm Password"
-                        type={showConfirmPassword ? "text" : "password"}
-                        name="confirm_password"
-                        placeholder="Confirm your password"
-                        value={formData.confirm_password}
-                        onChange={handleChange}
-                        error={errors.confirm_password}
-                        className="h-12 bg-background/50 pr-12"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        className="absolute right-3 top-9 text-muted-foreground hover:text-foreground"
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="w-5 h-5" />
-                        ) : (
-                          <Eye className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
+                    <Input
+                      label="Confirm Password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirm_password"
+                      placeholder="Confirm your password"
+                      value={formData.confirm_password}
+                      onChange={handleChange}
+                      error={errors.confirm_password}
+                      className="h-12 bg-background/50 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-9 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
                     {formData.confirm_password &&
                       formData.password === formData.confirm_password && (
                         <div className="flex items-center gap-1 mt-2">
@@ -377,7 +394,7 @@ export default function RegisterPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
                   >
                     <Button 
                       type="submit" 
@@ -393,13 +410,13 @@ export default function RegisterPage() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
                   className="mt-8 text-center"
                 >
                   <p className="text-sm text-muted-foreground">
                     Already have an account?{" "}
-                    <Link
-                      href="/login"
+                    <Link 
+                      href="/login" 
                       className="text-primary-600 hover:text-primary-700 font-semibold hover:underline"
                     >
                       Sign in
@@ -407,11 +424,24 @@ export default function RegisterPage() {
                   </p>
                 </motion.div>
 
+                {/* Trust Badge */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  className="mt-6 flex justify-center"
+                >
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                    <Building2 className="w-3 h-3 mr-1" />
+                    Secure & Trusted
+                  </Badge>
+                </motion.div>
+
                 {/* Terms */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
+                  transition={{ duration: 0.5, delay: 0.7 }}
                   className="mt-6 text-center"
                 >
                   <p className="text-xs text-muted-foreground">

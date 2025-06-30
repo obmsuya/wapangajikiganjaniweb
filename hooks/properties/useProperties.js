@@ -325,7 +325,7 @@ export function usePropertyDetails(propertyId) {
 }
 
 /**
- * Hook for floor plan management
+ * Enhanced Hook for floor plan management with proper layout preview and storage
  */
 export function useFloorPlan(updateFloorData, existingFloorData = {}) {
   const [selectedUnits, setSelectedUnits] = useState([]);
@@ -360,30 +360,280 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}) {
     setSelectedUnits([]);
   }, []);
 
-  const saveFloorPlan = useCallback((floor, data) => {
-    const floorPlanData = {
-      ...data,
-      units_ids: selectedUnits,
-      units_total: selectedUnits.length
-    };
-    
-    console.log('Saving floor plan:', floor, floorPlanData);
-    
-    if (updateFloorData) {
-      updateFloorData(floor, floorPlanData);
-    }
-  }, [selectedUnits, updateFloorData]);
-
+  // Enhanced SVG generation with proper styling and unit numbering
   const generateSVGString = useCallback((units) => {
     const GRID_SIZE = 8;
     const CELL_SIZE = 40;
-    const svgRects = units.map(unitIndex => {
-      const x = (unitIndex % GRID_SIZE) * CELL_SIZE;
-      const y = Math.floor(unitIndex / GRID_SIZE) * CELL_SIZE;
-      return `<rect width="${CELL_SIZE}" height="${CELL_SIZE}" x="${x}" y="${y}" id="unit-${unitIndex}" fill="#2B4B80" stroke="white" stroke-width="2" />`;
+    const PADDING = 10;
+    
+    const svgWidth = GRID_SIZE * CELL_SIZE + (PADDING * 2);
+    const svgHeight = GRID_SIZE * CELL_SIZE + (PADDING * 2);
+    
+    // Sort units to maintain consistent numbering
+    const sortedUnits = [...units].sort((a, b) => a - b);
+    
+    const svgRects = sortedUnits.map((unitIndex, arrayIndex) => {
+      const x = (unitIndex % GRID_SIZE) * CELL_SIZE + PADDING;
+      const y = Math.floor(unitIndex / GRID_SIZE) * CELL_SIZE + PADDING;
+      const unitNumber = arrayIndex + 1;
+      
+      return `
+        <g id="unit-${unitIndex}">
+          <rect 
+            width="${CELL_SIZE-2}" 
+            height="${CELL_SIZE-2}" 
+            x="${x+1}" 
+            y="${y+1}" 
+            fill="#3B82F6" 
+            stroke="#1D4ED8" 
+            stroke-width="2" 
+            rx="4"
+          />
+          <text 
+            x="${x + CELL_SIZE/2}" 
+            y="${y + CELL_SIZE/2}" 
+            text-anchor="middle" 
+            dominant-baseline="middle" 
+            fill="white" 
+            font-size="12" 
+            font-weight="bold" 
+            font-family="Arial, sans-serif"
+          >${unitNumber}</text>
+        </g>
+      `;
     }).join('');
-    return `<svg width="${GRID_SIZE * CELL_SIZE}" height="${GRID_SIZE * CELL_SIZE}" xmlns="http://www.w3.org/2000/svg">${svgRects}</svg>`;
+    
+    // Add grid background
+    const gridLines = [];
+    for (let i = 0; i <= GRID_SIZE; i++) {
+      // Vertical lines
+      gridLines.push(`
+        <line 
+          x1="${i * CELL_SIZE + PADDING}" 
+          y1="${PADDING}" 
+          x2="${i * CELL_SIZE + PADDING}" 
+          y2="${GRID_SIZE * CELL_SIZE + PADDING}" 
+          stroke="#E5E7EB" 
+          stroke-width="1"
+        />
+      `);
+      // Horizontal lines
+      gridLines.push(`
+        <line 
+          x1="${PADDING}" 
+          y1="${i * CELL_SIZE + PADDING}" 
+          x2="${GRID_SIZE * CELL_SIZE + PADDING}" 
+          y2="${i * CELL_SIZE + PADDING}" 
+          stroke="#E5E7EB" 
+          stroke-width="1"
+        />
+      `);
+    }
+    
+    return `
+      <svg 
+        width="${svgWidth}" 
+        height="${svgHeight}" 
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 ${svgWidth} ${svgHeight}"
+      >
+        <defs>
+          <style>
+            .grid-bg { fill: #F9FAFB; stroke: #E5E7EB; }
+            .unit-rect { fill: #3B82F6; stroke: #1D4ED8; }
+            .unit-text { fill: white; font-family: Arial, sans-serif; }
+          </style>
+        </defs>
+        
+        <!-- Background -->
+        <rect width="100%" height="100%" fill="#F9FAFB"/>
+        
+        <!-- Grid lines -->
+        ${gridLines.join('')}
+        
+        <!-- Grid border -->
+        <rect 
+          x="${PADDING}" 
+          y="${PADDING}" 
+          width="${GRID_SIZE * CELL_SIZE}" 
+          height="${GRID_SIZE * CELL_SIZE}" 
+          fill="none" 
+          stroke="#6B7280" 
+          stroke-width="2"
+        />
+        
+        <!-- Units -->
+        ${svgRects}
+        
+        <!-- Title -->
+        <text 
+          x="${svgWidth/2}" 
+          y="${PADDING/2}" 
+          text-anchor="middle" 
+          font-size="14" 
+          font-weight="bold" 
+          fill="#374151" 
+          font-family="Arial, sans-serif"
+        >Floor Layout - ${units.length} Units</text>
+      </svg>
+    `;
   }, []);
+
+  // Generate layout preview data with comprehensive information
+  const generateLayoutPreview = useCallback((units) => {
+    if (!units || units.length === 0) return null;
+    
+    const GRID_SIZE = 8;
+    const sortedUnits = [...units].sort((a, b) => a - b);
+    
+    // Calculate layout metrics
+    const positions = sortedUnits.map(unitIndex => ({
+      unitIndex,
+      x: unitIndex % GRID_SIZE,
+      y: Math.floor(unitIndex / GRID_SIZE)
+    }));
+    
+    const minX = Math.min(...positions.map(p => p.x));
+    const maxX = Math.max(...positions.map(p => p.x));
+    const minY = Math.min(...positions.map(p => p.y));
+    const maxY = Math.max(...positions.map(p => p.y));
+    
+    const width = maxX - minX + 1;
+    const height = maxY - minY + 1;
+    
+    // Determine layout pattern
+    let layoutType = 'custom';
+    if (width === 1) layoutType = 'vertical_line';
+    else if (height === 1) layoutType = 'horizontal_line';
+    else if (width === height) layoutType = 'square';
+    else if (width > height * 1.5) layoutType = 'wide_rectangle';
+    else if (height > width * 1.5) layoutType = 'tall_rectangle';
+    else layoutType = 'rectangle';
+    
+    // Generate compact SVG for preview
+    const compactSVG = generateSVGString(units);
+    
+    return {
+      svg: compactSVG,
+      units_count: units.length,
+      layout_type: layoutType,
+      dimensions: { width, height },
+      coverage_area: width * height,
+      density: (units.length / (width * height)) * 100,
+      unit_positions: positions,
+      sorted_units: sortedUnits,
+      metadata: {
+        min_coordinates: { x: minX, y: minY },
+        max_coordinates: { x: maxX, y: maxY },
+        total_cells_used: units.length,
+        layout_efficiency: ((units.length / (GRID_SIZE * GRID_SIZE)) * 100).toFixed(1)
+      }
+    };
+  }, [generateSVGString]);
+
+  // Enhanced save floor plan with comprehensive layout data
+  const saveFloorPlan = useCallback((floor, data) => {
+    const enhancedData = {
+      ...data,
+      units_ids: selectedUnits,
+      units_total: selectedUnits.length,
+      layout_preview: generateLayoutPreview(selectedUnits),
+      grid_configuration: {
+        grid_size: 8,
+        cell_size: 40,
+        selected_cells: selectedUnits,
+        layout_type: 'manual_grid',
+        created_at: new Date().toISOString()
+      },
+      // Generate unit details for each selected cell
+      units_details: selectedUnits.map((cellIndex, arrayIndex) => {
+        const x = cellIndex % 8;
+        const y = Math.floor(cellIndex / 8);
+        return {
+          svg_id: cellIndex,
+          unit_number: arrayIndex + 1,
+          grid_position: { x, y },
+          coordinates: {
+            x: x * 40,
+            y: y * 40
+          },
+          area_sqm: 150, // Default area
+          status: 'vacant'
+        };
+      })
+    };
+    
+    console.log('Saving enhanced floor plan:', floor, enhancedData);
+    
+    if (updateFloorData) {
+      updateFloorData(floor, enhancedData);
+    }
+  }, [selectedUnits, updateFloorData, generateLayoutPreview]);
+
+  // Export all floors as combined layout
+  const exportAllFloorsLayout = useCallback(() => {
+    const allFloorsData = {};
+    
+    Object.entries(existingFloorData).forEach(([floorNum, floorData]) => {
+      if (floorData && floorData.units_ids && floorData.units_ids.length > 0) {
+        allFloorsData[floorNum] = {
+          floor_number: parseInt(floorNum),
+          units_count: floorData.units_total,
+          layout_svg: floorData.layout_data,
+          preview_data: floorData.layout_preview,
+          grid_config: floorData.grid_configuration,
+          units_details: floorData.units_details || []
+        };
+      }
+    });
+    
+    return allFloorsData;
+  }, [existingFloorData]);
+
+  // Get layout summary for all floors
+  const getLayoutSummary = useCallback(() => {
+    const summary = {};
+    Object.entries(existingFloorData).forEach(([floorNum, floorData]) => {
+      if (floorData && floorData.layout_preview) {
+        summary[floorNum] = {
+          units_count: floorData.units_total,
+          layout_type: floorData.layout_preview.layout_type,
+          svg_preview: floorData.layout_preview.svg,
+          efficiency: floorData.layout_preview.metadata?.layout_efficiency
+        };
+      }
+    });
+    return summary;
+  }, [existingFloorData]);
+
+  // Validate floor plan completeness
+  const validateFloorPlan = useCallback((floorNumber) => {
+    const floorData = existingFloorData[floorNumber];
+    if (!floorData) return { valid: false, errors: ['Floor not configured'] };
+    
+    const errors = [];
+    if (!floorData.units_ids || floorData.units_ids.length === 0) {
+      errors.push('No units selected for this floor');
+    }
+    if (!floorData.layout_data) {
+      errors.push('Layout data missing');
+    }
+    if (!floorData.layout_preview) {
+      errors.push('Layout preview not generated');
+    }
+    
+    return { valid: errors.length === 0, errors };
+  }, [existingFloorData]);
+
+  // Get unit by position
+  const getUnitByPosition = useCallback((x, y) => {
+    const cellIndex = y * 8 + x;
+    return selectedUnits.includes(cellIndex) ? {
+      cellIndex,
+      unitNumber: selectedUnits.indexOf(cellIndex) + 1,
+      position: { x, y }
+    } : null;
+  }, [selectedUnits]);
 
   return {
     selectedUnits,
@@ -395,7 +645,12 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}) {
     toggleUnit,
     clearSelection,
     saveFloorPlan,
-    generateSVGString
+    generateSVGString,
+    generateLayoutPreview,
+    getLayoutSummary,
+    exportAllFloorsLayout,
+    validateFloorPlan,
+    getUnitByPosition
   };
 }
 
