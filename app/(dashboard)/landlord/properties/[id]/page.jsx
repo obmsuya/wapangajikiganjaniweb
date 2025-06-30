@@ -17,10 +17,15 @@ import {
   Home,
   TrendingUp,
   AlertCircle,
-  Loader2
+  Loader2,
+  Download,
+  Grid3X3,
+  Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CloudflarePageHeader } from "@/components/cloudflare/Breadcrumbs";
 import { usePropertyDetails, useTenantOperations } from "@/hooks/properties/useProperties";
 import TenantAssignmentDialog from "@/components/landlord/properties/TenantAssignmentDialog";
@@ -149,7 +154,8 @@ export default function PropertyDetailsPage() {
     description: property.description,
     prop_image: property.prop_image,
     images: property.images || [],
-    units: property.units || [] // This comes from PropertyService transformation
+    units: property.units || [], // This comes from PropertyService transformation
+    property_floor: property.property_floor || [] // Add property_floor data if available
   };
 
   // Group units by floor using the correct floor information
@@ -259,7 +265,7 @@ export default function PropertyDetailsPage() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Property Image */}
@@ -432,6 +438,224 @@ export default function PropertyDetailsPage() {
     </div>
   );
 }
+
+// Property Layout Section Component
+const PropertyLayoutSection = ({ property }) => {
+  const [selectedFloorLayout, setSelectedFloorLayout] = useState(null);
+  const [showLayoutDialog, setShowLayoutDialog] = useState(false);
+
+  const handleViewLayout = (floor) => {
+    setSelectedFloorLayout(floor);
+    setShowLayoutDialog(true);
+  };
+
+  const handleDownloadLayout = (floor) => {
+    if (floor.layout_data) {
+      const blob = new Blob([floor.layout_data], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${property.name}-floor-${floor.floor_no}-layout.svg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  if (!property.property_floor || property.property_floor.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      {/* Floor Layouts Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">Floor Layouts</h3>
+            <p className="text-slate-600">Visual representation of your property floors</p>
+          </div>
+          <Badge variant="outline" className="px-4 py-2">
+            {property.property_floor.length} floor{property.property_floor.length !== 1 ? 's' : ''}
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {property.property_floor.map((floor) => (
+            <Card key={floor.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Floor {floor.floor_no + 1}</span>
+                  <Badge variant="secondary">
+                    {floor.units_total} units
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Layout Preview */}
+                {floor.layout_data ? (
+                  <div className="aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-2">
+                    <div 
+                      className="w-full h-full flex items-center justify-center"
+                      dangerouslySetInnerHTML={{ __html: floor.layout_data }}
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <Grid3X3 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No layout available</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Floor Stats */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">Units:</span>
+                    <span className="font-medium ml-2">{floor.units_total}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Type:</span>
+                    <span className="font-medium ml-2 capitalize">
+                      {floor.layout_type || 'Manual'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleViewLayout(floor)}
+                    disabled={!floor.layout_data}
+                    className="flex-1"
+                    size="sm"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View
+                  </Button>
+                  <Button
+                    onClick={() => handleDownloadLayout(floor)}
+                    disabled={!floor.layout_data}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Layout Preview Dialog */}
+      <Dialog open={showLayoutDialog} onOpenChange={setShowLayoutDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>
+              Floor {selectedFloorLayout ? selectedFloorLayout.floor_no + 1 : ''} Layout
+            </DialogTitle>
+          </DialogHeader>
+          {selectedFloorLayout && (
+            <div className="space-y-6">
+              {/* Large Layout Display */}
+              <div className="bg-gray-50 rounded-lg border p-6 overflow-auto max-h-96">
+                <div 
+                  className="flex items-center justify-center min-h-64"
+                  dangerouslySetInnerHTML={{ __html: selectedFloorLayout.layout_data }}
+                />
+              </div>
+
+              {/* Layout Information */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <Home className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-blue-900">
+                    {selectedFloorLayout.units_total}
+                  </div>
+                  <div className="text-sm text-blue-700">Total Units</div>
+                </div>
+                
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <Grid3X3 className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-green-900 capitalize">
+                    {selectedFloorLayout.layout_type || 'Manual'}
+                  </div>
+                  <div className="text-sm text-green-700">Layout Type</div>
+                </div>
+                
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <Layers className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-purple-900 capitalize">
+                    {selectedFloorLayout.layout_creation_method || 'Manual'}
+                  </div>
+                  <div className="text-sm text-purple-700">Creation Method</div>
+                </div>
+                
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <Building2 className="w-6 h-6 text-orange-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-orange-900">
+                    Floor {selectedFloorLayout.floor_no + 1}
+                  </div>
+                  <div className="text-sm text-orange-700">Floor Number</div>
+                </div>
+              </div>
+
+              {/* Units List for this Floor */}
+              {selectedFloorLayout.units_floor && selectedFloorLayout.units_floor.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-lg mb-4">Units on This Floor</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-64 overflow-y-auto">
+                    {selectedFloorLayout.units_floor.map((unit) => (
+                      <div key={unit.id} className="p-3 border rounded-lg bg-white">
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="font-medium">{unit.unit_name}</h5>
+                          <Badge variant="outline" className="text-xs">
+                            {unit.status || 'available'}
+                          </Badge>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Rent:</span>
+                            <span className="font-medium">
+                              TSh {parseFloat(unit.rent_amount || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Area:</span>
+                            <span className="font-medium">{unit.area_sqm || 0} sqm</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Rooms:</span>
+                            <span className="font-medium">{unit.rooms || 1}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 justify-end">
+                <Button
+                  onClick={() => handleDownloadLayout(selectedFloorLayout)}
+                  variant="outline"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Layout
+                </Button>
+                <Button onClick={() => setShowLayoutDialog(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
 
 // Enhanced Unit Card Component with better tenant data handling
 function UnitCard({ unit, onAssignTenant, onViewTenant }) {
