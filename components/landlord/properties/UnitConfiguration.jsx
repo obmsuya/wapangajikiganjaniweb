@@ -3,30 +3,14 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Edit, Trash2, DollarSign, Home } from "lucide-react";
+import { Home, Edit, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/components/cloudflare/Card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-const paymentFrequencies = [
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'quarterly', label: 'Quarterly' },
-  { value: 'biannual', label: 'Bi-Annual' },
-  { value: 'annual', label: 'Annual' }
-];
-
-const unitStatuses = [
-  { value: 'vacant', label: 'Vacant', color: 'bg-green-100 text-green-800' },
-  { value: 'occupied', label: 'Occupied', color: 'bg-blue-100 text-blue-800' },
-  { value: 'maintenance', label: 'Under Maintenance', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'reserved', label: 'Reserved', color: 'bg-purple-100 text-purple-800' }
-];
 
 export default function UnitConfiguration({ 
   onValidationChange, 
@@ -39,38 +23,23 @@ export default function UnitConfiguration({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Generate available units from floor plans
+  // Generate units from floor plans
   const availableUnits = useMemo(() => {
-    if (!floorData || typeof floorData !== 'object') {
-      return [];
-    }
-
     const generatedUnits = [];
     
-    Object.entries(floorData).forEach(([floorNumber, floor]) => {
-      if (floor && floor.units_ids && Array.isArray(floor.units_ids) && floor.units_ids.length > 0) {
+    Object.entries(floorData || {}).forEach(([floorNumber, floor]) => {
+      if (floor.units_ids && Array.isArray(floor.units_ids)) {
         floor.units_ids.forEach((gridCellId, index) => {
-          const unitId = `${floorNumber}-${gridCellId}`;
-          
           const unitData = {
-            id: unitId,
-            svg_id: gridCellId,
+            id: `floor-${floorNumber}-unit-${gridCellId}`,
+            unit_name: `F${floorNumber}U${index + 1}`,
             floor_no: parseInt(floorNumber),
-            unit_name: `Floor${floorNumber}-Unit${index + 1}`,
+            svg_id: gridCellId,
             area_sqm: 150,
             bedrooms: 1,
             status: 'vacant',
             rent_amount: 0,
             payment_freq: 'monthly',
-            meter_number: '',
-            utilities: {
-              electricity: false,
-              water: false,
-              wifi: false
-            },
-            included_in_rent: false,
-            cost_allocation: 'tenant',
-            notes: '',
             floor_number: parseInt(floorNumber) - 1,
             svg_geom: `<rect width="40" height="40" x="0" y="0" id="unit-${gridCellId}" fill="green" stroke="gray" stroke-width="2" />`,
             block: propertyData.block || 'A'
@@ -88,27 +57,31 @@ export default function UnitConfiguration({
     setUnits(availableUnits);
   }, [availableUnits]);
 
+  // Validation - all units should be saved, validation only checks if units exist
   const isConfigurationValid = useMemo(() => {
     const newErrors = {};
     
-    const hasConfiguredUnits = units.some(unit => unit.rent_amount > 0);
-    
     if (units.length === 0) {
       newErrors.units = 'No units available. Please configure floor plans first.';
-    } else if (!hasConfiguredUnits) {
-      newErrors.rent = 'Please configure rent amount for at least one unit.';
     }
 
     setErrors(newErrors);
-    const isValid = Object.keys(newErrors).length === 0 && hasConfiguredUnits;
+    const isValid = Object.keys(newErrors).length === 0;
     return isValid;
   }, [units]);
 
   useEffect(() => {
+    // Save all units to parent component whenever units change
+    units.forEach(unit => {
+      if (addUnitData) {
+        addUnitData(unit);
+      }
+    });
+    
     if (onValidationChange) {
       onValidationChange(isConfigurationValid);
     }
-  }, [isConfigurationValid, onValidationChange]);
+  }, [units, addUnitData, isConfigurationValid, onValidationChange]);
 
   const handleEditUnit = useCallback((unit) => {
     setEditingUnit(unit);
@@ -122,13 +95,9 @@ export default function UnitConfiguration({
       )
     );
     
-    if (addUnitData) {
-      addUnitData(unitData);
-    }
-    
     setIsDialogOpen(false);
     setEditingUnit(null);
-  }, [addUnitData]);
+  }, []);
 
   const handleCloseDialog = useCallback(() => {
     setIsDialogOpen(false);
@@ -152,134 +121,132 @@ export default function UnitConfiguration({
   }, [units]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-foreground mb-2">Unit Configuration</h2>
         <p className="text-muted-foreground">
-          Configure individual unit details, rent amounts, and amenities
+          Configure individual unit details and rent amounts. All units will be saved regardless of configuration status.
         </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <Home className="w-8 h-8 text-blue-600" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CloudflareCard>
+          <CloudflareCardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-gray-600 mb-1">Total Units</p>
                 <p className="text-2xl font-bold">{units.length}</p>
-                <p className="text-sm text-muted-foreground">Total Units</p>
               </div>
+              <Home className="w-8 h-8 text-blue-600" />
             </div>
-          </CardContent>
-        </Card>
+          </CloudflareCardContent>
+        </CloudflareCard>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <Edit className="w-8 h-8 text-green-600" />
+        <CloudflareCard>
+          <CloudflareCardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-gray-600 mb-1">Configured Units</p>
                 <p className="text-2xl font-bold">{configuredUnitsCount}</p>
-                <p className="text-sm text-muted-foreground">Configured Units</p>
               </div>
+              <Edit className="w-8 h-8 text-green-600" />
             </div>
-          </CardContent>
-        </Card>
+          </CloudflareCardContent>
+        </CloudflareCard>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <DollarSign className="w-8 h-8 text-purple-600" />
+        <CloudflareCard>
+          <CloudflareCardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">TSh {totalRentAmount.toLocaleString()}</p>
-                <p className="text-sm text-muted-foreground">Total Monthly Rent</p>
+                <p className="text-sm text-gray-600 mb-1">Total Monthly Rent</p>
+                <p className="text-lg font-bold">TZS {totalRentAmount.toLocaleString()}</p>
               </div>
+              <DollarSign className="w-8 h-8 text-purple-600" />
             </div>
-          </CardContent>
-        </Card>
+          </CloudflareCardContent>
+        </CloudflareCard>
       </div>
 
-      {/* Units List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Units Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {units.length === 0 ? (
-            <div className="text-center py-8">
-              <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <div className="space-y-2">
-                <p className="text-muted-foreground">
-                  No units available. Please configure your floor plans first.
-                </p>
-                <p className="text-sm text-gray-500">
-                  Go back to the Floor Plans step and design your layout by selecting units on the grid, then click "Save Floor Plan".
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {Object.entries(unitsByFloor).map(([floorNumber, floorUnits]) => (
-                <div key={floorNumber}>
-                  <h4 className="font-medium text-lg mb-3">Floor {floorNumber}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {floorUnits.map((unit) => (
-                      <motion.div
-                        key={unit.id}
-                        whileHover={{ scale: 1.02 }}
-                        className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+      {/* Units by Floor */}
+      {units.length === 0 ? (
+        <CloudflareCard>
+          <CloudflareCardContent className="p-8 text-center">
+            <Home className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-lg font-semibold mb-2">No Units Available</h3>
+            <p className="text-muted-foreground mb-4">
+              Please configure floor plans first to generate units.
+            </p>
+          </CloudflareCardContent>
+        </CloudflareCard>
+      ) : (
+        <div className="space-y-4">
+          {Object.entries(unitsByFloor).map(([floorNumber, floorUnits]) => (
+            <CloudflareCard key={floorNumber}>
+              <CloudflareCardHeader 
+                title={`Floor ${floorNumber} Units (${floorUnits.length})`}
+                icon={<Home className="w-5 h-5" />}
+              />
+              <CloudflareCardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {floorUnits.map((unit) => (
+                    <motion.div
+                      key={unit.id}
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => handleEditUnit(unit)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold">{unit.unit_name}</h4>
+                        <Badge variant={unit.rent_amount > 0 ? "default" : "secondary"}>
+                          {unit.rent_amount > 0 ? "Configured" : "Pending"}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Rent:</span>
+                          <span className="font-medium">
+                            {unit.rent_amount > 0 
+                              ? `TZS ${parseFloat(unit.rent_amount).toLocaleString()}` 
+                              : 'Not set'
+                            }
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Area:</span>
+                          <span className="font-medium">{unit.area_sqm || 150} sq m</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Bedrooms:</span>
+                          <span className="font-medium">{unit.bedrooms || 1}</span>
+                        </div>
+                      </div>
+                      
+                      <Button
+                        variant={unit.rent_amount > 0 ? "outline" : "default"}
+                        size="sm"
+                        className="w-full mt-3"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditUnit(unit);
+                        }}
                       >
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h5 className="font-medium">{unit.unit_name}</h5>
-                            <p className="text-sm text-muted-foreground">
-                              {unit.area_sqm} sqm • {unit.bedrooms} bedroom(s)
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Grid Cell: {unit.svg_id}
-                            </p>
-                          </div>
-                          <Badge className={unitStatuses.find(s => s.value === unit.status)?.color}>
-                            {unitStatuses.find(s => s.value === unit.status)?.label}
-                          </Badge>
-                        </div>
-
-                        <div className="space-y-2 mb-4">
-                          <div className="flex justify-between">
-                            <span className="text-sm">Rent:</span>
-                            <span className="font-medium">
-                              {unit.rent_amount > 0 
-                                ? `TSh ${unit.rent_amount.toLocaleString()}` 
-                                : 'Not set'
-                              }
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Payment:</span>
-                            <span className="text-sm capitalize">{unit.payment_freq}</span>
-                          </div>
-                        </div>
-
-                        <Button
-                          onClick={() => handleEditUnit(unit)}
-                          className="w-full"
-                          variant={unit.rent_amount > 0 ? "outline" : "default"}
-                        >
-                          {unit.rent_amount > 0 ? 'Edit Details' : 'Configure Unit'}
-                        </Button>
-                      </motion.div>
-                    ))}
-                  </div>
+                        {unit.rent_amount > 0 ? 'Edit Details' : 'Configure Unit'}
+                      </Button>
+                    </motion.div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </CloudflareCardContent>
+            </CloudflareCard>
+          ))}
+        </div>
+      )}
 
       {/* Error Messages */}
       {Object.entries(errors).map(([key, error]) => (
-        <div key={key} className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+        <div key={key} className="text-red-500 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
           {error}
         </div>
       ))}
@@ -295,28 +262,39 @@ export default function UnitConfiguration({
   );
 }
 
-// Unit Configuration Dialog Component
+// Simplified Unit Configuration Dialog Component
 function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({
+    unit_name: '',
+    bedrooms: 1,
+    area_sqm: 150,
+    rent_amount: 0,
+    payment_freq: 'monthly',
+    status: 'vacant'
+  });
 
   useEffect(() => {
     if (unit) {
       setFormData({
-        ...unit,
-        utilities: unit.utilities || {
-          electricity: false,
-          water: false,
-          wifi: false
-        }
+        unit_name: unit.unit_name || '',
+        bedrooms: unit.bedrooms || 1,
+        area_sqm: unit.area_sqm || 150,
+        rent_amount: unit.rent_amount || 0,
+        payment_freq: unit.payment_freq || 'monthly',
+        status: unit.status || 'vacant'
       });
     }
   }, [unit]);
 
   const handleSave = useCallback(() => {
-    if (onSave && formData.id) {
-      onSave(formData);
+    if (onSave && unit) {
+      const updatedUnit = {
+        ...unit,
+        ...formData
+      };
+      onSave(updatedUnit);
     }
-  }, [formData, onSave]);
+  }, [formData, onSave, unit]);
 
   const handleChange = useCallback((field, value) => {
     setFormData(prev => ({
@@ -325,40 +303,48 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
     }));
   }, []);
 
-  const handleUtilityChange = useCallback((utility, checked) => {
-    setFormData(prev => ({
-      ...prev,
-      utilities: {
-        ...prev.utilities,
-        [utility]: checked
-      }
-    }));
-  }, []);
-
   if (!unit) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Configure Unit {unit.unit_name}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Basic Details */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="unit_name">Unit Name</Label>
-              <Input
-                id="unit_name"
-                value={formData.unit_name || ''}
-                onChange={(e) => handleChange('unit_name', e.target.value)}
-                placeholder="e.g., A1, B2"
-              />
-            </div>
+        <div className="space-y-4">
+          {/* Unit Name */}
+          <div>
+            <Label htmlFor="unit_name">Unit Name</Label>
+            <Input
+              id="unit_name"
+              value={formData.unit_name}
+              onChange={(e) => handleChange('unit_name', e.target.value)}
+              placeholder="e.g., A1, B2"
+            />
+          </div>
 
+          {/* Rent Amount - Main focus */}
+          <div>
+            <Label htmlFor="rent_amount">Monthly Rent (TZS) *</Label>
+            <Input
+              id="rent_amount"
+              type="number"
+              min="0"
+              step="1000"
+              value={formData.rent_amount}
+              onChange={(e) => handleChange('rent_amount', parseFloat(e.target.value) || 0)}
+              placeholder="Enter rent amount"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Monthly rent: TZS {formData.rent_amount.toLocaleString()}
+            </p>
+          </div>
+
+          {/* Basic Details */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="bedrooms">Number of Bedrooms</Label>
+              <Label htmlFor="bedrooms">Bedrooms</Label>
               <Select 
                 value={formData.bedrooms?.toString()} 
                 onValueChange={(value) => handleChange('bedrooms', parseInt(value))}
@@ -377,136 +363,81 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
             </div>
 
             <div>
-              <Label htmlFor="area">Area (Square Meters)</Label>
+              <Label htmlFor="area_sqm">Area (sq m)</Label>
               <Input
-                id="area"
+                id="area_sqm"
                 type="number"
-                value={formData.area_sqm || ''}
+                min="1"
+                step="0.01"
+                value={formData.area_sqm}
                 onChange={(e) => handleChange('area_sqm', parseFloat(e.target.value) || 0)}
-                placeholder="150"
               />
-            </div>
-
-            <div>
-              <Label htmlFor="status">Unit Status</Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value) => handleChange('status', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {unitStatuses.map(status => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
-          {/* Financial Details */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="rent_amount">Monthly Rent (TSh)</Label>
-              <Input
-                id="rent_amount"
-                type="number"
-                value={formData.rent_amount || ''}
-                onChange={(e) => handleChange('rent_amount', parseFloat(e.target.value) || 0)}
-                placeholder="500000"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="payment_freq">Payment Frequency</Label>
-              <Select 
-                value={formData.payment_freq} 
-                onValueChange={(value) => handleChange('payment_freq', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select frequency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentFrequencies.map(freq => (
-                    <SelectItem key={freq.value} value={freq.value}>
-                      {freq.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="meter_number">Meter Number</Label>
-              <Input
-                id="meter_number"
-                value={formData.meter_number || ''}
-                onChange={(e) => handleChange('meter_number', e.target.value)}
-                placeholder="Optional meter number"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="cost_allocation">Utility Cost Allocation</Label>
-              <Select 
-                value={formData.cost_allocation} 
-                onValueChange={(value) => handleChange('cost_allocation', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Who pays utilities?" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tenant">Tenant Pays</SelectItem>
-                  <SelectItem value="landlord">Landlord Pays</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Payment Frequency */}
+          <div>
+            <Label htmlFor="payment_freq">Payment Frequency</Label>
+            <Select
+              value={formData.payment_freq}
+              onValueChange={(value) => handleChange('payment_freq', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="biannual">Bi-Annual</SelectItem>
+                <SelectItem value="annual">Annual</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        {/* Utilities */}
-        <div className="space-y-4">
-          <Label>Available Utilities</Label>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { key: 'electricity', label: 'Electricity' },
-              { key: 'water', label: 'Water' },
-              { key: 'wifi', label: 'WiFi' }
-            ].map(utility => (
-              <div key={utility.key} className="flex items-center space-x-2">
-                <Switch
-                  id={utility.key}
-                  checked={formData.utilities?.[utility.key] || false}
-                  onCheckedChange={(checked) => handleUtilityChange(utility.key, checked)}
-                />
-                <Label htmlFor={utility.key}>{utility.label}</Label>
+          {/* Status */}
+          <div>
+            <Label htmlFor="status">Status</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => handleChange('status', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vacant">Vacant</SelectItem>
+                <SelectItem value="occupied">Occupied</SelectItem>
+                <SelectItem value="maintenance">Under Maintenance</SelectItem>
+                <SelectItem value="reserved">Reserved</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Summary */}
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <h4 className="font-medium text-blue-800 mb-2">Unit Summary</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-blue-600">Bedrooms:</span> {formData.bedrooms}
               </div>
-            ))}
+              <div>
+                <span className="text-blue-600">Area:</span> {formData.area_sqm} sq m
+              </div>
+              <div className="col-span-2">
+                <span className="text-blue-600">Monthly Rent:</span> TZS {formData.rent_amount.toLocaleString()}
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Notes */}
-        <div>
-          <Label htmlFor="notes">Additional Notes</Label>
-          <Textarea
-            id="notes"
-            value={formData.notes || ''}
-            onChange={(e) => handleChange('notes', e.target.value)}
-            placeholder="Any additional information about this unit..."
-            rows={3}
-          />
-        </div>
-
-        <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>
-            Save Unit
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave}>
+              Save Unit
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

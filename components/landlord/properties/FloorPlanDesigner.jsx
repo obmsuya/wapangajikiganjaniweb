@@ -2,11 +2,25 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
-import { Grid3X3, Trash2, Eye, Save, Download } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Grid3X3, 
+  Trash2, 
+  Eye, 
+  Save, 
+  Download, 
+  Plus,
+  Check,
+  AlertCircle,
+  Building,
+  Layers,
+  Copy
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useFloorPlan } from "@/hooks/properties/useProperties";
 
 const GRID_SIZE = 8;
@@ -32,7 +46,9 @@ export default function FloorPlanDesigner({
   const [errors, setErrors] = useState({});
   const [previewMode, setPreviewMode] = useState(false);
   const [layoutPreview, setLayoutPreview] = useState(null);
+  const [showAllFloors, setShowAllFloors] = useState(false);
 
+  // Generate floor numbers based on property type and total floors
   const floors = useMemo(() => {
     if (!propertyData?.total_floors) return [];
     
@@ -43,6 +59,7 @@ export default function FloorPlanDesigner({
     return floorNumbers;
   }, [propertyData?.total_floors]);
 
+  // Check validation for all floors
   const isFloorPlanValid = useMemo(() => {
     const newErrors = {};
     let hasValidFloor = false;
@@ -105,6 +122,8 @@ export default function FloorPlanDesigner({
         layout_data: svgString,
         layout_preview: layoutPreviewData,
         area: selectedUnits.length * 150,
+        layout_type: 'manual_grid',
+        creation_method: 'manual',
         grid_configuration: {
           grid_size: GRID_SIZE,
           cell_size: CELL_SIZE,
@@ -158,6 +177,22 @@ export default function FloorPlanDesigner({
   const handlePreviewToggle = useCallback(() => {
     setPreviewMode(!previewMode);
   }, [previewMode]);
+
+  const handleCopyFromFloor = useCallback((sourceFloor) => {
+    const sourceFloorData = floorData?.[sourceFloor];
+    if (sourceFloorData && sourceFloorData.units_ids) {
+      // Copy the layout from source floor to current floor
+      const copiedFloorData = {
+        ...sourceFloorData,
+        floor_number: currentFloor
+      };
+      
+      saveFloorPlan(currentFloor, copiedFloorData);
+      
+      // Update selected units to reflect the copied layout
+      setCurrentFloor(currentFloor);
+    }
+  }, [floorData, currentFloor, saveFloorPlan, setCurrentFloor]);
 
   const handleDownloadLayout = useCallback(() => {
     if (!layoutPreview) return;
@@ -253,37 +288,93 @@ export default function FloorPlanDesigner({
       <div>
         <h2 className="text-2xl font-bold text-foreground mb-2">Floor Plan Design</h2>
         <p className="text-muted-foreground">
-          Design the layout for each floor by selecting units on the grid
+          Design layouts for {propertyData.category === 'Multi-Floor' ? 'each floor' : 'your property'} 
+          by selecting units on the grid
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Panel - Floor Tabs and Controls */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Floor Selection */}
+      {/* Multi-Floor Progress Overview */}
+      {propertyData.category === 'Multi-Floor' && (
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <Building className="w-5 h-5" />
+              Multi-Floor Property Progress
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{configuredFloorsCount}</div>
+                <div className="text-sm text-blue-700">of {floors.length} floors configured</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{totalUnits}</div>
+                <div className="text-sm text-green-700">total units designed</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  {Math.round((configuredFloorsCount / floors.length) * 100)}%
+                </div>
+                <div className="text-sm text-purple-700">completion rate</div>
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${(configuredFloorsCount / floors.length) * 100}%` }}
+              ></div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Validation Errors */}
+      {errors.floors && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{errors.floors}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Floor Selection & Info */}
+        <div className="space-y-6">
+          {/* Floor Navigation */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Floors</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Layers className="w-5 h-5" />
+                Floors ({floors.length})
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-3">
               {floors.map((floorNum) => (
                 <motion.button
                   key={floorNum}
                   onClick={() => handleFloorChange(floorNum)}
-                  className={`w-full p-3 rounded-lg border text-left transition-all ${
+                  className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
                     currentFloor === floorNum
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
+                      ? 'border-primary-500 bg-primary-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">Floor {floorNum}</span>
+                    <div>
+                      <p className="font-medium">
+                        Floor {floorNum}
+                        {floorNum === 1 && ' (Ground)'}
+                      </p>
+                      {floorData?.[floorNum] && (
+                        <Badge variant="secondary" className="mt-1">
+                          {floorData[floorNum].units_total} units
+                        </Badge>
+                      )}
+                    </div>
                     {floorData?.[floorNum] && (
-                      <Badge variant="secondary">
-                        {floorData[floorNum].units_total} units
-                      </Badge>
+                      <Check className="w-4 h-4 text-green-500" />
                     )}
                   </div>
                   {floorData?.[floorNum] && (
@@ -331,6 +422,30 @@ export default function FloorPlanDesigner({
                 </Button>
               </div>
 
+              {/* Copy from other floors (Multi-Floor only) */}
+              {propertyData.category === 'Multi-Floor' && Object.keys(floorData || {}).length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Copy from floor:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.keys(floorData || {}).map((floorNum) => {
+                      if (parseInt(floorNum) === currentFloor) return null;
+                      return (
+                        <Button
+                          key={floorNum}
+                          onClick={() => handleCopyFromFloor(parseInt(floorNum))}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          <Copy className="w-3 h-3 mr-1" />
+                          Floor {floorNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <Button
                   onClick={handlePreviewToggle}
@@ -339,7 +454,7 @@ export default function FloorPlanDesigner({
                   className="flex-1"
                 >
                   <Eye className="w-4 h-4 mr-2" />
-                  {previewMode ? 'Edit Mode' : 'Preview'}
+                  {previewMode ? 'Edit' : 'Preview'}
                 </Button>
                 
                 {layoutPreview && (
@@ -352,165 +467,112 @@ export default function FloorPlanDesigner({
                   </Button>
                 )}
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Layout Preview Card */}
-          {layoutPreview && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Layout Preview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4">
-                  <div 
-                    className="w-full h-full flex items-center justify-center"
-                    dangerouslySetInnerHTML={{ __html: layoutPreview.svg }}
-                  />
-                </div>
-                <div className="mt-4 text-sm text-muted-foreground">
-                  <p>Units: {layoutPreview.units_count}</p>
-                  <p>Configuration: {layoutPreview.layout_type}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Total Floors:</span>
-                  <span className="font-medium">{floors.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Configured Floors:</span>
-                  <span className="font-medium">
-                    {configuredFloorsCount}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Total Units:</span>
-                  <span className="font-medium text-primary-600">
-                    {totalUnits}
-                  </span>
-                </div>
-              </div>
+              {errors.currentFloor && (
+                <p className="text-red-500 text-sm">{errors.currentFloor}</p>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Panel - Grid Designer */}
-        <div className="lg:col-span-2">
+        {/* Grid Designer */}
+        <div className="lg:col-span-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Floor {currentFloor} Layout</span>
                 <div className="flex items-center gap-2">
-                  <Grid3X3 className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {GRID_SIZE} × {GRID_SIZE} Grid
-                  </span>
+                  <Grid3X3 className="w-5 h-5" />
+                  Floor {currentFloor} Layout Designer
                 </div>
+                <Badge variant="outline">
+                  {GRID_SIZE}x{GRID_SIZE} Grid
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  {previewMode 
-                    ? "Preview mode - Units are displayed as they will appear in the final layout"
-                    : "Click on grid cells to select/deselect units for this floor. Selected cells will become rental units."
-                  }
+                {/* Grid Instructions */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Instructions:</strong> Click on grid cells to select units. 
+                    {propertyData.category === 'Multi-Floor' && ' Each floor can have a different layout.'}
+                    {!previewMode ? ' Click cells to add/remove units.' : ' Preview mode - editing disabled.'}
+                  </p>
                 </div>
 
                 {/* Grid Container */}
-                <div 
-                  className="relative border-2 border-dashed border-gray-300 mx-auto bg-gray-50 rounded-lg"
-                  style={{
-                    width: GRID_SIZE * CELL_SIZE + 40,
-                    height: GRID_SIZE * CELL_SIZE + 40,
-                    padding: 20
-                  }}
-                >
+                <div className="flex justify-center">
                   <div 
-                    className="relative"
+                    className="relative border-2 border-gray-300 bg-gray-50"
                     style={{
                       width: GRID_SIZE * CELL_SIZE,
-                      height: GRID_SIZE * CELL_SIZE
+                      height: GRID_SIZE * CELL_SIZE,
                     }}
                   >
                     {gridCells}
                   </div>
                 </div>
 
-                {/* Enhanced Legend */}
-                <div className="flex items-center justify-center gap-6 text-sm">
+                {/* Grid Legend */}
+                <div className="flex justify-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                    <span>Selected Unit</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-white border-2 border-gray-300 rounded"></div>
                     <span>Available Space</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-blue-500 border-2 border-blue-600 rounded"></div>
-                    <span>Selected Unit</span>
-                  </div>
-                  {previewMode && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                      <span>Active Selection</span>
-                    </div>
-                  )}
                 </div>
-
-                {/* Current Floor Status */}
-                {currentFloorData && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 className="font-medium text-green-900 mb-2">Floor {currentFloor} Status</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-green-700">Units Configured:</span>
-                        <span className="font-medium ml-2">{currentFloorData.units_total}</span>
-                      </div>
-                      <div>
-                        <span className="text-green-700">Layout Type:</span>
-                        <span className="font-medium ml-2 capitalize">
-                          {currentFloorData.grid_configuration?.layout_type || 'Manual Grid'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Error Messages */}
-      {Object.entries(errors).map(([key, error]) => (
-        <div key={key} className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">
-          {error}
-        </div>
-      ))}
-
-      {/* Enhanced Instructions */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4">
-          <h4 className="font-medium text-blue-900 mb-2">How to use the Floor Designer:</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Select different floors using the tabs on the left</li>
-            <li>• Click on grid cells to add/remove units for the current floor</li>
-            <li>• **IMPORTANT**: Save each floor before moving to the next one</li>
-            <li>• Use preview mode to see how your layout will look</li>
-            <li>• Each selected cell represents one rental unit</li>
-            <li>• Download layouts as SVG files for your records</li>
-            <li>• The layout preview shows exactly how units will appear to tenants</li>
-          </ul>
-        </CardContent>
-      </Card>
+      {/* Multi-Floor Summary (for Multi-Floor properties) */}
+      {propertyData.category === 'Multi-Floor' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="w-5 h-5" />
+              All Floors Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {floors.map((floorNum) => (
+                <div
+                  key={floorNum}
+                  className={`p-4 rounded-lg border-2 ${
+                    floorData?.[floorNum] 
+                      ? 'border-green-200 bg-green-50' 
+                      : 'border-gray-200 bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">Floor {floorNum}</h4>
+                    {floorData?.[floorNum] && (
+                      <Check className="w-4 h-4 text-green-500" />
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {floorData?.[floorNum] 
+                      ? `${floorData[floorNum].units_total} units configured`
+                      : 'Not configured'
+                    }
+                  </p>
+                  {floorData?.[floorNum] && (
+                    <Badge variant="secondary" className="mt-2">
+                      {floorData[floorNum].layout_type || 'Manual'}
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

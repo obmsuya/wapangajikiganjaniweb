@@ -1,763 +1,551 @@
 // app/(dashboard)/landlord/properties/[id]/page.jsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { 
-  Building2, 
-  MapPin, 
-  Users, 
-  DollarSign, 
-  Plus, 
-  Eye, 
-  Calendar,
-  Settings,
-  Image as ImageIcon,
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import {
   ArrowLeft,
-  Home,
-  TrendingUp,
-  AlertCircle,
-  Loader2,
+  Building2,
+  Edit,
+  MoreHorizontal,
+  Eye,
   Download,
   Grid3X3,
-  Layers
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/components/cloudflare/Card";
 import { CloudflarePageHeader } from "@/components/cloudflare/Breadcrumbs";
-import { usePropertyDetails, useTenantOperations } from "@/hooks/properties/useProperties";
-import TenantAssignmentDialog from "@/components/landlord/properties/TenantAssignmentDialog";
-import TenantDetailsDialog from "@/components/landlord/properties/TenantDetailsDialog";
+import { CloudflareTable } from "@/components/cloudflare/Table";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { usePropertyDetails } from "@/hooks/properties/useProperties";
+import FloorLayoutEditor from "@/components/landlord/properties/FloorLayoutEditor";
+import UnitConfigModal from "@/components/landlord/properties/UnitConfigModal";
 
-export default function PropertyDetailsPage() {
-  const router = useRouter();
-  const params = useParams();
+export default function PropertyDetailPage({ params }) {
   const propertyId = params.id;
+  const router = useRouter();
   
-  // Use the correct hooks for property details and tenant operations
   const { property, loading, error, refreshProperty } = usePropertyDetails(propertyId);
-  const { 
-    loading: tenantLoading, 
-    error: tenantError, 
-    assignTenant, 
-    vacateTenant 
-  } = useTenantOperations();
   
+  const [selectedFloor, setSelectedFloor] = useState(null);
+  const [showLayoutEditor, setShowLayoutEditor] = useState(false);
+  const [showUnitConfig, setShowUnitConfig] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  const [selectedTenant, setSelectedTenant] = useState(null);
-  const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);
-  const [showTenantDialog, setShowTenantDialog] = useState(false);
-
-  const handleAssignTenant = (unit) => {
-    setSelectedUnit(unit);
-    setShowAssignmentDialog(true);
-  };
-
-  const handleViewTenant = (tenant, unit) => {
-    setSelectedTenant({ ...tenant, unit });
-    setShowTenantDialog(true);
-  };
-
-  const handleAssignmentSuccess = async () => {
-    setShowAssignmentDialog(false);
-    setSelectedUnit(null);
-    // Refresh property data to get updated tenant assignments
-    await refreshProperty();
-  };
-
-  const handleTenantUpdated = async () => {
-    // Refresh property data when tenant details are updated
-    await refreshProperty();
-  };
-
-  const handleTenantVacated = async () => {
-    setShowTenantDialog(false);
-    setSelectedTenant(null);
-    // Refresh property data when tenant is vacated
-    await refreshProperty();
-  };
+  const [activeTab, setActiveTab] = useState("overview");
 
   const handleGoBack = () => {
-    router.push('/landlord/properties');
+    router.push("/landlord/properties");
   };
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <Loader2 className="w-12 h-12 text-blue-600 mx-auto mb-4 animate-spin" />
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Loading Property Details</h2>
-              <p className="text-slate-600">Please wait while we fetch the property information...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-6">
-        <div className="max-w-7xl mx-auto text-center py-20">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Error Loading Property</h2>
-          <p className="text-slate-600 mb-6">
-            {error.message || "There was an error loading the property details."}
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Button variant="outline" onClick={handleGoBack}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Properties
-            </Button>
-            <Button onClick={refreshProperty}>
-              Try Again
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Property not found state
-  if (!property) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-6">
-        <div className="max-w-7xl mx-auto text-center py-20">
-          <Building2 className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Property Not Found</h2>
-          <p className="text-slate-600 mb-6">
-            The property you're looking for doesn't exist or you don't have permission to view it.
-          </p>
-          <Button onClick={handleGoBack}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Properties
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   // Process property data using the correct structure from PropertyService
-  const processedProperty = {
-    id: property.id,
-    name: property.name || 'Unnamed Property',
-    location: property.location || 'Location not specified',
-    address: property.address,
-    category: property.category || 'Property',
-    total_floors: property.total_floors || 1,
-    description: property.description,
-    prop_image: property.prop_image,
-    images: property.images || [],
-    units: property.units || [], // This comes from PropertyService transformation
-    property_floor: property.property_floor || [] // Add property_floor data if available
-  };
-
-  // Group units by floor using the correct floor information
-  const unitsByFloor = processedProperty.units.reduce((acc, unit) => {
-    // Use floor_info from PropertyService transformation or fallback to floor number
-    let floorKey = 'Ground Floor';
+  const processedProperty = useMemo(() => {
+    if (!property) return null;
     
-    if (unit.floor_info && unit.floor_info.floor_no !== undefined) {
-      floorKey = `Floor ${unit.floor_info.floor_no + 1}`; // Convert from 0-based to 1-based
-    } else if (unit.floor !== undefined) {
-      floorKey = `Floor ${unit.floor}`;
-    } else if (unit.floor_number !== undefined) {
-      floorKey = `Floor ${unit.floor_number + 1}`; // Convert from 0-based to 1-based
+    return {
+      id: property.id,
+      name: property.name || 'Unnamed Property',
+      location: property.location || 'Location not specified',
+      address: property.address,
+      category: property.category || 'Property',
+      total_floors: property.total_floors || 1,
+      prop_image: property.prop_image,
+      units: property.units || [],
+      property_floor: property.property_floor || []
+    };
+  }, [property]);
+
+  // Group units by floor and create floor data structure
+  const floorData = useMemo(() => {
+    if (!processedProperty) return {};
+    
+    const floors = {};
+    
+    // Initialize floors based on total_floors
+    for (let i = 1; i <= processedProperty.total_floors; i++) {
+      floors[i] = {
+        floor_number: i,
+        units: [],
+        units_total: 0,
+        layout_data: null,
+        configured: false
+      };
     }
     
-    if (!acc[floorKey]) {
-      acc[floorKey] = [];
-    }
-    acc[floorKey].push(unit);
-    return acc;
-  }, {});
+    // Add layout data from property_floor if available
+    processedProperty.property_floor.forEach(floor => {
+      const floorNumber = floor.floor_no + 1; // Convert from 0-based to 1-based
+      if (floors[floorNumber]) {
+        floors[floorNumber].layout_data = floor.layout_data;
+        floors[floorNumber].layout_type = floor.layout_type;
+        floors[floorNumber].creation_method = floor.layout_creation_method;
+        floors[floorNumber].configured = true;
+        floors[floorNumber].units_total = floor.units_total || 0;
+      }
+    });
+    
+    // Add units to respective floors
+    processedProperty.units.forEach(unit => {
+      let floorNumber = 1; // Default to ground floor
+      
+      if (unit.floor_info && unit.floor_info.floor_no !== undefined) {
+        floorNumber = unit.floor_info.floor_no + 1; // Convert from 0-based to 1-based
+      } else if (unit.floor !== undefined) {
+        floorNumber = unit.floor;
+      } else if (unit.floor_number !== undefined) {
+        floorNumber = unit.floor_number + 1; // Convert from 0-based to 1-based
+      }
+      
+      if (floors[floorNumber]) {
+        floors[floorNumber].units.push(unit);
+      }
+    });
+    
+    return floors;
+  }, [processedProperty]);
 
-  // Calculate comprehensive statistics using the correct data structure
-  const totalUnits = processedProperty.units.length;
-  const occupiedUnits = processedProperty.units.filter(unit => 
-    unit.current_tenant && unit.current_tenant.id
-  ).length;
-  const vacantUnits = totalUnits - occupiedUnits;
-  const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
-  
-  // FIXED: Calculate revenue from unit rent_amount, not tenant rent_amount
-  const totalMonthlyRevenue = processedProperty.units.reduce((sum, unit) => {
-    // Use unit.rent_amount if tenant is assigned, otherwise 0
-    if (unit.current_tenant && unit.current_tenant.id && unit.rent_amount) {
-      return sum + parseFloat(unit.rent_amount);
-    }
-    return sum;
-  }, 0);
+  // Calculate comprehensive statistics
+  const stats = useMemo(() => {
+    if (!processedProperty) return { totalUnits: 0, occupiedUnits: 0, vacantUnits: 0, occupancyRate: 0, totalRent: 0, configuredFloors: 0, totalFloors: 0 };
+    
+    const totalUnits = processedProperty.units.length;
+    const occupiedUnits = processedProperty.units.filter(unit => 
+      unit.current_tenant && unit.current_tenant.id
+    ).length;
+    const vacantUnits = totalUnits - occupiedUnits;
+    const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+    
+    const totalRent = processedProperty.units.reduce((sum, unit) => 
+      sum + (parseFloat(unit.rent_amount) || 0), 0
+    );
+    
+    const configuredFloors = Object.values(floorData).filter(floor => floor.configured).length;
+    
+    return {
+      totalUnits,
+      occupiedUnits,
+      vacantUnits,
+      occupancyRate,
+      totalRent,
+      configuredFloors,
+      totalFloors: processedProperty.total_floors
+    };
+  }, [processedProperty, floorData]);
 
-  const getOccupancyRateColor = (rate) => {
-    if (rate >= 80) return 'text-green-600';
-    if (rate >= 50) return 'text-yellow-600';
-    return 'text-red-600';
+  const handleEditFloorLayout = (floorNumber) => {
+    setSelectedFloor(floorNumber);
+    setShowLayoutEditor(true);
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Page Header */}
-        <CloudflarePageHeader
-          title={processedProperty.name}
-          description={`Manage units and tenants for ${processedProperty.name}`}
-          actions={
-            <Button variant="outline" onClick={handleGoBack}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Properties
-            </Button>
-          }
-        />
-
-        {/* Enhanced Stats Header */}
-        <div className="bg-gradient-to-r from-white to-blue-50 rounded-3xl p-8 mb-8 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <Building2 className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                  {processedProperty.name}
-                </h1>
-                <div className="flex items-center gap-2 text-slate-600">
-                  <MapPin className="w-5 h-5" />
-                  <span className="text-lg">{processedProperty.location}</span>
-                </div>
-                {processedProperty.category && (
-                  <Badge variant="outline" className="mt-2 bg-slate-100 text-slate-700">
-                    {processedProperty.category}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-4 gap-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-slate-900">{totalUnits}</div>
-                <div className="text-sm text-slate-500 uppercase tracking-wide">Total Units</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">{occupiedUnits}</div>
-                <div className="text-sm text-slate-500 uppercase tracking-wide">Occupied</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">
-                  TSh {totalMonthlyRevenue > 0 ? (totalMonthlyRevenue / 1000).toFixed(0) + 'K' : '0'}
-                </div>
-                <div className="text-sm text-slate-500 uppercase tracking-wide">Monthly Revenue</div>
-              </div>
-              <div className="text-center">
-                <div className={`text-3xl font-bold ${getOccupancyRateColor(occupancyRate)}`}>
-                  {occupancyRate}%
-                </div>
-                <div className="text-sm text-slate-500 uppercase tracking-wide">Occupancy Rate</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Property Image */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-              {processedProperty.prop_image ? (
-                <div className="aspect-video bg-slate-100 rounded-2xl overflow-hidden shadow-sm mb-4">
-                  <img
-                    src={processedProperty.prop_image}
-                    alt={processedProperty.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextElementSibling.style.display = 'flex';
-                    }}
-                  />
-                  <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center" style={{display: 'none'}}>
-                    <div className="text-center">
-                      <ImageIcon className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-                      <p className="text-sm text-slate-500">Image not available</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mb-4">
-                  <div className="text-center">
-                    <ImageIcon className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-                    <p className="text-sm text-slate-500">No image available</p>
-                  </div>
-                </div>
-              )}
-
-              <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <Home className="w-4 h-4 text-blue-600" />
-                Property Details
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Category</div>
-                  <div className="text-sm font-medium text-slate-900">
-                    {processedProperty.category}
-                  </div>
-                </div>
-                
-                {processedProperty.address && (
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Address</div>
-                    <div className="text-sm text-slate-700">{processedProperty.address}</div>
-                  </div>
-                )}
-                
-                <div>
-                  <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Floors</div>
-                  <div className="text-sm font-medium text-slate-900">{processedProperty.total_floors}</div>
-                </div>
-                
-                {processedProperty.description && (
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Description</div>
-                    <div className="text-sm text-slate-700 leading-relaxed">{processedProperty.description}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-              <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-purple-600" />
-                Quick Actions
-              </h3>
-              <div className="space-y-3">
-                <Button variant="outline" className="w-full justify-start h-11 rounded-xl border-slate-200 hover:bg-slate-50">
-                  <Settings className="w-4 h-4 mr-3 text-slate-600" />
-                  Edit Property
-                </Button>
-                
-                <Button variant="outline" className="w-full justify-start h-11 rounded-xl border-slate-200 hover:bg-slate-50">
-                  <Calendar className="w-4 h-4 mr-3 text-slate-600" />
-                  Payment Reports
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Units Content */}
-          <div className="lg:col-span-3">
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-1">Units & Tenants</h2>
-                  <p className="text-slate-600">Manage your property units and tenant assignments</p>
-                </div>
-                <Badge variant="outline" className="px-4 py-2 text-sm font-medium bg-blue-50 border-blue-200 text-blue-700 rounded-xl">
-                  {occupiedUnits} of {totalUnits} occupied
-                </Badge>
-              </div>
-            </div>
-
-            {totalUnits === 0 ? (
-              <div className="bg-white rounded-3xl border-2 border-dashed border-slate-300 p-20 text-center shadow-sm">
-                <div className="w-28 h-28 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-8">
-                  <Building2 className="w-14 h-14 text-slate-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-4">No units found</h3>
-                <p className="text-slate-600 mb-10 max-w-lg mx-auto text-lg leading-relaxed">
-                  This property doesn't have any units set up yet. Add units to start managing tenants and collecting rent.
-                </p>
-                <Button size="lg" className="h-14 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-lg font-semibold">
-                  <Plus className="w-6 h-6 mr-3" />
-                  Add Units
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-12">
-                {Object.entries(unitsByFloor).map(([floorName, units]) => (
-                  <div key={floorName} className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
-                    <div className="flex items-center gap-6 mb-8">
-                      <h3 className="text-xl font-bold text-slate-800">{floorName}</h3>
-                      <div className="h-px bg-slate-300 flex-1"></div>
-                      <span className="text-sm font-medium text-slate-600 bg-slate-100 px-4 py-2 rounded-full">
-                        {units.length} unit{units.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                      {units.map((unit) => (
-                        <UnitCard
-                          key={unit.id}
-                          unit={unit}
-                          onAssignTenant={handleAssignTenant}
-                          onViewTenant={handleViewTenant}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Tenant Assignment Dialog */}
-      {showAssignmentDialog && selectedUnit && (
-        <TenantAssignmentDialog
-          unit={selectedUnit}
-          isOpen={showAssignmentDialog}
-          onClose={() => {
-            setShowAssignmentDialog(false);
-            setSelectedUnit(null);
-          }}
-          onSuccess={handleAssignmentSuccess}
-        />
-      )}
-
-      {/* Tenant Details Dialog */}
-      {showTenantDialog && selectedTenant && (
-        <TenantDetailsDialog
-          tenant={selectedTenant}
-          isOpen={showTenantDialog}
-          onClose={() => {
-            setShowTenantDialog(false);
-            setSelectedTenant(null);
-          }}
-          onTenantUpdated={handleTenantUpdated}
-          onTenantVacated={handleTenantVacated}
-        />
-      )}
-    </div>
-  );
-}
-
-// Property Layout Section Component
-const PropertyLayoutSection = ({ property }) => {
-  const [selectedFloorLayout, setSelectedFloorLayout] = useState(null);
-  const [showLayoutDialog, setShowLayoutDialog] = useState(false);
-
-  const handleViewLayout = (floor) => {
-    setSelectedFloorLayout(floor);
-    setShowLayoutDialog(true);
+  const handleEditUnit = (unit) => {
+    setSelectedUnit(unit);
+    setShowUnitConfig(true);
   };
 
-  const handleDownloadLayout = (floor) => {
-    if (floor.layout_data) {
+  const handleDownloadFloorLayout = (floorNumber) => {
+    const floor = floorData[floorNumber];
+    if (floor && floor.layout_data) {
       const blob = new Blob([floor.layout_data], { type: 'image/svg+xml' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${property.name}-floor-${floor.floor_no}-layout.svg`;
+      a.download = `${processedProperty.name}-floor-${floorNumber}-layout.svg`;
       a.click();
       URL.revokeObjectURL(url);
     }
   };
 
-  if (!property.property_floor || property.property_floor.length === 0) {
-    return null;
+  // Define columns for units table
+  const unitColumns = [
+    {
+      header: 'Unit',
+      accessor: 'unit_name',
+      sortable: true,
+      cell: (value, row) => (
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+            <Building2 className="w-4 h-4 text-blue-600" />
+          </div>
+          <span className="font-medium">{value}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Floor',
+      accessor: 'floor',
+      sortable: true,
+      cell: (value) => `Floor ${value || 1}`
+    },
+    {
+      header: 'Bedrooms',
+      accessor: 'rooms',
+      sortable: true,
+      cell: (value) => `${value || 1} bed`
+    },
+    {
+      header: 'Area',
+      accessor: 'area_sqm',
+      sortable: true,
+      cell: (value) => `${value || 0} sq m`
+    },
+    {
+      header: 'Rent',
+      accessor: 'rent_amount',
+      sortable: true,
+      cell: (value) => value ? `TZS ${parseFloat(value).toLocaleString()}` : 'Not set'
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      sortable: true,
+      cell: (value) => (
+        <Badge variant={value === 'occupied' ? 'default' : 'secondary'}>
+          {value || 'vacant'}
+        </Badge>
+      )
+    },
+    {
+      header: 'Actions',
+      accessor: 'actions',
+      cell: (value, row) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleEditUnit(row)}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Unit
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Eye className="w-4 h-4 mr-2" />
+              View Details
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto p-6 space-y-6">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-24 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+            <div className="h-96 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !processedProperty) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto p-6">
+          <CloudflareCard>
+            <CloudflareCardContent>
+              <div className="text-center py-8">
+                <h3 className="text-lg font-semibold text-red-600 mb-2">
+                  {error?.message || "Property not found"}
+                </h3>
+                <Button onClick={handleGoBack}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Properties
+                </Button>
+              </div>
+            </CloudflareCardContent>
+          </CloudflareCard>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <>
-      {/* Floor Layouts Section */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 mb-1">Floor Layouts</h3>
-            <p className="text-slate-600">Visual representation of your property floors</p>
-          </div>
-          <Badge variant="outline" className="px-4 py-2">
-            {property.property_floor.length} floor{property.property_floor.length !== 1 ? 's' : ''}
-          </Badge>
-        </div>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Page Header */}
+        <CloudflarePageHeader
+          title={processedProperty.name}
+          description={`${processedProperty.category} • ${processedProperty.location}`}
+          actions={
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleGoBack}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <Button>
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+            </div>
+          }
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {property.property_floor.map((floor) => (
-            <Card key={floor.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Floor {floor.floor_no + 1}</span>
-                  <Badge variant="secondary">
-                    {floor.units_total} units
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Layout Preview */}
-                {floor.layout_data ? (
-                  <div className="aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-2">
-                    <div 
-                      className="w-full h-full flex items-center justify-center"
-                      dangerouslySetInnerHTML={{ __html: floor.layout_data }}
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <Grid3X3 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">No layout available</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Floor Stats */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Units:</span>
-                    <span className="font-medium ml-2">{floor.units_total}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Type:</span>
-                    <span className="font-medium ml-2 capitalize">
-                      {floor.layout_type || 'Manual'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => handleViewLayout(floor)}
-                    disabled={!floor.layout_data}
-                    className="flex-1"
-                    size="sm"
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    View
-                  </Button>
-                  <Button
-                    onClick={() => handleDownloadLayout(floor)}
-                    disabled={!floor.layout_data}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Layout Preview Dialog */}
-      <Dialog open={showLayoutDialog} onOpenChange={setShowLayoutDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              Floor {selectedFloorLayout ? selectedFloorLayout.floor_no + 1 : ''} Layout
-            </DialogTitle>
-          </DialogHeader>
-          {selectedFloorLayout && (
-            <div className="space-y-6">
-              {/* Large Layout Display */}
-              <div className="bg-gray-50 rounded-lg border p-6 overflow-auto max-h-96">
-                <div 
-                  className="flex items-center justify-center min-h-64"
-                  dangerouslySetInnerHTML={{ __html: selectedFloorLayout.layout_data }}
-                />
-              </div>
-
-              {/* Layout Information */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <Home className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-blue-900">
-                    {selectedFloorLayout.units_total}
-                  </div>
-                  <div className="text-sm text-blue-700">Total Units</div>
-                </div>
-                
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <Grid3X3 className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-green-900 capitalize">
-                    {selectedFloorLayout.layout_type || 'Manual'}
-                  </div>
-                  <div className="text-sm text-green-700">Layout Type</div>
-                </div>
-                
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <Layers className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-purple-900 capitalize">
-                    {selectedFloorLayout.layout_creation_method || 'Manual'}
-                  </div>
-                  <div className="text-sm text-purple-700">Creation Method</div>
-                </div>
-                
-                <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <Building2 className="w-6 h-6 text-orange-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-orange-900">
-                    Floor {selectedFloorLayout.floor_no + 1}
-                  </div>
-                  <div className="text-sm text-orange-700">Floor Number</div>
-                </div>
-              </div>
-
-              {/* Units List for this Floor */}
-              {selectedFloorLayout.units_floor && selectedFloorLayout.units_floor.length > 0 && (
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <CloudflareCard>
+            <CloudflareCardContent className="p-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-semibold text-lg mb-4">Units on This Floor</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-64 overflow-y-auto">
-                    {selectedFloorLayout.units_floor.map((unit) => (
-                      <div key={unit.id} className="p-3 border rounded-lg bg-white">
-                        <div className="flex items-center justify-between mb-2">
-                          <h5 className="font-medium">{unit.unit_name}</h5>
-                          <Badge variant="outline" className="text-xs">
-                            {unit.status || 'available'}
-                          </Badge>
-                        </div>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Rent:</span>
-                            <span className="font-medium">
-                              TSh {parseFloat(unit.rent_amount || 0).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Area:</span>
-                            <span className="font-medium">{unit.area_sqm || 0} sqm</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Rooms:</span>
-                            <span className="font-medium">{unit.rooms || 1}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-sm text-gray-600 mb-1">Total Floors</p>
+                  <p className="text-2xl font-bold">{stats.configuredFloors}/{stats.totalFloors}</p>
                 </div>
-              )}
+                <Building2 className="w-8 h-8 text-blue-600" />
+              </div>
+            </CloudflareCardContent>
+          </CloudflareCard>
 
-              {/* Action Buttons */}
-              <div className="flex gap-4 justify-end">
-                <Button
-                  onClick={() => handleDownloadLayout(selectedFloorLayout)}
-                  variant="outline"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Layout
-                </Button>
-                <Button onClick={() => setShowLayoutDialog(false)}>
-                  Close
-                </Button>
+          <CloudflareCard>
+            <CloudflareCardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Total Units</p>
+                  <p className="text-2xl font-bold">{stats.totalUnits}</p>
+                </div>
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <span className="text-green-600 font-bold">{stats.totalUnits}</span>
+                </div>
+              </div>
+            </CloudflareCardContent>
+          </CloudflareCard>
+
+          <CloudflareCard>
+            <CloudflareCardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Occupancy Rate</p>
+                  <p className="text-2xl font-bold">{stats.occupancyRate}%</p>
+                </div>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  stats.occupancyRate >= 80 ? 'bg-green-100' : 
+                  stats.occupancyRate >= 50 ? 'bg-yellow-100' : 'bg-red-100'
+                }`}>
+                  <span className={`font-bold ${
+                    stats.occupancyRate >= 80 ? 'text-green-600' : 
+                    stats.occupancyRate >= 50 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {stats.occupancyRate}%
+                  </span>
+                </div>
+              </div>
+            </CloudflareCardContent>
+          </CloudflareCard>
+
+          <CloudflareCard>
+            <CloudflareCardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Monthly Rent</p>
+                  <p className="text-lg font-bold">TZS {stats.totalRent.toLocaleString()}</p>
+                </div>
+                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <span className="text-purple-600 text-xs font-bold">TZS</span>
+                </div>
+              </div>
+            </CloudflareCardContent>
+          </CloudflareCard>
+        </div>
+
+        {/* Main Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="floors">Floor Plans</TabsTrigger>
+            <TabsTrigger value="units">Units</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <CloudflareCard>
+                  <CloudflareCardHeader 
+                    title="Property Information"
+                    icon={<Building2 className="w-5 h-5" />}
+                  />
+                  <CloudflareCardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Address</p>
+                        <p className="font-medium">{processedProperty.address || 'Not specified'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Category</p>
+                        <Badge variant="outline">{processedProperty.category}</Badge>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Total Floors</p>
+                        <p className="font-medium">{processedProperty.total_floors}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Total Units</p>
+                        <p className="font-medium">{stats.totalUnits}</p>
+                      </div>
+                    </div>
+                  </CloudflareCardContent>
+                </CloudflareCard>
+              </div>
+
+              <div>
+                <CloudflareCard>
+                  <CloudflareCardHeader title="Property Image" />
+                  <CloudflareCardContent>
+                    {processedProperty.prop_image ? (
+                      <img
+                        src={processedProperty.prop_image}
+                        alt={processedProperty.name}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <Building2 className="w-12 h-12 text-gray-400" />
+                      </div>
+                    )}
+                  </CloudflareCardContent>
+                </CloudflareCard>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-};
+          </TabsContent>
 
-// Enhanced Unit Card Component with better tenant data handling
-function UnitCard({ unit, onAssignTenant, onViewTenant }) {
-  const hasCurrentTenant = unit.current_tenant && unit.current_tenant.id;
-  
-  return (
-    <div className="bg-gradient-to-br from-white to-slate-50 rounded-2xl border border-slate-200 p-7 hover:shadow-xl transition-all duration-300 hover:border-slate-300 group hover:-translate-y-1">
-      <div className="flex items-center justify-between mb-6">
-        <h4 className="font-bold text-slate-900 text-xl">
-          {unit.unit_name || `Unit ${unit.id}`}
-        </h4>
-        <Badge 
-          variant={hasCurrentTenant ? "default" : "secondary"}
-          className={`text-sm px-3 py-1 font-medium rounded-lg ${
-            hasCurrentTenant 
-              ? 'bg-green-100 text-green-800 border-green-200' 
-              : 'bg-slate-100 text-slate-600 border-slate-200'
-          }`}
-        >
-          {hasCurrentTenant ? "Occupied" : "Vacant"}
-        </Badge>
+          <TabsContent value="floors" className="space-y-6">
+            <CloudflareCard>
+              <CloudflareCardHeader 
+                title="Floor Plans"
+                icon={<Grid3X3 className="w-5 h-5" />}
+              />
+              <CloudflareCardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(floorData).map(([floorNumber, floor]) => (
+                    <div key={floorNumber} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold">Floor {floorNumber}</h4>
+                        {floor.configured && (
+                          <Badge variant="secondary">Configured</Badge>
+                        )}
+                      </div>
+
+                      {/* Layout Preview */}
+                      {floor.layout_data ? (
+                        <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                          <div 
+                            className="w-full h-24 overflow-hidden flex items-center justify-center"
+                            dangerouslySetInnerHTML={{ __html: floor.layout_data }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 rounded-lg p-3 mb-3 h-24 flex items-center justify-center">
+                          <span className="text-sm text-gray-500">No layout configured</span>
+                        </div>
+                      )}
+
+                      <div className="text-sm text-gray-600 mb-3">
+                        <p>Units: {floor.units_total || 0}</p>
+                        <p>Layout: {floor.layout_type || 'Manual'}</p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleEditFloorLayout(parseInt(floorNumber))}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          {floor.configured ? 'Edit' : 'Configure'}
+                        </Button>
+                        {floor.layout_data && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDownloadFloorLayout(parseInt(floorNumber))}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CloudflareCardContent>
+            </CloudflareCard>
+          </TabsContent>
+
+          <TabsContent value="units" className="space-y-6">
+            <CloudflareCard>
+              <CloudflareCardHeader title="Unit Management" />
+              <CloudflareCardContent>
+                <CloudflareTable
+                  data={processedProperty.units}
+                  columns={unitColumns}
+                  pagination={true}
+                  searchable={true}
+                  emptyMessage="No units found for this property."
+                  initialRowsPerPage={10}
+                />
+              </CloudflareCardContent>
+            </CloudflareCard>
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {hasCurrentTenant ? (
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <Users className="w-5 h-5 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <div className="font-semibold text-slate-900 text-base">
-                  {unit.current_tenant.full_name || 'Tenant Name'}
-                </div>
-                <div className="text-sm text-slate-500">Tenant</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-purple-600" />
-              </div>
-              <div className="flex-1">
-                <div className="font-bold text-slate-900 text-base">
-                  {/* Use unit rent_amount, not tenant rent_amount */}
-                  TSh {parseFloat(unit.rent_amount || 0).toLocaleString()}
-                </div>
-                <div className="text-sm text-slate-500">Monthly Rent</div>
-              </div>
-            </div>
-          </div>
+      {/* Floor Layout Editor Modal */}
+      {showLayoutEditor && (
+        <Dialog open={showLayoutEditor} onOpenChange={setShowLayoutEditor}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Floor {selectedFloor} Layout</DialogTitle>
+            </DialogHeader>
+            <FloorLayoutEditor
+              propertyId={propertyId}
+              floorNumber={selectedFloor}
+              existingLayout={floorData[selectedFloor]}
+              onSave={() => {
+                setShowLayoutEditor(false);
+                refreshProperty();
+              }}
+              onCancel={() => setShowLayoutEditor(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onViewTenant(unit.current_tenant, unit)}
-            className="w-full h-12 rounded-xl border-slate-200 hover:bg-slate-50 group-hover:border-blue-300 group-hover:text-blue-600 font-medium text-base"
-          >
-            <Eye className="w-5 h-5 mr-2" />
-            View Details
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          <div className="space-y-4 text-base text-slate-600">
-            {unit.area_sqm && (
-              <div className="flex justify-between items-center py-2">
-                <span>Size:</span>
-                <span className="font-semibold text-slate-900">{unit.area_sqm} sq m</span>
-              </div>
-            )}
-            {unit.rent_amount && (
-              <div className="flex justify-between items-center py-2">
-                <span>Rent:</span>
-                <span className="font-semibold text-slate-900">
-                  TSh {parseFloat(unit.rent_amount).toLocaleString()}
-                </span>
-              </div>
-            )}
-            {unit.rooms && (
-              <div className="flex justify-between items-center py-2">
-                <span>Rooms:</span>
-                <span className="font-semibold text-slate-900">{unit.rooms}</span>
-              </div>
-            )}
-            {unit.status && (
-              <div className="flex justify-between items-center py-2">
-                <span>Status:</span>
-                <span className="font-semibold text-slate-900 capitalize">{unit.status}</span>
-              </div>
-            )}
-          </div>
-
-          <Button
-            size="sm"
-            onClick={() => onAssignTenant(unit)}
-            className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg group-hover:shadow-xl transition-all font-medium text-base"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Assign Tenant
-          </Button>
-        </div>
+      {/* Unit Configuration Modal */}
+      {showUnitConfig && selectedUnit && (
+        <Dialog open={showUnitConfig} onOpenChange={setShowUnitConfig}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Configure Unit: {selectedUnit.unit_name}</DialogTitle>
+            </DialogHeader>
+            <UnitConfigModal
+              unit={selectedUnit}
+              onSave={() => {
+                setShowUnitConfig(false);
+                setSelectedUnit(null);
+                refreshProperty();
+              }}
+              onCancel={() => {
+                setShowUnitConfig(false);
+                setSelectedUnit(null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

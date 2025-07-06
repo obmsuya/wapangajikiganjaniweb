@@ -1,4 +1,4 @@
-// services/auth.js
+// services/auth.js - Updated with referral support
 import api from '@/lib/api/api-client';
 
 const AuthService = {
@@ -21,7 +21,7 @@ const AuthService = {
     }
   },
 
-  // Register a new user
+  // Register a new user (landlord or partner)
   register: async (credentials) => {
     try {
       const response = await api.post('/api/v1/auth/register/', credentials);
@@ -36,6 +36,94 @@ const AuthService = {
       return user;
     } catch (error) {
       console.error('Registration error:', error);
+      throw error;
+    }
+  },
+
+  // Validate referral code
+  validateReferralCode: async (referralCode) => {
+    try {
+      const response = await api.get(`/api/v1/auth/referral/validate/${referralCode}/`);
+      return response;
+    } catch (error) {
+      console.error('Referral validation error:', error);
+      throw error;
+    }
+  },
+
+  // Add referral code after registration
+  addReferralCode: async (referralCode) => {
+    try {
+      const response = await api.post('/api/v1/auth/referral/add/', { referral_code: referralCode });
+      return response;
+    } catch (error) {
+      console.error('Add referral code error:', error);
+      throw error;
+    }
+  },
+
+  // Get referral information for current user
+  getReferralInfo: async () => {
+    try {
+      const response = await api.get('/api/v1/auth/referral/info/');
+      return response;
+    } catch (error) {
+      console.error('Get referral info error:', error);
+      throw error;
+    }
+  },
+
+  // Check if user can add referral code
+  checkReferralEligibility: async () => {
+    try {
+      const response = await api.get('/api/v1/auth/referral/eligibility/');
+      return response;
+    } catch (error) {
+      console.error('Check referral eligibility error:', error);
+      throw error;
+    }
+  },
+
+  // Get partner profile (for partners)
+  getPartnerProfile: async () => {
+    try {
+      const response = await api.get('/api/v1/auth/partner/profile/');
+      return response;
+    } catch (error) {
+      console.error('Get partner profile error:', error);
+      throw error;
+    }
+  },
+
+  // Update partner profile
+  updatePartnerProfile: async (profileData) => {
+    try {
+      const response = await api.put('/api/v1/auth/partner/profile/', profileData);
+      return response;
+    } catch (error) {
+      console.error('Update partner profile error:', error);
+      throw error;
+    }
+  },
+
+  // Get partner referrals
+  getPartnerReferrals: async () => {
+    try {
+      const response = await api.get('/api/v1/auth/partner/referrals/');
+      return response;
+    } catch (error) {
+      console.error('Get partner referrals error:', error);
+      throw error;
+    }
+  },
+
+  // Get partner statistics
+  getPartnerStatistics: async () => {
+    try {
+      const response = await api.get('/api/v1/auth/partner/statistics/');
+      return response;
+    } catch (error) {
+      console.error('Get partner statistics error:', error);
       throw error;
     }
   },
@@ -94,6 +182,18 @@ const AuthService = {
   isAuthenticated: () => {
     if (typeof window === 'undefined') return false;
     return !!localStorage.getItem('access_token');
+  },
+
+  // Get stored access token
+  getAccessToken: () => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('access_token');
+  },
+
+  // Get stored refresh token
+  getRefreshToken: () => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('refresh_token');
   },
 };
 

@@ -1,4 +1,4 @@
-// services/landlord/property.js
+// services/landlord/property.js - Updated with Multi-Floor Support
 import api from '@/lib/api/api-client';
 
 const PropertyService = {
@@ -64,31 +64,29 @@ const PropertyService = {
         };
       });
       
-      return Array.isArray(response) ? propertiesWithUnits : { ...response, results: propertiesWithUnits };
+      return Array.isArray(response) 
+        ? propertiesWithUnits 
+        : { ...response, results: propertiesWithUnits };
     } catch (error) {
       console.error("Error fetching properties:", error);
       throw error;
     }
   },
 
-  // Get single property details WITH units - Uses PropertyViewSet detail
+  // Get property details by ID - Uses PropertyViewSet detail
   getPropertyDetails: async (propertyId) => {
     try {
       if (!propertyId) {
         throw new Error("Property ID is required");
       }
       
-      console.log(`Fetching property details for ID: ${propertyId}`);
+      const response = await api.get(`/api/v1/svg_properties/property/${propertyId}/`);
+      console.log("Property details response:", response);
       
-      // Fetch property details with nested floors and units
-      const property = await api.get(`/api/v1/svg_properties/property/${propertyId}/`);
-      console.log("Property data received:", property);
-      
-      // Transform the nested structure to flat units array
+      // Transform the data to include units at property level
       const units = [];
-      
-      if (property.property_floor && Array.isArray(property.property_floor)) {
-        property.property_floor.forEach(floor => {
+      if (response.property_floor && Array.isArray(response.property_floor)) {
+        response.property_floor.forEach(floor => {
           if (floor.units_floor && Array.isArray(floor.units_floor)) {
             floor.units_floor.forEach(unit => {
               units.push({
@@ -98,37 +96,16 @@ const PropertyService = {
                   id: floor.id
                 },
                 floor: floor.floor_no,
-                current_tenant: null // Will be populated by tenant queries
+                current_tenant: null // Will be populated by tenant service
               });
             });
           }
         });
       }
       
-      console.log("Transformed units:", units);
-      
-      // Fetch tenants for each unit if needed
-      const unitsWithTenants = await Promise.all(
-        units.map(async (unit) => {
-          try {
-            const tenant = await this.getUnitTenant(unit.id);
-            return {
-              ...unit,
-              current_tenant: tenant
-            };
-          } catch (error) {
-            // Unit has no tenant or error fetching tenant
-            return {
-              ...unit,
-              current_tenant: null
-            };
-          }
-        })
-      );
-      
       return {
-        ...property,
-        units: unitsWithTenants
+        ...response,
+        units: units
       };
     } catch (error) {
       console.error(`Error fetching property details for ID ${propertyId}:`, error);
@@ -136,100 +113,20 @@ const PropertyService = {
     }
   },
 
-  // Get units for a specific property - Direct from your units endpoint
-  getPropertyUnits: async (propertyId) => {
+  // Update property details - Uses PropertyViewSet update
+  updateProperty: async (propertyId, propertyData) => {
     try {
       if (!propertyId) {
         throw new Error("Property ID is required");
       }
-      
-      // Try to get units by filtering through property floors
-      const property = await this.getPropertyDetails(propertyId);
-      return property.units || [];
-    } catch (error) {
-      console.error(`Error fetching units for property ${propertyId}:`, error);
-      return [];
-    }
-  },
-
-  // Get units for a specific floor - Uses your floor units endpoint
-  getFloorUnits: async (floorId) => {
-    try {
-      if (!floorId) {
-        throw new Error("Floor ID is required");
-      }
-      
-      // Use your custom endpoint for floor units
-      const response = await api.get(`/api/v1/svg_properties/units/floor/${floorId}/`);
-      
-      if (response.floors && response.floors.units_floor) {
-        return response.floors.units_floor;
-      }
-      
-      return [];
-    } catch (error) {
-      console.error(`Error fetching units for floor ${floorId}:`, error);
-      return [];
-    }
-  },
-
-  // Get floor details with units - Uses your floor details endpoint
-  getFloorDetails: async (floorId) => {
-    try {
-      if (!floorId) {
-        throw new Error("Floor ID is required");
-      }
-      
-      // Use your custom endpoint for floor details
-      const response = await api.get(`/api/v1/svg_properties/floor/units/${floorId}/`);
-      return response.floors || response;
-    } catch (error) {
-      console.error(`Error fetching floor details for ID ${floorId}:`, error);
-      throw error;
-    }
-  },
-
-  // Get tenant for a specific unit - This would need tenant API
-  getUnitTenant: async (unitId) => {
-    try {
-      if (!unitId) {
-        throw new Error("Unit ID is required");
-      }
-      
-      // This would call your tenant API to get current tenant for unit
-      // You'll need to implement this based on your tenant endpoints
-      const response = await api.get(`/api/v1/tenants/?unit=${unitId}&status=active`);
-      
-      // Handle different response formats
-      if (Array.isArray(response) && response.length > 0) {
-        return response[0];
-      }
-      
-      if (response.results && Array.isArray(response.results) && response.results.length > 0) {
-        return response.results[0];
-      }
-      
-      return null;
-    } catch (error) {
-      console.error(`Error fetching tenant for unit ${unitId}:`, error);
-      return null;
-    }
-  },
-
-  // Update property - Uses PropertyViewSet update
-  updateProperty: async (propertyId, updateData) => {
-    try {
-      if (!propertyId) {
-        throw new Error("Property ID is required");
-      }
-      return await api.put(`/api/v1/svg_properties/property/${propertyId}/`, updateData);
+      return await api.patch(`/api/v1/svg_properties/property/${propertyId}/`, propertyData);
     } catch (error) {
       console.error(`Error updating property ${propertyId}:`, error);
       throw error;
     }
   },
 
-  // Update property layout - Uses your custom update_layout endpoint
+  // Update property layout - Uses PropertyViewSet update_floor_layout action
   updatePropertyLayout: async (propertyId, layoutData) => {
     try {
       if (!propertyId) {
@@ -268,15 +165,32 @@ const PropertyService = {
     }
   },
 
-  // Floor management - Uses PropertyRegistrationViewSet
-  createFloor: async (propertyId, floorData) => {
+  // ================== FLOOR MANAGEMENT ==================
+  
+  // Add floor to property - Uses PropertyRegistrationViewSet add_floor action
+  addFloor: async (propertyId, floorData) => {
     try {
       if (!propertyId) {
         throw new Error("Property ID is required");
       }
+      console.log("Adding floor to property:", propertyId, floorData);
       return await api.post(`/api/v1/svg_properties/registration/${propertyId}/add_floor/`, floorData);
     } catch (error) {
-      console.error(`Error creating floor for property ${propertyId}:`, error);
+      console.error(`Error adding floor to property ${propertyId}:`, error);
+      throw error;
+    }
+  },
+
+  // Update floor layout - Uses PropertyRegistrationViewSet update_floor_layout action
+  updateFloorLayout: async (propertyId, floorData) => {
+    try {
+      if (!propertyId) {
+        throw new Error("Property ID is required");
+      }
+      console.log("Updating floor layout for property:", propertyId, floorData);
+      return await api.post(`/api/v1/svg_properties/registration/${propertyId}/update_floor_layout/`, floorData);
+    } catch (error) {
+      console.error(`Error updating floor layout for property ${propertyId}:`, error);
       throw error;
     }
   },
@@ -304,20 +218,61 @@ const PropertyService = {
     }
   },
 
-  // Update floor layout - Uses PropertyRegistrationViewSet
-  updateFloorLayout: async (propertyId, floorData) => {
+  // Get floor details by ID - Uses FloorViewSet detail
+  getFloorDetails: async (floorId) => {
     try {
-      if (!propertyId) {
-        throw new Error("Property ID is required");
+      if (!floorId) {
+        throw new Error("Floor ID is required");
       }
-      return await api.post(`/api/v1/svg_properties/registration/${propertyId}/update_floor_layout/`, floorData);
+      return await api.get(`/api/v1/svg_properties/floor/${floorId}/`);
     } catch (error) {
-      console.error(`Error updating floor layout for property ${propertyId}:`, error);
+      console.error(`Error fetching floor details for ID ${floorId}:`, error);
       throw error;
     }
   },
 
-  // Units management - Uses UnitViewSet
+  // Update floor - Uses FloorViewSet update
+  updateFloor: async (floorId, floorData) => {
+    try {
+      if (!floorId) {
+        throw new Error("Floor ID is required");
+      }
+      return await api.patch(`/api/v1/svg_properties/floor/${floorId}/`, floorData);
+    } catch (error) {
+      console.error(`Error updating floor ${floorId}:`, error);
+      throw error;
+    }
+  },
+
+  // Delete floor - Uses FloorViewSet destroy
+  deleteFloor: async (floorId) => {
+    try {
+      if (!floorId) {
+        throw new Error("Floor ID is required");
+      }
+      return await api.delete(`/api/v1/svg_properties/floor/${floorId}/`);
+    } catch (error) {
+      console.error(`Error deleting floor ${floorId}:`, error);
+      throw error;
+    }
+  },
+
+  // Get units in a floor - Uses custom endpoint
+  getFloorUnits: async (floorId) => {
+    try {
+      if (!floorId) {
+        throw new Error("Floor ID is required");
+      }
+      return await api.get(`/api/v1/svg_properties/floor/units/${floorId}/`);
+    } catch (error) {
+      console.error(`Error fetching units for floor ${floorId}:`, error);
+      throw error;
+    }
+  },
+
+  // ================== UNIT MANAGEMENT ==================
+
+  // Get units with filters - Uses UnitViewSet
   getUnits: async (filters = {}) => {
     try {
       const queryParams = new URLSearchParams();
@@ -338,6 +293,197 @@ const PropertyService = {
       console.error("Error fetching units:", error);
       throw error;
     }
+  },
+
+  // Get unit details by ID - Uses UnitViewSet detail
+  getUnitDetails: async (unitId) => {
+    try {
+      if (!unitId) {
+        throw new Error("Unit ID is required");
+      }
+      return await api.get(`/api/v1/svg_properties/units/${unitId}/`);
+    } catch (error) {
+      console.error(`Error fetching unit details for ID ${unitId}:`, error);
+      throw error;
+    }
+  },
+
+  // Create unit - Uses UnitViewSet create
+  createUnit: async (unitData) => {
+    try {
+      console.log("Creating unit with data:", unitData);
+      return await api.post("/api/v1/svg_properties/units/", unitData);
+    } catch (error) {
+      console.error("Error creating unit:", error);
+      throw error;
+    }
+  },
+
+  // Update unit - Uses UnitViewSet update
+  updateUnit: async (unitId, unitData) => {
+    try {
+      if (!unitId) {
+        throw new Error("Unit ID is required");
+      }
+      console.log("Updating unit:", unitId, unitData);
+      return await api.patch(`/api/v1/svg_properties/units/${unitId}/`, unitData);
+    } catch (error) {
+      console.error(`Error updating unit ${unitId}:`, error);
+      throw error;
+    }
+  },
+
+  // Delete unit - Uses UnitViewSet destroy
+  deleteUnit: async (unitId) => {
+    try {
+      if (!unitId) {
+        throw new Error("Unit ID is required");
+      }
+      return await api.delete(`/api/v1/svg_properties/units/${unitId}/`);
+    } catch (error) {
+      console.error(`Error deleting unit ${unitId}:`, error);
+      throw error;
+    }
+  },
+
+  // Get units in a specific floor - Uses custom endpoint
+  getUnitsInFloor: async (floorId) => {
+    try {
+      if (!floorId) {
+        throw new Error("Floor ID is required");
+      }
+      return await api.get(`/api/v1/svg_properties/units/floor/${floorId}/`);
+    } catch (error) {
+      console.error(`Error fetching units in floor ${floorId}:`, error);
+      throw error;
+    }
+  },
+
+  // ================== UTILITY METHODS ==================
+
+  // Generate floor layout preview
+  generateFloorPreview: (selectedUnits, gridSize = 8, cellSize = 40) => {
+    if (!selectedUnits || selectedUnits.length === 0) return null;
+    
+    const svgElements = selectedUnits.map((cellIndex, idx) => {
+      const x = (cellIndex % gridSize) * cellSize;
+      const y = Math.floor(cellIndex / gridSize) * cellSize;
+      
+      return `<rect width="${cellSize}" height="${cellSize}" x="${x}" y="${y}" id="unit_${cellIndex}" fill="#3b82f6" stroke="#1e40af" stroke-width="2" />
+              <text x="${x + cellSize/2}" y="${y + cellSize/2}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="12" font-weight="bold">${idx + 1}</text>`;
+    }).join('\n');
+    
+    return {
+      svg: `<svg width="${gridSize * cellSize}" height="${gridSize * cellSize}" xmlns="http://www.w3.org/2000/svg">
+              ${svgElements}
+            </svg>`,
+      units_count: selectedUnits.length,
+      grid_configuration: {
+        grid_size: gridSize,
+        cell_size: cellSize,
+        selected_cells: selectedUnits
+      }
+    };
+  },
+
+  // Validate floor data
+  validateFloorData: (floorData) => {
+    const errors = [];
+    
+    if (!floorData.floor_no && floorData.floor_no !== 0) {
+      errors.push('Floor number is required');
+    }
+    
+    if (!floorData.units_total || floorData.units_total < 1) {
+      errors.push('At least one unit is required');
+    }
+    
+    if (!floorData.layout_type) {
+      errors.push('Layout type is required');
+    }
+    
+    if (!floorData.units || !Array.isArray(floorData.units) || floorData.units.length === 0) {
+      errors.push('Units data is required');
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  },
+
+  // Validate unit data
+  validateUnitData: (unitData) => {
+    const errors = [];
+    
+    if (!unitData.unit_name || !unitData.unit_name.trim()) {
+      errors.push('Unit name is required');
+    }
+    
+    if (!unitData.area_sqm || unitData.area_sqm <= 0) {
+      errors.push('Area must be greater than 0');
+    }
+    
+    if (unitData.rent_amount < 0) {
+      errors.push('Rent amount cannot be negative');
+    }
+    
+    if (!unitData.svg_id && unitData.svg_id !== 0) {
+      errors.push('SVG ID is required');
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  },
+
+  // Format property data for backend
+  formatPropertyForBackend: (propertyData) => {
+    return {
+      name: propertyData.name,
+      category: propertyData.category,
+      location: propertyData.location,
+      address: propertyData.address,
+      total_floors: propertyData.total_floors,
+      total_area: propertyData.total_area,
+      total_units: propertyData.total_units,
+      prop_image: propertyData.prop_image,
+      floors: Object.keys(propertyData.floors || {}).map((floorKey) => {
+        const floor = parseInt(floorKey);
+        const floorPlan = propertyData.floors[floor];
+        const floorUnits = propertyData.units ? 
+          Object.values(propertyData.units).filter(unit => unit.floor_no === floor) : [];
+        
+        return {
+          floor: {
+            floor_no: floor - 1, // Convert to 0-based indexing
+            units_total: floorPlan.units_total || floorUnits.length,
+            layout_type: floorPlan.layout_type || 'rectangular',
+            creation_method: floorPlan.creation_method || 'manual',
+            layout_data: floorPlan.layout_data || '',
+            units: floorUnits.map(unit => ({
+              utilities: unit.utilities || {
+                electricity: false,
+                water: false,
+                wifi: false
+              },
+              svg_id: unit.svg_id,
+              svg_geom: unit.svg_geom || `<rect width="40" height="40" x="0" y="0" id="${unit.svg_id}" fill="green" stroke="gray" stroke-width="2" />`,
+              floor_number: floor - 1,
+              unit_name: unit.unit_name || `A${unit.svg_id}`,
+              area_sqm: unit.area_sqm || 150,
+              bedrooms: unit.bedrooms || 1,
+              status: unit.status || 'vacant',
+              rent_amount: unit.rent_amount || 0,
+              payment_freq: unit.payment_freq || 'monthly',
+              meter_number: unit.meter_number || '',
+              notes: unit.notes || ''
+            }))
+          }
+        };
+      })
+    };
   }
 };
 
