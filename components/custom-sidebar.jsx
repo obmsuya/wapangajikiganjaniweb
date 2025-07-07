@@ -1,10 +1,9 @@
-// components/sidebar/custom-sidebar.jsx
+// components/custom-sidebar.jsx
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useTheme } from "@/components/theme-provider";
+import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
   Users, 
@@ -15,14 +14,10 @@ import {
   Menu, 
   X,
   ChevronDown,
-  Sun,
-  Moon,
-  Handshake,
-  LogOut
+  Handshake
 } from "lucide-react";
-import AuthService from "@/services/auth";
+import NotificationSidebarFooter from "./sidebar/NotificationSidebarFooter";
 
-// Keep your exact SidebarItem component unchanged
 const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen, toggleSubmenu }) => {
   const hasSubmenu = Array.isArray(children) && children.length > 0;
 
@@ -63,11 +58,8 @@ const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen,
   );
 };
 
-// Main Sidebar Component - Only modified the routes logic
 export function CustomSidebar({ role = "admin", user }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState({});
 
@@ -78,18 +70,6 @@ export function CustomSidebar({ role = "admin", user }) {
     }));
   };
 
-  const handleLogout = async () => {
-    try {
-      await AuthService.logout();
-      router.push('/login');
-    } catch (error) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      router.push('/login');
-    }
-  };
-
-  // ONLY CHANGE: Updated routes based on user type
   const getRoutes = () => {
     if (user?.user_type === 'landlord' || role === 'landlord') {
       return [
@@ -126,7 +106,6 @@ export function CustomSidebar({ role = "admin", user }) {
       ];
     }
 
-    // Default admin routes (your original)
     return [
       {
         label: "Dashboard",
@@ -182,7 +161,6 @@ export function CustomSidebar({ role = "admin", user }) {
 
   const routes = getRoutes();
 
-  // Keep your exact structure and styling
   return (
     <>
       {/* Mobile Trigger Button */}
@@ -242,33 +220,15 @@ export function CustomSidebar({ role = "admin", user }) {
             ))}
           </nav>
 
-          {/* Sidebar Footer */}
-          <div className="p-4 border-t border-sidebar-border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-sidebar-hover flex items-center justify-center">
-                  <UserRound size={18} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{user?.full_name || "User Name"}</p>
-                  <p className="text-xs text-sidebar-fg/70">
-                    {user?.user_type === 'landlord' ? "Landlord" : "Administrator"}
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={toggleTheme}
-                className="p-2 rounded-md bg-sidebar-hover text-sidebar-fg hover:bg-sidebar-active hover:text-sidebar-active-fg transition-colors"
-                aria-label={theme === 'dark' ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-            </div>
-          </div>
+          {/* Enhanced Sidebar Footer with Notifications */}
+          <NotificationSidebarFooter 
+            user={user} 
+            onLogout={() => setIsMobileOpen(false)}
+          />
         </div>
       </aside>
 
-      {/* Desktop Sidebar - Keep exactly as yours */}
+      {/* Desktop Sidebar */}
       <aside className="hidden md:block min-w-sidebar max-w-sidebar w-sidebar h-screen border-r border-sidebar-border bg-sidebar">
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
@@ -295,29 +255,8 @@ export function CustomSidebar({ role = "admin", user }) {
             ))}
           </nav>
 
-          {/* Sidebar Footer */}
-          <div className="p-4 border-t border-sidebar-border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-sidebar-hover flex items-center justify-center">
-                  <UserRound size={18} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{user?.full_name || "User Name"}</p>
-                  <p className="text-xs text-sidebar-fg/70">
-                    {user?.user_type === 'landlord' ? "Landlord" : "Administrator"}
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={toggleTheme}
-                className="p-2 rounded-md bg-sidebar-hover text-sidebar-fg hover:bg-sidebar-active hover:text-sidebar-active-fg transition-colors"
-                aria-label={theme === 'dark' ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-            </div>
-          </div>
+          {/* Enhanced Sidebar Footer with Notifications */}
+          <NotificationSidebarFooter user={user} />
         </div>
       </aside>
     </>

@@ -2,200 +2,260 @@
 import api from '@/lib/api/api-client';
 
 const TenantService = {
-  // Get all tenants for the current landlord with filtering - Uses TenantViewSet
   getTenants: async (filters = {}) => {
     try {
-      const queryParams = new URLSearchParams();
-      
+      const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          queryParams.append(key, value);
+        if (value !== null && value !== undefined && value !== '') {
+          params.append(key, value);
         }
       });
       
-      const queryString = queryParams.toString();
-      const endpoint = queryString 
-        ? `/api/v1/tenants/tenants/?${queryString}`
-        : "/api/v1/tenants/tenants/";
-        
-      return await api.get(endpoint);
+      const queryString = params.toString();
+      const url = queryString ? `/api/v1/tenants/tenant/?${queryString}` : '/api/v1/tenants/tenant/';
+      
+      const response = await api.get(url);
+      return response;
     } catch (error) {
       console.error("Error fetching tenants:", error);
       throw error;
     }
   },
 
-  // Get single tenant details - Uses TenantViewSet detail
   getTenantDetails: async (tenantId) => {
     try {
       if (!tenantId) {
         throw new Error("Tenant ID is required");
       }
-      return await api.get(`/api/v1/tenants/tenants/${tenantId}/`);
+      
+      const response = await api.get(`/api/v1/tenants/tenant/${tenantId}/`);
+      return response;
     } catch (error) {
       console.error(`Error fetching tenant details for ID ${tenantId}:`, error);
       throw error;
     }
   },
 
-  // Assign tenant to unit - Uses your functional decorator endpoint
   assignTenantToUnit: async (assignmentData) => {
     try {
-      // Validate required fields based on your TenantAssignmentSerializer
-      const requiredFields = ['unit_id', 'rent_amount', 'deposit_amount', 'payment_frequency'];
-      const missingFields = requiredFields.filter(field => !assignmentData[field]);
-      
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-      }
-
-      console.log("Assigning tenant with data:", assignmentData);
-      // Use the functional decorator endpoint /api/v1/tenants/assign/
-      return await api.post("/api/v1/tenants/assign/", assignmentData);
+      console.log('Assigning tenant with data:', assignmentData);
+      const response = await api.post('/api/v1/tenants/assign_tenant/', assignmentData);
+      return response;
     } catch (error) {
-      console.error("Error assigning tenant:", error);
+      console.error('Error assigning tenant:', error);
       throw error;
     }
   },
 
-  // Vacate tenant from unit - Uses TenantViewSet custom action
   vacateTenant: async (tenantId, vacationData) => {
     try {
       if (!tenantId) {
         throw new Error("Tenant ID is required");
       }
       
-      // Use the TenantViewSet custom action for vacating
-      return await api.post(`/api/v1/tenants/tenants/${tenantId}/vacate/`, vacationData);
+      console.log('Vacating tenant:', tenantId, vacationData);
+      const response = await api.post(`/api/v1/tenants/tenant/${tenantId}/vacate_tenant/`, vacationData);
+      return response;
     } catch (error) {
-      console.error(`Error vacating tenant ${tenantId}:`, error);
+      console.error('Error vacating tenant:', error);
       throw error;
     }
   },
 
-  // Get tenant occupancy history - Uses TenantViewSet custom action
+  checkUnitTenant: async (unitId) => {
+    try {
+      if (!unitId) {
+        throw new Error("Unit ID is required");
+      }
+      
+      const response = await api.get(`/api/v1/tenants/get_tenant_unit/${unitId}/`);
+      return response;
+    } catch (error) {
+      console.error(`Error checking unit tenant for unit ${unitId}:`, error);
+      throw error;
+    }
+  },
+
   getTenantHistory: async (tenantId) => {
     try {
       if (!tenantId) {
         throw new Error("Tenant ID is required");
       }
       
-      // Use the TenantViewSet custom action for history
-      return await api.get(`/api/v1/tenants/tenants/${tenantId}/history/`);
+      const response = await api.get(`/api/v1/tenants/tenant/${tenantId}/occupancy_history/`);
+      return response;
     } catch (error) {
-      console.error(`Error fetching tenant history for ID ${tenantId}:`, error);
+      console.error('Error fetching tenant history:', error);
       throw error;
     }
   },
 
-  // Add note to tenant - Uses TenantViewSet custom action
   addTenantNote: async (tenantId, noteData) => {
     try {
       if (!tenantId) {
         throw new Error("Tenant ID is required");
       }
       
-      // Use the TenantViewSet custom action for notes
-      return await api.post(`/api/v1/tenants/tenants/${tenantId}/notes/`, noteData);
+      const response = await api.post(`/api/v1/tenants/tenant/${tenantId}/add_note/`, noteData);
+      return response;
     } catch (error) {
-      console.error(`Error adding note to tenant ${tenantId}:`, error);
+      console.error('Error adding tenant note:', error);
       throw error;
     }
   },
 
-  // Send reminder SMS to tenant - Uses TenantViewSet custom action
   sendTenantReminder: async (tenantId, reminderData) => {
     try {
       if (!tenantId) {
         throw new Error("Tenant ID is required");
       }
       
-      // Use the TenantViewSet custom action for reminders
-      return await api.post(`/api/v1/tenants/tenants/${tenantId}/send-reminder/`, reminderData);
+      const response = await api.post(`/api/v1/tenants/tenant/${tenantId}/send_reminder/`, reminderData);
+      return response;
     } catch (error) {
-      console.error(`Error sending reminder to tenant ${tenantId}:`, error);
+      console.error('Error sending tenant reminder:', error);
       throw error;
     }
   },
 
-  // Get tenant information by unit ID - Uses your functional decorator endpoint
-  getTenantByUnit: async (unitId) => {
-    try {
-      if (!unitId) {
-        throw new Error("Unit ID is required");
-      }
-      
-      // Use your functional decorator endpoint for getting tenant by unit
-      return await api.get(`/api/v1/tenants/tenant_unit/${unitId}/`);
-    } catch (error) {
-      console.error(`Error fetching tenant for unit ${unitId}:`, error);
-      // Return null instead of throwing to prevent breaking property fetch
-      return null;
-    }
-  },
-
-  // Create new tenant - Uses TenantViewSet create
-  createTenant: async (tenantData) => {
-    try {
-      return await api.post("/api/v1/tenants/tenants/", tenantData);
-    } catch (error) {
-      console.error("Error creating tenant:", error);
-      throw error;
-    }
-  },
-
-  // Update tenant information - Uses TenantViewSet update
-  updateTenant: async (tenantId, updateData) => {
+  updateTenant: async (tenantId, tenantData) => {
     try {
       if (!tenantId) {
         throw new Error("Tenant ID is required");
       }
       
-      return await api.put(`/api/v1/tenants/tenants/${tenantId}/`, updateData);
+      const response = await api.put(`/api/v1/tenants/tenant/${tenantId}/`, tenantData);
+      return response;
     } catch (error) {
       console.error(`Error updating tenant ${tenantId}:`, error);
       throw error;
     }
   },
 
-  // Search tenants - Uses TenantViewSet with search filter
-  searchTenants: async (searchTerm) => {
+  deleteTenant: async (tenantId) => {
     try {
-      return await api.get(`/api/v1/tenants/tenants/?search=${encodeURIComponent(searchTerm)}`);
+      if (!tenantId) {
+        throw new Error("Tenant ID is required");
+      }
+      
+      const response = await api.delete(`/api/v1/tenants/tenant/${tenantId}/`);
+      return response;
     } catch (error) {
-      console.error("Error searching tenants:", error);
+      console.error(`Error deleting tenant ${tenantId}:`, error);
       throw error;
     }
   },
 
-  // Get rent due information for tenant (if needed)
-  getRentDue: async () => {
+  searchTenants: async (searchQuery) => {
     try {
-      return await api.get("/api/v1/tenants/rent/due/");
+      const response = await api.get(`/api/v1/tenants/tenant/?search=${encodeURIComponent(searchQuery)}`);
+      return response;
     } catch (error) {
-      console.error("Error fetching rent due:", error);
+      console.error('Error searching tenants:', error);
       throw error;
     }
   },
 
-  // Get landlord information for tenant (if needed)
-  getLandlordInfo: async () => {
+  getTenantsForProperty: async (propertyId) => {
     try {
-      return await api.get("/api/v1/tenants/landlord/info/");
+      if (!propertyId) {
+        throw new Error("Property ID is required");
+      }
+      
+      const response = await api.get(`/api/v1/tenants/tenant/?property=${propertyId}`);
+      return response;
     } catch (error) {
-      console.error("Error fetching landlord info:", error);
+      console.error(`Error fetching tenants for property ${propertyId}:`, error);
       throw error;
     }
   },
 
-  // Get payment history for tenant (if needed)
-  getPaymentHistory: async () => {
-    try {
-      return await api.get("/api/v1/tenants/payment/history/");
-    } catch (error) {
-      console.error("Error fetching payment history:", error);
-      throw error;
+  validateTenantAssignment: (assignmentData) => {
+    const errors = [];
+    
+    if (!assignmentData.unit_id) {
+      errors.push('Unit ID is required');
     }
+    
+    if (!assignmentData.full_name || assignmentData.full_name.trim().length === 0) {
+      errors.push('Tenant full name is required');
+    }
+    
+    if (!assignmentData.phone_number || assignmentData.phone_number.trim().length === 0) {
+      errors.push('Phone number is required');
+    }
+    
+    if (!assignmentData.rent_amount || assignmentData.rent_amount <= 0) {
+      errors.push('Valid rent amount is required');
+    }
+    
+    if (!assignmentData.deposit_amount || assignmentData.deposit_amount < 0) {
+      errors.push('Valid deposit amount is required');
+    }
+    
+    if (!assignmentData.start_date) {
+      errors.push('Start date is required');
+    }
+    
+    if (!assignmentData.payment_frequency) {
+      errors.push('Payment frequency is required');
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors: errors
+    };
+  },
+
+  formatTenantForDisplay: (tenant) => {
+    return {
+      id: tenant.id,
+      name: tenant.full_name || 'Unnamed Tenant',
+      phone: tenant.phone_number || 'No phone',
+      email: tenant.email || 'No email',
+      status: tenant.status || 'unknown',
+      emergency_contact: {
+        name: tenant.emergency_contact_name || '',
+        phone: tenant.emergency_contact_phone || '',
+        relationship: tenant.emergency_contact_relationship || ''
+      },
+      current_unit: tenant.current_unit || null,
+      move_in_date: tenant.move_in_date || null,
+      created_at: tenant.created_at || null
+    };
+  },
+
+  calculateRentDue: (occupancy) => {
+    if (!occupancy) return null;
+    
+    const today = new Date();
+    const startDate = new Date(occupancy.start_date);
+    const paymentDay = occupancy.payment_day || 1;
+    const frequency = occupancy.payment_frequency || 'monthly';
+    
+    let nextPaymentDate = new Date(today.getFullYear(), today.getMonth(), paymentDay);
+    
+    if (nextPaymentDate <= today) {
+      if (frequency === 'monthly') {
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+      } else if (frequency === 'quarterly') {
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 3);
+      } else if (frequency === 'biannual') {
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 6);
+      } else if (frequency === 'annual') {
+        nextPaymentDate.setFullYear(nextPaymentDate.getFullYear() + 1);
+      }
+    }
+    
+    const daysUntilDue = Math.ceil((nextPaymentDate - today) / (1000 * 60 * 60 * 24));
+    
+    return {
+      amount: occupancy.rent_amount,
+      due_date: nextPaymentDate,
+      days_until_due: daysUntilDue,
+      is_overdue: daysUntilDue < 0,
+      payment_frequency: frequency
+    };
   }
 };
 

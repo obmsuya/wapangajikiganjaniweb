@@ -1,52 +1,40 @@
 // app/(dashboard)/landlord/properties/[id]/page.jsx
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  Building2,
-  Edit,
-  MoreHorizontal,
-  Eye,
+import { 
+  ArrowLeft, 
+  Building2, 
+  Users, 
+  MapPin, 
+  Edit, 
+  Plus,
+  Grid,
   Download,
-  Grid3X3,
-  Settings
+  Eye,
+  Settings,
+  Calendar,
+  DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/components/cloudflare/Card";
-import { CloudflarePageHeader } from "@/components/cloudflare/Breadcrumbs";
-import { CloudflareTable } from "@/components/cloudflare/Table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
 import { usePropertyDetails } from "@/hooks/properties/useProperties";
-import FloorLayoutEditor from "@/components/landlord/properties/FloorLayoutEditor";
-import UnitConfigModal from "@/components/landlord/properties/UnitConfigModal";
 
-export default function PropertyDetailPage({ params }) {
-  const propertyId = params.id;
+export default function PropertyDetailsPage({ params }) {
   const router = useRouter();
+  const { property, loading, error, refreshProperty } = usePropertyDetails(params.id);
   
-  const { property, loading, error, refreshProperty } = usePropertyDetails(propertyId);
-  
-  const [selectedFloor, setSelectedFloor] = useState(null);
-  const [showLayoutEditor, setShowLayoutEditor] = useState(false);
-  const [showUnitConfig, setShowUnitConfig] = useState(false);
-  const [selectedUnit, setSelectedUnit] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [selectedFloor, setSelectedFloor] = useState(null);
+  const [selectedUnit, setSelectedUnit] = useState(null);
 
   const handleGoBack = () => {
     router.push("/landlord/properties");
   };
 
-  // Process property data using the correct structure from PropertyService
   const processedProperty = useMemo(() => {
     if (!property) return null;
     
@@ -63,62 +51,68 @@ export default function PropertyDetailPage({ params }) {
     };
   }, [property]);
 
-  // Group units by floor and create floor data structure
   const floorData = useMemo(() => {
     if (!processedProperty) return {};
     
     const floors = {};
     
-    // Initialize floors based on total_floors
     for (let i = 1; i <= processedProperty.total_floors; i++) {
       floors[i] = {
         floor_number: i,
+        floor_no: i - 1,
         units: [],
         units_total: 0,
         layout_data: null,
-        configured: false
+        configured: false,
+        occupancy_rate: 0,
+        total_rent: 0
       };
     }
     
-    // Add layout data from property_floor if available
     processedProperty.property_floor.forEach(floor => {
-      const floorNumber = floor.floor_no + 1; // Convert from 0-based to 1-based
+      const floorNumber = floor.floor_no + 1;
       if (floors[floorNumber]) {
-        floors[floorNumber].layout_data = floor.layout_data;
-        floors[floorNumber].layout_type = floor.layout_type;
-        floors[floorNumber].creation_method = floor.layout_creation_method;
-        floors[floorNumber].configured = true;
-        floors[floorNumber].units_total = floor.units_total || 0;
-      }
-    });
-    
-    // Add units to respective floors
-    processedProperty.units.forEach(unit => {
-      let floorNumber = 1; // Default to ground floor
-      
-      if (unit.floor_info && unit.floor_info.floor_no !== undefined) {
-        floorNumber = unit.floor_info.floor_no + 1; // Convert from 0-based to 1-based
-      } else if (unit.floor !== undefined) {
-        floorNumber = unit.floor;
-      } else if (unit.floor_number !== undefined) {
-        floorNumber = unit.floor_number + 1; // Convert from 0-based to 1-based
-      }
-      
-      if (floors[floorNumber]) {
-        floors[floorNumber].units.push(unit);
+        const units = floor.units_floor || [];
+        const occupiedUnits = units.filter(unit => 
+          unit.status === 'occupied' || unit.current_tenant
+        ).length;
+        const totalRent = units.reduce((sum, unit) => 
+          sum + (parseFloat(unit.rent_amount) || 0), 0
+        );
+        
+        floors[floorNumber] = {
+          ...floors[floorNumber],
+          id: floor.id,
+          units: units,
+          units_total: floor.units_total || units.length,
+          layout_data: floor.layout_data,
+          layout_type: floor.layout_type,
+          creation_method: floor.layout_creation_method,
+          configured: units.length > 0,
+          occupied_units: occupiedUnits,
+          vacant_units: units.length - occupiedUnits,
+          occupancy_rate: units.length > 0 ? Math.round((occupiedUnits / units.length) * 100) : 0,
+          total_rent: totalRent,
+          grid_data: units.map(unit => ({
+            svg_id: unit.svg_id,
+            unit_name: unit.unit_name,
+            status: unit.status,
+            rent_amount: unit.rent_amount,
+            current_tenant: unit.current_tenant
+          }))
+        };
       }
     });
     
     return floors;
   }, [processedProperty]);
 
-  // Calculate comprehensive statistics
-  const stats = useMemo(() => {
-    if (!processedProperty) return { totalUnits: 0, occupiedUnits: 0, vacantUnits: 0, occupancyRate: 0, totalRent: 0, configuredFloors: 0, totalFloors: 0 };
+  const propertyStats = useMemo(() => {
+    if (!processedProperty) return null;
     
     const totalUnits = processedProperty.units.length;
     const occupiedUnits = processedProperty.units.filter(unit => 
-      unit.current_tenant && unit.current_tenant.id
+      unit.status === 'occupied' || unit.current_tenant
     ).length;
     const vacantUnits = totalUnits - occupiedUnits;
     const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
@@ -141,13 +135,11 @@ export default function PropertyDetailPage({ params }) {
   }, [processedProperty, floorData]);
 
   const handleEditFloorLayout = (floorNumber) => {
-    setSelectedFloor(floorNumber);
-    setShowLayoutEditor(true);
+    router.push(`/landlord/properties/${params.id}/floor/${floorNumber}/edit`);
   };
 
   const handleEditUnit = (unit) => {
-    setSelectedUnit(unit);
-    setShowUnitConfig(true);
+    router.push(`/landlord/properties/${params.id}/units/${unit.id}/edit`);
   };
 
   const handleDownloadFloorLayout = (floorNumber) => {
@@ -163,93 +155,12 @@ export default function PropertyDetailPage({ params }) {
     }
   };
 
-  // Define columns for units table
-  const unitColumns = [
-    {
-      header: 'Unit',
-      accessor: 'unit_name',
-      sortable: true,
-      cell: (value, row) => (
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-            <Building2 className="w-4 h-4 text-blue-600" />
-          </div>
-          <span className="font-medium">{value}</span>
-        </div>
-      )
-    },
-    {
-      header: 'Floor',
-      accessor: 'floor',
-      sortable: true,
-      cell: (value) => `Floor ${value || 1}`
-    },
-    {
-      header: 'Bedrooms',
-      accessor: 'rooms',
-      sortable: true,
-      cell: (value) => `${value || 1} bed`
-    },
-    {
-      header: 'Area',
-      accessor: 'area_sqm',
-      sortable: true,
-      cell: (value) => `${value || 0} sq m`
-    },
-    {
-      header: 'Rent',
-      accessor: 'rent_amount',
-      sortable: true,
-      cell: (value) => value ? `TZS ${parseFloat(value).toLocaleString()}` : 'Not set'
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      sortable: true,
-      cell: (value) => (
-        <Badge variant={value === 'occupied' ? 'default' : 'secondary'}>
-          {value || 'vacant'}
-        </Badge>
-      )
-    },
-    {
-      header: 'Actions',
-      accessor: 'actions',
-      cell: (value, row) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleEditUnit(row)}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Unit
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Eye className="w-4 h-4 mr-2" />
-              View Details
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    }
-  ];
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-24 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-            <div className="h-96 bg-gray-200 rounded"></div>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading property details...</p>
         </div>
       </div>
     );
@@ -257,296 +168,399 @@ export default function PropertyDetailPage({ params }) {
 
   if (error || !processedProperty) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto p-6">
-          <CloudflareCard>
-            <CloudflareCardContent>
-              <div className="text-center py-8">
-                <h3 className="text-lg font-semibold text-red-600 mb-2">
-                  {error?.message || "Property not found"}
-                </h3>
-                <Button onClick={handleGoBack}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Properties
-                </Button>
-              </div>
-            </CloudflareCardContent>
-          </CloudflareCard>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Failed to load property details</p>
+          <Button onClick={handleGoBack}>Go Back</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Page Header */}
-        <CloudflarePageHeader
-          title={processedProperty.name}
-          description={`${processedProperty.category} • ${processedProperty.location}`}
-          actions={
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleGoBack}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <Button>
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={handleGoBack}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Properties
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{processedProperty.name}</h1>
+            <div className="flex items-center gap-2 text-muted-foreground mt-1">
+              <MapPin className="w-4 h-4" />
+              <span>{processedProperty.location}</span>
+              <Badge variant="outline">{processedProperty.category}</Badge>
             </div>
-          }
-        />
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <CloudflareCard>
-            <CloudflareCardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Floors</p>
-                  <p className="text-2xl font-bold">{stats.configuredFloors}/{stats.totalFloors}</p>
-                </div>
-                <Building2 className="w-8 h-8 text-blue-600" />
-              </div>
-            </CloudflareCardContent>
-          </CloudflareCard>
-
-          <CloudflareCard>
-            <CloudflareCardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Units</p>
-                  <p className="text-2xl font-bold">{stats.totalUnits}</p>
-                </div>
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                  <span className="text-green-600 font-bold">{stats.totalUnits}</span>
-                </div>
-              </div>
-            </CloudflareCardContent>
-          </CloudflareCard>
-
-          <CloudflareCard>
-            <CloudflareCardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Occupancy Rate</p>
-                  <p className="text-2xl font-bold">{stats.occupancyRate}%</p>
-                </div>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  stats.occupancyRate >= 80 ? 'bg-green-100' : 
-                  stats.occupancyRate >= 50 ? 'bg-yellow-100' : 'bg-red-100'
-                }`}>
-                  <span className={`font-bold ${
-                    stats.occupancyRate >= 80 ? 'text-green-600' : 
-                    stats.occupancyRate >= 50 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                    {stats.occupancyRate}%
-                  </span>
-                </div>
-              </div>
-            </CloudflareCardContent>
-          </CloudflareCard>
-
-          <CloudflareCard>
-            <CloudflareCardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Monthly Rent</p>
-                  <p className="text-lg font-bold">TZS {stats.totalRent.toLocaleString()}</p>
-                </div>
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <span className="text-purple-600 text-xs font-bold">TZS</span>
-                </div>
-              </div>
-            </CloudflareCardContent>
-          </CloudflareCard>
+          </div>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Property
+          </Button>
+          <Button variant="outline">
+            <Settings className="w-4 h-4 mr-2" />
+            Settings
+          </Button>
+        </div>
+      </div>
 
-        {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="floors">Floor Plans</TabsTrigger>
-            <TabsTrigger value="units">Units</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <CloudflareCard>
-                  <CloudflareCardHeader 
-                    title="Property Information"
-                    icon={<Building2 className="w-5 h-5" />}
-                  />
-                  <CloudflareCardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Address</p>
-                        <p className="font-medium">{processedProperty.address || 'Not specified'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Category</p>
-                        <Badge variant="outline">{processedProperty.category}</Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Total Floors</p>
-                        <p className="font-medium">{processedProperty.total_floors}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">Total Units</p>
-                        <p className="font-medium">{stats.totalUnits}</p>
-                      </div>
-                    </div>
-                  </CloudflareCardContent>
-                </CloudflareCard>
+      {propertyStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Units</p>
+                  <p className="text-2xl font-bold">{propertyStats.totalUnits}</p>
+                </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div>
-                <CloudflareCard>
-                  <CloudflareCardHeader title="Property Image" />
-                  <CloudflareCardContent>
-                    {processedProperty.prop_image ? (
-                      <img
-                        src={processedProperty.prop_image}
-                        alt={processedProperty.name}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Building2 className="w-12 h-12 text-gray-400" />
-                      </div>
-                    )}
-                  </CloudflareCardContent>
-                </CloudflareCard>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Users className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Occupancy Rate</p>
+                  <p className="text-2xl font-bold">{propertyStats.occupancyRate}%</p>
+                  <p className="text-xs text-muted-foreground">
+                    {propertyStats.occupiedUnits}/{propertyStats.totalUnits} occupied
+                  </p>
+                </div>
               </div>
-            </div>
-          </TabsContent>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="floors" className="space-y-6">
-            <CloudflareCard>
-              <CloudflareCardHeader 
-                title="Floor Plans"
-                icon={<Grid3X3 className="w-5 h-5" />}
-              />
-              <CloudflareCardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(floorData).map(([floorNumber, floor]) => (
-                    <div key={floorNumber} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold">Floor {floorNumber}</h4>
-                        {floor.configured && (
-                          <Badge variant="secondary">Configured</Badge>
-                        )}
-                      </div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Monthly Rent</p>
+                  <p className="text-2xl font-bold">TZS {propertyStats.totalRent.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                      {/* Layout Preview */}
-                      {floor.layout_data ? (
-                        <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                          <div 
-                            className="w-full h-24 overflow-hidden flex items-center justify-center"
-                            dangerouslySetInnerHTML={{ __html: floor.layout_data }}
-                          />
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Grid className="w-6 h-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Configured Floors</p>
+                  <p className="text-2xl font-bold">{propertyStats.configuredFloors}/{propertyStats.totalFloors}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {processedProperty.prop_image && (
+        <Card>
+          <CardContent className="p-0">
+            <img 
+              src={processedProperty.prop_image} 
+              alt={processedProperty.name}
+              className="w-full h-64 object-cover rounded-lg"
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="floors">Floor Plans</TabsTrigger>
+          <TabsTrigger value="units">Units</TabsTrigger>
+          <TabsTrigger value="tenants">Tenants</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Property Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Address</label>
+                  <p className="mt-1">{processedProperty.address || 'No address provided'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Category</label>
+                  <p className="mt-1">{processedProperty.category}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Total Floors</label>
+                  <p className="mt-1">{processedProperty.total_floors}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button className="w-full justify-start" variant="outline">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Unit
+                </Button>
+                <Button className="w-full justify-start" variant="outline">
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Tenants
+                </Button>
+                <Button className="w-full justify-start" variant="outline">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Schedule Maintenance
+                </Button>
+                <Button className="w-full justify-start" variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Reports
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="floors" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Floor Plans & Layouts</h3>
+            <Button onClick={() => handleEditFloorLayout(1)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Floor Layout
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Object.entries(floorData).map(([floorNumber, floor]) => (
+              <Card key={floorNumber} className={floor.configured ? 'border-green-200' : 'border-gray-200'}>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Floor {floorNumber}</span>
+                    {floor.configured && <Badge variant="secondary">Configured</Badge>}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {floor.configured ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Units</p>
+                          <p className="font-medium">{floor.units_total}</p>
                         </div>
-                      ) : (
-                        <div className="bg-gray-50 rounded-lg p-3 mb-3 h-24 flex items-center justify-center">
-                          <span className="text-sm text-gray-500">No layout configured</span>
+                        <div>
+                          <p className="text-muted-foreground">Occupancy</p>
+                          <p className="font-medium">{floor.occupancy_rate}%</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Occupied</p>
+                          <p className="font-medium">{floor.occupied_units}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Vacant</p>
+                          <p className="font-medium">{floor.vacant_units}</p>
+                        </div>
+                      </div>
+
+                      {floor.layout_data && (
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <div 
+                            dangerouslySetInnerHTML={{ __html: floor.layout_data }}
+                            className="flex justify-center [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:max-h-32"
+                          />
                         </div>
                       )}
 
-                      <div className="text-sm text-gray-600 mb-3">
-                        <p>Units: {floor.units_total || 0}</p>
-                        <p>Layout: {floor.layout_type || 'Manual'}</p>
-                      </div>
-
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
                           className="flex-1"
                           onClick={() => handleEditFloorLayout(parseInt(floorNumber))}
                         >
-                          <Edit className="w-4 h-4 mr-1" />
-                          {floor.configured ? 'Edit' : 'Configure'}
+                          <Edit className="w-3 h-3 mr-1" />
+                          Edit
                         </Button>
-                        {floor.layout_data && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDownloadFloorLayout(parseInt(floorNumber))}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDownloadFloorLayout(parseInt(floorNumber))}
+                        >
+                          <Download className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Grid className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-4">Floor not configured</p>
+                      <Button 
+                        size="sm"
+                        onClick={() => handleEditFloorLayout(parseInt(floorNumber))}
+                      >
+                        Configure Layout
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="units" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Units Overview</h3>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Unit
+            </Button>
+          </div>
+
+          <div className="space-y-6">
+            {Object.entries(floorData).map(([floorNumber, floor]) => (
+              floor.configured && (
+                <Card key={floorNumber}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Floor {floorNumber} Units</span>
+                      <Badge variant="outline">{floor.units.length} units</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {floor.units.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {floor.units.map((unit) => (
+                          <div 
+                            key={unit.id} 
+                            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
                           >
-                            <Download className="w-4 h-4" />
-                          </Button>
-                        )}
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium">{unit.unit_name}</h4>
+                              <Badge 
+                                variant={unit.status === 'occupied' ? 'default' : 
+                                        unit.status === 'available' ? 'secondary' : 'destructive'}
+                              >
+                                {unit.status}
+                              </Badge>
+                            </div>
+                            
+                            <div className="space-y-1 text-sm text-muted-foreground">
+                              <p>Rooms: {unit.rooms || 1}</p>
+                              <p>Area: {unit.area_sqm || 0} sq m</p>
+                              <p>Rent: TZS {unit.rent_amount ? parseFloat(unit.rent_amount).toLocaleString() : '0'}</p>
+                              {unit.current_tenant && (
+                                <p className="text-blue-600">Tenant: {unit.current_tenant.full_name}</p>
+                              )}
+                            </div>
+
+                            <div className="flex gap-2 mt-3">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditUnit(unit)}
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No units configured for this floor</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tenants" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Tenant Management</h3>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Tenant
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {processedProperty.units
+              .filter(unit => unit.current_tenant)
+              .map((unit) => (
+                <Card key={unit.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Users className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{unit.current_tenant.full_name}</h4>
+                        <p className="text-sm text-muted-foreground">{unit.unit_name}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CloudflareCardContent>
-            </CloudflareCard>
-          </TabsContent>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Floor:</span>
+                        <span>{unit.floor}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Rent:</span>
+                        <span>TZS {unit.rent_amount ? parseFloat(unit.rent_amount).toLocaleString() : '0'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status:</span>
+                        <Badge variant="default">Active</Badge>
+                      </div>
+                    </div>
 
-          <TabsContent value="units" className="space-y-6">
-            <CloudflareCard>
-              <CloudflareCardHeader title="Unit Management" />
-              <CloudflareCardContent>
-                <CloudflareTable
-                  data={processedProperty.units}
-                  columns={unitColumns}
-                  pagination={true}
-                  searchable={true}
-                  emptyMessage="No units found for this property."
-                  initialRowsPerPage={10}
-                />
-              </CloudflareCardContent>
-            </CloudflareCard>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Floor Layout Editor Modal */}
-      {showLayoutEditor && (
-        <Dialog open={showLayoutEditor} onOpenChange={setShowLayoutEditor}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Floor {selectedFloor} Layout</DialogTitle>
-            </DialogHeader>
-            <FloorLayoutEditor
-              propertyId={propertyId}
-              floorNumber={selectedFloor}
-              existingLayout={floorData[selectedFloor]}
-              onSave={() => {
-                setShowLayoutEditor(false);
-                refreshProperty();
-              }}
-              onCancel={() => setShowLayoutEditor(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Unit Configuration Modal */}
-      {showUnitConfig && selectedUnit && (
-        <Dialog open={showUnitConfig} onOpenChange={setShowUnitConfig}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Configure Unit: {selectedUnit.unit_name}</DialogTitle>
-            </DialogHeader>
-            <UnitConfigModal
-              unit={selectedUnit}
-              onSave={() => {
-                setShowUnitConfig(false);
-                setSelectedUnit(null);
-                refreshProperty();
-              }}
-              onCancel={() => {
-                setShowUnitConfig(false);
-                setSelectedUnit(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+                    <div className="flex gap-2 mt-4">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        View Details
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Calendar className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            
+            {processedProperty.units.filter(unit => unit.current_tenant).length === 0 && (
+              <div className="col-span-full text-center py-12">
+                <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h4 className="text-lg font-medium mb-2">No Tenants Yet</h4>
+                <p className="text-muted-foreground mb-4">Start by adding tenants to your units</p>
+                <Button>Add First Tenant</Button>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
