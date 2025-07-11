@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, User, FileText, CheckCircle, UserPlus } from "lucide-react";
+import { User, FileText, CheckCircle, UserPlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,39 +20,27 @@ import customToast from "@/components/ui/custom-toast";
 
 export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSuccess }) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedTenant, setSelectedTenant] = useState(null);
   const [formData, setFormData] = useState({
-    // Required fields
+    // Required fields only
     unit_id: unit?.id || '',
+    full_name: '',
+    phone_number: '',
     rent_amount: unit?.rent_amount || '',
     deposit_amount: '',
     payment_frequency: 'monthly',
     
-    // Tenant info (if creating new)
-    full_name: '',
-    phone_number: '',
-    
-    // Contract details
+    // Optional fields with defaults
     start_date: new Date().toISOString().split('T')[0],
     payment_day: 1,
     key_deposit: 0,
     allowed_occupants: 1,
-    special_conditions: '',
-    
-    // Optional tenant details
-    emergency_contact_name: '',
-    emergency_contact_phone: '',
-    emergency_contact_relationship: ''
+    special_conditions: ''
   });
 
   const {
     loading,
     error,
-    searchResults,
-    searchLoading,
-    searchTenants,
-    assignTenant,
-    clearSearch
+    assignTenant
   } = useTenantAssignment();
 
   useEffect(() => {
@@ -67,47 +55,23 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
 
   useEffect(() => {
     if (isOpen) {
-      clearSearch();
       setCurrentStep(1);
-      setSelectedTenant(null);
       // Reset form data when dialog opens
       setFormData({
         unit_id: unit?.id || '',
+        full_name: '',
+        phone_number: '',
         rent_amount: unit?.rent_amount || '',
         deposit_amount: '',
         payment_frequency: 'monthly',
-        full_name: '',
-        phone_number: '',
         start_date: new Date().toISOString().split('T')[0],
         payment_day: 1,
         key_deposit: 0,
         allowed_occupants: 1,
-        special_conditions: '',
-        emergency_contact_name: '',
-        emergency_contact_phone: '',
-        emergency_contact_relationship: ''
+        special_conditions: ''
       });
     }
-  }, [isOpen, unit, clearSearch]);
-
-  const handleSearchChange = (e) => {
-    const term = e.target.value;
-    if (term.length >= 2) {
-      searchTenants(term);
-    } else {
-      clearSearch();
-    }
-  };
-
-  const handleSelectTenant = (tenant) => {
-    setSelectedTenant(tenant);
-    setFormData(prev => ({
-      ...prev,
-      tenant_id: tenant.id,
-      full_name: tenant.full_name,
-      phone_number: tenant.phone_number
-    }));
-  };
+  }, [isOpen, unit]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -119,7 +83,7 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
   const validateStep = (step) => {
     switch (step) {
       case 1:
-        return selectedTenant || (formData.full_name && formData.phone_number);
+        return formData.full_name.trim() && formData.phone_number.trim();
       case 2:
         return formData.rent_amount && formData.deposit_amount && formData.payment_frequency;
       default:
@@ -139,11 +103,40 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
 
   const handleSubmit = async () => {
     try {
+      // Validate required fields
+      const requiredFields = {
+        unit_id: formData.unit_id,
+        full_name: formData.full_name?.trim(),
+        phone_number: formData.phone_number?.trim(),
+        rent_amount: formData.rent_amount,
+        deposit_amount: formData.deposit_amount,
+        payment_frequency: formData.payment_frequency
+      };
+
+      const missingFields = Object.entries(requiredFields)
+        .filter(([key, value]) => !value)
+        .map(([key]) => key);
+
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      // Prepare assignment data according to backend serializer
       const assignmentData = {
-        ...formData,
+        // Required fields
+        unit_id: parseInt(formData.unit_id),
+        full_name: formData.full_name.trim(),
+        phone_number: formData.phone_number.trim(),
         rent_amount: parseFloat(formData.rent_amount),
         deposit_amount: parseFloat(formData.deposit_amount),
-        key_deposit: parseFloat(formData.key_deposit || 0)
+        payment_frequency: formData.payment_frequency,
+        
+        // Optional fields with proper defaults
+        start_date: formData.start_date,
+        payment_day: parseInt(formData.payment_day) || 1,
+        key_deposit: parseFloat(formData.key_deposit) || 0,
+        allowed_occupants: parseInt(formData.allowed_occupants) || 1,
+        special_conditions: formData.special_conditions || ''
       };
 
       console.log('Submitting assignment:', assignmentData);
@@ -166,7 +159,7 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
   };
 
   const steps = [
-    { number: 1, title: "Select Tenant", icon: User },
+    { number: 1, title: "Tenant Information", icon: User },
     { number: 2, title: "Contract Details", icon: FileText },
     { number: 3, title: "Review & Confirm", icon: CheckCircle }
   ];
@@ -194,123 +187,85 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
               `}>
                 {currentStep > step.number ? '✓' : step.number}
               </div>
-              <span className={`ml-2 text-sm ${currentStep >= step.number ? 'text-gray-900' : 'text-gray-500'}`}>
+              <span className={`ml-2 text-sm ${
+                currentStep >= step.number 
+                  ? 'text-blue-600 font-medium' 
+                  : 'text-gray-500'
+              }`}>
                 {step.title}
               </span>
               {index < steps.length - 1 && (
-                <div className={`w-12 h-0.5 mx-4 ${currentStep > step.number ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                <div className={`w-8 h-px mx-3 ${
+                  currentStep > step.number 
+                    ? 'bg-blue-600' 
+                    : 'bg-gray-300'
+                }`} />
               )}
             </div>
           ))}
         </div>
 
         {/* Step Content */}
-        <div className="min-h-[400px]">
+        <div className="space-y-6">
           {currentStep === 1 && (
             <div className="space-y-6">
-              <div>
-                <h3 className="font-medium mb-4">Search Existing Tenant or Create New</h3>
-                
-                {/* Search Existing */}
-                <div className="mb-6">
-                  <Label>Search Existing Tenants</Label>
-                  <div className="relative mt-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search by name or phone number..."
-                      onChange={handleSearchChange}
-                      className="pl-10"
-                    />
-                  </div>
-                  
-                  {searchLoading && (
-                    <div className="mt-2 text-sm text-gray-500">Searching...</div>
-                  )}
-                  
-                  {searchResults.length > 0 && (
-                    <div className="mt-3 space-y-2 max-h-40 overflow-y-auto">
-                      {searchResults.map((tenant) => (
-                        <CloudflareCard 
-                          key={tenant.id}
-                          className={`p-3 cursor-pointer hover:bg-blue-50 ${
-                            selectedTenant?.id === tenant.id ? 'ring-2 ring-blue-500' : ''
-                          }`}
-                          onClick={() => handleSelectTenant(tenant)}
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="font-medium">{tenant.full_name}</p>
-                              <p className="text-sm text-gray-500">{tenant.phone_number}</p>
-                            </div>
-                            {selectedTenant?.id === tenant.id && (
-                              <CheckCircle className="w-5 h-5 text-blue-600" />
-                            )}
-                          </div>
-                        </CloudflareCard>
-                      ))}
-                    </div>
-                  )}
+              <div className="flex items-center gap-2 mb-4">
+                <User className="w-5 h-5 text-blue-600" />
+                <h3 className="font-medium">Tenant Information</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Full Name *</Label>
+                  <Input
+                    value={formData.full_name}
+                    onChange={(e) => handleInputChange('full_name', e.target.value)}
+                    placeholder="Enter tenant's full name"
+                    className="mt-1"
+                  />
                 </div>
+                
+                <div>
+                  <Label>Phone Number *</Label>
+                  <Input
+                    value={formData.phone_number}
+                    onChange={(e) => handleInputChange('phone_number', e.target.value)}
+                    placeholder="Enter phone number"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
 
-                {/* Create New Tenant */}
-                {!selectedTenant && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                <h4 className="font-medium text-blue-900 mb-2">Unit Details</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <Label className="text-base">Or Create New Tenant</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                      <div>
-                        <Label>Full Name *</Label>
-                        <Input
-                          value={formData.full_name}
-                          onChange={(e) => handleInputChange('full_name', e.target.value)}
-                          placeholder="Enter full name"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label>Phone Number *</Label>
-                        <Input
-                          value={formData.phone_number}
-                          onChange={(e) => handleInputChange('phone_number', e.target.value)}
-                          placeholder="Enter phone number"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label>Emergency Contact Name</Label>
-                        <Input
-                          value={formData.emergency_contact_name}
-                          onChange={(e) => handleInputChange('emergency_contact_name', e.target.value)}
-                          placeholder="Emergency contact name"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label>Emergency Contact Phone</Label>
-                        <Input
-                          value={formData.emergency_contact_phone}
-                          onChange={(e) => handleInputChange('emergency_contact_phone', e.target.value)}
-                          placeholder="Emergency contact phone"
-                        />
-                      </div>
-                      
-                      <div className="md:col-span-2">
-                        <Label>Emergency Contact Relationship</Label>
-                        <Input
-                          value={formData.emergency_contact_relationship}
-                          onChange={(e) => handleInputChange('emergency_contact_relationship', e.target.value)}
-                          placeholder="e.g., Parent, Spouse, Sibling"
-                        />
-                      </div>
-                    </div>
+                    <span className="text-gray-600">Unit:</span>
+                    <span className="ml-2 font-medium">{unit?.unit_name}</span>
                   </div>
-                )}
+                  <div>
+                    <span className="text-gray-600">Floor:</span>
+                    <span className="ml-2 font-medium">Floor {unit?.floor_number + 1}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Area:</span>
+                    <span className="ml-2 font-medium">{unit?.area_sqm} sqm</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Status:</span>
+                    <span className="ml-2 font-medium capitalize">{unit?.status}</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {currentStep === 2 && (
             <div className="space-y-6">
-              <h3 className="font-medium mb-4">Contract Details</h3>
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-5 h-5 text-blue-600" />
+                <h3 className="font-medium">Contract Details</h3>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -319,6 +274,7 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
                     type="date"
                     value={formData.start_date}
                     onChange={(e) => handleInputChange('start_date', e.target.value)}
+                    className="mt-1"
                   />
                 </div>
                 
@@ -329,6 +285,7 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
                     value={formData.rent_amount}
                     onChange={(e) => handleInputChange('rent_amount', e.target.value)}
                     placeholder="500000"
+                    className="mt-1"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Default rent for this unit: TSh {parseFloat(unit?.rent_amount || 0).toLocaleString()}
@@ -341,20 +298,8 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
                     type="number"
                     value={formData.deposit_amount}
                     onChange={(e) => handleInputChange('deposit_amount', e.target.value)}
-                    placeholder="500000"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Typically 1-2 months rent
-                  </p>
-                </div>
-                
-                <div>
-                  <Label>Key Deposit (TSh)</Label>
-                  <Input
-                    type="number"
-                    value={formData.key_deposit}
-                    onChange={(e) => handleInputChange('key_deposit', e.target.value)}
-                    placeholder="50000"
+                    placeholder="1000000"
+                    className="mt-1"
                   />
                 </div>
                 
@@ -364,20 +309,20 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
                     value={formData.payment_frequency} 
                     onValueChange={(value) => handleInputChange('payment_frequency', value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select frequency" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="monthly">Monthly</SelectItem>
                       <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="biannual">Bi-Annual</SelectItem>
+                      <SelectItem value="biannual">Bi-annual</SelectItem>
                       <SelectItem value="annual">Annual</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div>
-                  <Label>Payment Day of Month</Label>
+                  <Label>Payment Day</Label>
                   <Input
                     type="number"
                     min="1"
@@ -385,6 +330,21 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
                     value={formData.payment_day}
                     onChange={(e) => handleInputChange('payment_day', e.target.value)}
                     placeholder="1"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Day of month when rent is due
+                  </p>
+                </div>
+                
+                <div>
+                  <Label>Key Deposit (TSh)</Label>
+                  <Input
+                    type="number"
+                    value={formData.key_deposit}
+                    onChange={(e) => handleInputChange('key_deposit', e.target.value)}
+                    placeholder="0"
+                    className="mt-1"
                   />
                 </div>
                 
@@ -396,6 +356,7 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
                     value={formData.allowed_occupants}
                     onChange={(e) => handleInputChange('allowed_occupants', e.target.value)}
                     placeholder="1"
+                    className="mt-1"
                   />
                 </div>
               </div>
@@ -405,8 +366,8 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
                 <Textarea
                   value={formData.special_conditions}
                   onChange={(e) => handleInputChange('special_conditions', e.target.value)}
-                  placeholder="Any special terms or conditions..."
-                  rows={3}
+                  placeholder="Any special conditions or notes for this lease"
+                  className="mt-1 min-h-[80px]"
                 />
               </div>
             </div>
@@ -414,110 +375,144 @@ export default function TenantAssignmentDialog({ unit, isOpen, onClose, onSucces
 
           {currentStep === 3 && (
             <div className="space-y-6">
-              <h3 className="font-medium mb-4">Review Assignment Details</h3>
+              <div className="flex items-center gap-2 mb-4">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <h3 className="font-medium">Review & Confirm</h3>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Tenant Information */}
                 <CloudflareCard>
                   <div className="p-4">
                     <h4 className="font-medium mb-3">Tenant Information</h4>
-                    <div className="space-y-2">
+                    <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Name:</span>
-                        <span className="text-sm font-medium">{formData.full_name}</span>
+                        <span className="text-gray-600">Name:</span>
+                        <span className="font-medium">{formData.full_name}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Phone:</span>
-                        <span className="text-sm">{formData.phone_number}</span>
+                        <span className="text-gray-600">Phone:</span>
+                        <span className="font-medium">{formData.phone_number}</span>
                       </div>
-                      {formData.emergency_contact_name && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Emergency Contact:</span>
-                          <span className="text-sm">{formData.emergency_contact_name}</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </CloudflareCard>
-
-                {/* Contract Details */}
+                
                 <CloudflareCard>
                   <div className="p-4">
-                    <h4 className="font-medium mb-3">Contract Details</h4>
-                    <div className="space-y-2">
+                    <h4 className="font-medium mb-3">Unit Information</h4>
+                    <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Unit:</span>
-                        <span className="text-sm font-medium">{unit?.unit_name}</span>
+                        <span className="text-gray-600">Unit:</span>
+                        <span className="font-medium">{unit?.unit_name}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Start Date:</span>
-                        <span className="text-sm">{formData.start_date}</span>
+                        <span className="text-gray-600">Floor:</span>
+                        <span className="font-medium">Floor {unit?.floor_number + 1}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Monthly Rent:</span>
-                        <span className="text-sm font-medium">TSh {parseFloat(formData.rent_amount || 0).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Deposit:</span>
-                        <span className="text-sm">TSh {parseFloat(formData.deposit_amount || 0).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Payment:</span>
-                        <span className="text-sm capitalize">{formData.payment_frequency}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Payment Day:</span>
-                        <span className="text-sm">Day {formData.payment_day} of month</span>
+                        <span className="text-gray-600">Area:</span>
+                        <span className="font-medium">{unit?.area_sqm} sqm</span>
                       </div>
                     </div>
+                  </div>
+                </CloudflareCard>
+                
+                <CloudflareCard className="md:col-span-2">
+                  <div className="p-4">
+                    <h4 className="font-medium mb-3">Contract Details</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600 block">Start Date:</span>
+                        <span className="font-medium">{formData.start_date}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block">Monthly Rent:</span>
+                        <span className="font-medium">TSh {parseFloat(formData.rent_amount).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block">Deposit:</span>
+                        <span className="font-medium">TSh {parseFloat(formData.deposit_amount).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block">Payment Frequency:</span>
+                        <span className="font-medium capitalize">{formData.payment_frequency}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block">Payment Day:</span>
+                        <span className="font-medium">{formData.payment_day}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block">Key Deposit:</span>
+                        <span className="font-medium">TSh {parseFloat(formData.key_deposit || 0).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block">Occupants:</span>
+                        <span className="font-medium">{formData.allowed_occupants}</span>
+                      </div>
+                    </div>
+                    
+                    {formData.special_conditions && (
+                      <div className="mt-4 pt-4 border-t">
+                        <span className="text-gray-600 block mb-2">Special Conditions:</span>
+                        <span className="text-sm">{formData.special_conditions}</span>
+                      </div>
+                    )}
                   </div>
                 </CloudflareCard>
               </div>
-
-              {formData.special_conditions && (
-                <CloudflareCard>
-                  <div className="p-4">
-                    <h4 className="font-medium mb-2">Special Conditions</h4>
-                    <p className="text-sm text-gray-600">{formData.special_conditions}</p>
-                  </div>
-                </CloudflareCard>
-              )}
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-yellow-600" />
+                  <p className="text-sm text-yellow-800">
+                    Please review all details carefully before confirming. Once confirmed, a welcome SMS will be sent to the tenant.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Error Messages */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex justify-between pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={currentStep === 1 ? onClose : handlePrevious}
-            disabled={loading}
-          >
-            {currentStep === 1 ? 'Cancel' : 'Previous'}
-          </Button>
-
-          <Button
-            onClick={currentStep === 3 ? handleSubmit : handleNext}
-            disabled={!validateStep(currentStep) || loading}
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Assigning...
-              </>
-            ) : currentStep === 3 ? (
-              'Assign Tenant'
-            ) : (
-              'Next'
+        {/* Dialog Actions */}
+        <div className="flex items-center justify-between pt-6 border-t">
+          <div className="flex gap-2">
+            {currentStep > 1 && (
+              <Button
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={loading}
+              >
+                Previous
+              </Button>
             )}
-          </Button>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            
+            {currentStep < 3 ? (
+              <Button
+                onClick={handleNext}
+                disabled={!validateStep(currentStep) || loading}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {loading ? 'Assigning...' : 'Confirm Assignment'}
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

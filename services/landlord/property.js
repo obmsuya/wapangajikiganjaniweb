@@ -428,7 +428,81 @@ const PropertyService = {
         }
       };
     });
+  },
+
+ /**
+   * Update individual unit details
+   * @param {number} unitId - The unit ID
+   * @param {Object} unitData - Unit data to update
+   */
+ updateUnitDetails: async (unitId, unitData) => {
+  try {
+    if (!unitId) {
+      throw new Error("Unit ID is required");
+    }
+
+    // Format the data to match Django expectations
+    const formattedData = {
+      unit_name: unitData.unit_name,
+      rooms: unitData.bedrooms || unitData.rooms, // Handle both field names
+      area_sqm: parseFloat(unitData.area_sqm) || 0,
+      rent_amount: parseFloat(unitData.rent_amount) || 0,
+      payment_freq: unitData.payment_freq || 'monthly',
+      status: unitData.status || 'vacant'
+    };
+
+    console.log(`Updating unit ${unitId} with data:`, formattedData);
+    
+    // Call the Django UnitViewSet update endpoint
+    const response = await api.put(`/api/v1/svg_properties/unit/${unitId}/`, formattedData);
+    
+    console.log('Unit updated successfully:', response);
+    return response;
+  } catch (error) {
+    console.error(`Error updating unit ${unitId}:`, error);
+    throw error;
   }
+},
+
+/**
+ * Get individual unit details
+ * @param {number} unitId - The unit ID
+ */
+getUnitDetails: async (unitId) => {
+  try {
+    if (!unitId) {
+      throw new Error("Unit ID is required");
+    }
+    
+    const response = await api.get(`/api/v1/svg_properties/unit/${unitId}/`);
+    return response;
+  } catch (error) {
+    console.error(`Error fetching unit details for ID ${unitId}:`, error);
+    throw error;
+  }
+},
+
+/**
+ * Update unit status (occupied, vacant, maintenance, etc.)
+ * @param {number} unitId - The unit ID  
+ * @param {string} status - New status
+ */
+updateUnitStatus: async (unitId, status) => {
+  try {
+    if (!unitId || !status) {
+      throw new Error("Unit ID and status are required");
+    }
+    
+    const response = await api.patch(`/api/v1/svg_properties/unit/${unitId}/`, {
+      status: status
+    });
+    
+    return response;
+  } catch (error) {
+    console.error(`Error updating unit status:`, error);
+    throw error;
+  }
+}
 };
 
 export default PropertyService;
