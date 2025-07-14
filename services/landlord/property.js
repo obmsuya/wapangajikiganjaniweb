@@ -1,5 +1,23 @@
-// services/landlord/property.js
+// services/landlord/property.js - FIXED VERSION
 import api from '@/lib/api/api-client';
+
+const extractGridCellsFromSVG = (svgData) => {
+  if (!svgData || typeof svgData !== 'string') return [];
+  
+  try {
+    const unitMatches = svgData.match(/id="unit_(\d+)"/g);
+    if (unitMatches) {
+      return unitMatches
+        .map(match => parseInt(match.match(/\d+/)[0]))
+        .filter(id => !isNaN(id))
+        .sort((a, b) => a - b);
+    }
+  } catch (error) {
+    console.warn('Failed to parse grid cells from SVG:', error);
+  }
+  
+  return [];
+};
 
 const PropertyService = {
   getProperties: async (filters = {}) => {
@@ -35,6 +53,7 @@ const PropertyService = {
       
       const response = await api.get(`/api/v1/svg_properties/property/${propertyId}/`);
       
+      // FIXED: Properly extract units WITH tenant data
       const units = [];
       if (response.property_floor && Array.isArray(response.property_floor)) {
         response.property_floor.forEach(floor => {
@@ -47,12 +66,41 @@ const PropertyService = {
                   id: floor.id
                 },
                 floor: floor.floor_no,
-                current_tenant: null
+                // FIXED: Keep the actual current_tenant data from the API
+                current_tenant: unit.current_tenant || null
               });
             });
           }
         });
+
+        // FIXED: Also preserve tenant data in the floor structure
+        response.property_floor = response.property_floor.map(floor => ({
+          ...floor,
+          // Preserve units_floor with tenant data
+          units_floor: floor.units_floor ? floor.units_floor.map(unit => ({
+            ...unit,
+            // Ensure current_tenant is preserved
+            current_tenant: unit.current_tenant || null
+          })) : [],
+          
+          // Add grid configuration
+          grid_configuration: floor.grid_configuration || (
+            floor.layout_data ? {
+              grid_size: 8,
+              cell_size: 40,
+              selected_cells: extractGridCellsFromSVG(floor.layout_data),
+              layout_type: 'manual_grid'
+            } : null
+          )
+        }));
       }
+      
+      console.log('PropertyService - getPropertyDetails response:', {
+        property_id: response.id,
+        floors_count: response.property_floor?.length || 0,
+        units_with_tenants: units.filter(u => u.current_tenant).length,
+        total_units: units.length
+      });
       
       return {
         ...response,
@@ -100,6 +148,93 @@ const PropertyService = {
     }
   },
 
+  updateFloorLayout: async (propertyId, floorData) => {
+    try {
+      if (!propertyId) {
+        throw new Error("Property ID is required");
+      }
+
+      console.log('Updating floor layout:', floorData);
+
+      const response = await PropertyService.bulkUpdateFloorLayout(propertyId, {
+        [floorData.floor_number]: floorData
+      });
+
+      return response;
+    } catch (error) {
+      console.error(`Error updating floor layout:`, error);
+      throw error;
+    }
+  },
+
+  addFloor: async (propertyId, floorData) => {
+    try {
+      if (!propertyId) {
+        throw new Error("Property ID is required");
+      }
+
+      console.log('Adding new floor:', floorData);
+
+      const response = await api.post(`/api/v1/svg_properties/property/${propertyId}/add_floor/`, {
+        floor_no: floorData.floor_number - 1,
+        units_total: floorData.units_total,
+        layout_type: floorData.layout_type,
+        creation_method: floorData.creation_method,
+        layout_data: floorData.layout_data,
+        units: floorData.units_details || []
+      });
+
+      return response;
+    } catch (error) {
+      console.error(`Error adding floor:`, error);
+      throw error;
+    }
+  },
+
+  bulkUpdateFloorLayout: async (propertyId, floorsData) => {
+    try {
+      if (!propertyId) {
+        throw new Error("Property ID is required");
+      }
+
+      console.log('Bulk updating floor layouts:', floorsData);
+
+      const formattedFloorsData = {};
+      
+      Object.entries(floorsData).forEach(([floorNumber, floorData]) => {
+        formattedFloorsData[floorNumber] = {
+          units_total: floorData.units_total || 0,
+          layout_type: floorData.layout_type || 'manual_grid',
+          creation_method: floorData.creation_method || 'manual',
+          layout_data: floorData.layout_data || '',
+          
+          units_details: (floorData.units_details || []).map(unit => ({
+            svg_id: unit.svg_id,
+            svg_geom: unit.svg_geom || '',
+            area_sqm: unit.area_sqm || 150,
+            rooms: unit.rooms || 1,
+            floor_number: parseInt(floorNumber) - 1,
+            status: unit.status || 'available',
+            utilities: unit.utilities || {},
+            rent_amount: unit.rent_amount || 0,
+            unit_name: unit.unit_name || `Unit ${unit.unit_number || 1}`,
+            payment_freq: unit.payment_freq || 'monthly'
+          }))
+        };
+      });
+
+      const response = await api.post(`/api/v1/svg_properties/property/${propertyId}/bulk_update_floor_layout/`, {
+        floors: formattedFloorsData
+      });
+      
+      console.log('Bulk update response:', response);
+      return response;
+    } catch (error) {
+      console.error(`Error bulk updating floor layouts:`, error);
+      throw error;
+    }
+  },
+
   getFloorUnitsWithTenants: async (propertyId) => {
     try {
       if (!propertyId) {
@@ -128,23 +263,6 @@ const PropertyService = {
       return response;
     } catch (error) {
       console.error(`Error validating unit deletion:`, error);
-      throw error;
-    }
-  },
-
-  bulkUpdateFloorLayout: async (propertyId, floorsData) => {
-    try {
-      if (!propertyId) {
-        throw new Error("Property ID is required");
-      }
-      
-      const response = await api.post(`/api/v1/svg_properties/property/${propertyId}/bulk_update_floor_layout/`, {
-        floors: floorsData
-      });
-      
-      return response;
-    } catch (error) {
-      console.error(`Error bulk updating floor layouts:`, error);
       throw error;
     }
   },
@@ -225,6 +343,7 @@ const PropertyService = {
     }
   },
 
+  // REST OF THE METHODS REMAIN THE SAME...
   getPropertyAnalytics: async (propertyId) => {
     try {
       const property = await PropertyService.getPropertyDetails(propertyId);
@@ -387,6 +506,7 @@ const PropertyService = {
         const units = floor.units_floor || [];
         
         formattedFloors[floorNumber] = {
+          id: floor.id,
           floor_number: floorNumber,
           floor_no: floor.floor_no,
           units_total: floor.units_total || units.length,
@@ -394,7 +514,18 @@ const PropertyService = {
           layout_type: floor.layout_type || 'manual_grid',
           creation_method: floor.layout_creation_method || 'manual',
           configured: units.length > 0,
-          units_ids: units.map(unit => unit.svg_id),
+          updated_at: floor.updated_at,
+          
+          units: units,
+          units_ids: units.map(unit => unit.svg_id).filter(id => id !== undefined),
+          
+          grid_configuration: floor.grid_configuration || {
+            grid_size: 8,
+            cell_size: 40,
+            selected_cells: units.map(unit => unit.svg_id).filter(id => id !== undefined),
+            layout_type: 'manual_grid'
+          },
+          
           units_details: units.map(unit => ({
             svg_id: unit.svg_id,
             unit_name: unit.unit_name,
@@ -403,8 +534,15 @@ const PropertyService = {
             rent_amount: unit.rent_amount,
             status: unit.status,
             current_tenant: unit.current_tenant,
-            svg_geom: unit.svg_geom
-          }))
+            svg_geom: unit.svg_geom,
+            floor_number: unit.floor_number,
+            utilities: unit.utilities || {}
+          })),
+          
+          occupied_units: units.filter(unit => unit.status === 'occupied' || unit.current_tenant).length,
+          vacant_units: units.filter(unit => unit.status !== 'occupied' && !unit.current_tenant).length,
+          occupancy_rate: units.length > 0 ? Math.round((units.filter(unit => unit.status === 'occupied' || unit.current_tenant).length / units.length) * 100) : 0,
+          total_rent: units.reduce((sum, unit) => sum + (parseFloat(unit.rent_amount) || 0), 0)
         };
       });
     }
@@ -430,79 +568,63 @@ const PropertyService = {
     });
   },
 
- /**
-   * Update individual unit details
-   * @param {number} unitId - The unit ID
-   * @param {Object} unitData - Unit data to update
-   */
- updateUnitDetails: async (unitId, unitData) => {
-  try {
-    if (!unitId) {
-      throw new Error("Unit ID is required");
+  updateUnitDetails: async (unitId, unitData) => {
+    try {
+      if (!unitId) {
+        throw new Error("Unit ID is required");
+      }
+
+      const formattedData = {
+        unit_name: unitData.unit_name,
+        rooms: unitData.bedrooms || unitData.rooms,
+        area_sqm: parseFloat(unitData.area_sqm) || 0,
+        rent_amount: parseFloat(unitData.rent_amount) || 0,
+        payment_freq: unitData.payment_freq || 'monthly',
+        status: unitData.status || 'vacant'
+      };
+
+      console.log(`Updating unit ${unitId} with data:`, formattedData);
+      
+      const response = await api.put(`/api/v1/svg_properties/unit/${unitId}/`, formattedData);
+      
+      console.log('Unit updated successfully:', response);
+      return response;
+    } catch (error) {
+      console.error(`Error updating unit ${unitId}:`, error);
+      throw error;
     }
+  },
 
-    // Format the data to match Django expectations
-    const formattedData = {
-      unit_name: unitData.unit_name,
-      rooms: unitData.bedrooms || unitData.rooms, // Handle both field names
-      area_sqm: parseFloat(unitData.area_sqm) || 0,
-      rent_amount: parseFloat(unitData.rent_amount) || 0,
-      payment_freq: unitData.payment_freq || 'monthly',
-      status: unitData.status || 'vacant'
-    };
-
-    console.log(`Updating unit ${unitId} with data:`, formattedData);
-    
-    // Call the Django UnitViewSet update endpoint
-    const response = await api.put(`/api/v1/svg_properties/unit/${unitId}/`, formattedData);
-    
-    console.log('Unit updated successfully:', response);
-    return response;
-  } catch (error) {
-    console.error(`Error updating unit ${unitId}:`, error);
-    throw error;
-  }
-},
-
-/**
- * Get individual unit details
- * @param {number} unitId - The unit ID
- */
-getUnitDetails: async (unitId) => {
-  try {
-    if (!unitId) {
-      throw new Error("Unit ID is required");
+  getUnitDetails: async (unitId) => {
+    try {
+      if (!unitId) {
+        throw new Error("Unit ID is required");
+      }
+      
+      const response = await api.get(`/api/v1/svg_properties/unit/${unitId}/`);
+      return response;
+    } catch (error) {
+      console.error(`Error fetching unit details for ID ${unitId}:`, error);
+      throw error;
     }
-    
-    const response = await api.get(`/api/v1/svg_properties/unit/${unitId}/`);
-    return response;
-  } catch (error) {
-    console.error(`Error fetching unit details for ID ${unitId}:`, error);
-    throw error;
-  }
-},
+  },
 
-/**
- * Update unit status (occupied, vacant, maintenance, etc.)
- * @param {number} unitId - The unit ID  
- * @param {string} status - New status
- */
-updateUnitStatus: async (unitId, status) => {
-  try {
-    if (!unitId || !status) {
-      throw new Error("Unit ID and status are required");
+  updateUnitStatus: async (unitId, status) => {
+    try {
+      if (!unitId || !status) {
+        throw new Error("Unit ID and status are required");
+      }
+      
+      const response = await api.patch(`/api/v1/svg_properties/unit/${unitId}/`, {
+        status: status
+      });
+      
+      return response;
+    } catch (error) {
+      console.error(`Error updating unit status:`, error);
+      throw error;
     }
-    
-    const response = await api.patch(`/api/v1/svg_properties/unit/${unitId}/`, {
-      status: status
-    });
-    
-    return response;
-  } catch (error) {
-    console.error(`Error updating unit status:`, error);
-    throw error;
   }
-}
 };
 
 export default PropertyService;

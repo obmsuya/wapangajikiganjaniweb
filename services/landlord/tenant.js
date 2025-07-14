@@ -1,4 +1,4 @@
-// services/landlord/tenant.js
+// services/landlord/tenant.js - UPDATED WITH NEW ENDPOINTS
 import api from '@/lib/api/api-client';
 
 const TenantService = {
@@ -12,12 +12,43 @@ const TenantService = {
       });
       
       const queryString = params.toString();
-      const url = queryString ? `/api/v1/tenants/tenant/?${queryString}` : '/api/v1/tenants/tenant/';
+      const url = queryString ? `/api/v1/tenants/tenants/?${queryString}` : '/api/v1/tenants/tenants/';
       
       const response = await api.get(url);
       return response;
     } catch (error) {
       console.error("Error fetching tenants:", error);
+      throw error;
+    }
+  },
+
+  // NEW: Get all tenants for a specific property
+  getPropertyTenants: async (propertyId) => {
+    try {
+      if (!propertyId) {
+        throw new Error("Property ID is required");
+      }
+      
+      const response = await api.get(`/api/v1/tenants/property/${propertyId}/tenants/`);
+      console.log('TenantService - getPropertyTenants response:', response);
+      return response;
+    } catch (error) {
+      console.error(`Error fetching tenants for property ${propertyId}:`, error);
+      throw error;
+    }
+  },
+
+  // NEW: Get tenants for a specific floor
+  getFloorTenants: async (propertyId, floorNumber) => {
+    try {
+      if (!propertyId || !floorNumber) {
+        throw new Error("Property ID and floor number are required");
+      }
+      
+      const response = await api.get(`/api/v1/tenants/property/${propertyId}/floor/${floorNumber}/tenants/`);
+      return response;
+    } catch (error) {
+      console.error(`Error fetching tenants for floor ${floorNumber}:`, error);
       throw error;
     }
   },
@@ -28,7 +59,7 @@ const TenantService = {
         throw new Error("Tenant ID is required");
       }
       
-      const response = await api.get(`/api/v1/tenants/tenant/${tenantId}/`);
+      const response = await api.get(`/api/v1/tenants/tenants/${tenantId}/`);
       return response;
     } catch (error) {
       console.error(`Error fetching tenant details for ID ${tenantId}:`, error);
@@ -39,7 +70,7 @@ const TenantService = {
   assignTenantToUnit: async (assignmentData) => {
     try {
       console.log('Assigning tenant with data:', assignmentData);
-      const response = await api.post('/api/v1/tenants/assign_tenant/', assignmentData);
+      const response = await api.post('/api/v1/tenants/assign/', assignmentData);
       return response;
     } catch (error) {
       console.error('Error assigning tenant:', error);
@@ -54,7 +85,7 @@ const TenantService = {
       }
       
       console.log('Vacating tenant:', tenantId, vacationData);
-      const response = await api.post(`/api/v1/tenants/tenant/${tenantId}/vacate_tenant/`, vacationData);
+      const response = await api.post(`/api/v1/tenants/tenants/${tenantId}/vacate/`, vacationData);
       return response;
     } catch (error) {
       console.error('Error vacating tenant:', error);
@@ -68,7 +99,7 @@ const TenantService = {
         throw new Error("Unit ID is required");
       }
       
-      const response = await api.get(`/api/v1/tenants/get_tenant_unit/${unitId}/`);
+      const response = await api.get(`/api/v1/tenants/tenant_unit/${unitId}/`);
       return response;
     } catch (error) {
       console.error(`Error checking unit tenant for unit ${unitId}:`, error);
@@ -82,7 +113,7 @@ const TenantService = {
         throw new Error("Tenant ID is required");
       }
       
-      const response = await api.get(`/api/v1/tenants/tenant/${tenantId}/occupancy_history/`);
+      const response = await api.get(`/api/v1/tenants/tenants/${tenantId}/history/`);
       return response;
     } catch (error) {
       console.error('Error fetching tenant history:', error);
@@ -96,7 +127,7 @@ const TenantService = {
         throw new Error("Tenant ID is required");
       }
       
-      const response = await api.post(`/api/v1/tenants/tenant/${tenantId}/add_note/`, noteData);
+      const response = await api.post(`/api/v1/tenants/tenants/${tenantId}/notes/`, noteData);
       return response;
     } catch (error) {
       console.error('Error adding tenant note:', error);
@@ -110,7 +141,7 @@ const TenantService = {
         throw new Error("Tenant ID is required");
       }
       
-      const response = await api.post(`/api/v1/tenants/tenant/${tenantId}/send_reminder/`, reminderData);
+      const response = await api.post(`/api/v1/tenants/tenants/${tenantId}/send-reminder/`, reminderData);
       return response;
     } catch (error) {
       console.error('Error sending tenant reminder:', error);
@@ -124,7 +155,7 @@ const TenantService = {
         throw new Error("Tenant ID is required");
       }
       
-      const response = await api.put(`/api/v1/tenants/tenant/${tenantId}/`, tenantData);
+      const response = await api.put(`/api/v1/tenants/tenants/${tenantId}/`, tenantData);
       return response;
     } catch (error) {
       console.error(`Error updating tenant ${tenantId}:`, error);
@@ -138,7 +169,7 @@ const TenantService = {
         throw new Error("Tenant ID is required");
       }
       
-      const response = await api.delete(`/api/v1/tenants/tenant/${tenantId}/`);
+      const response = await api.delete(`/api/v1/tenants/tenants/${tenantId}/`);
       return response;
     } catch (error) {
       console.error(`Error deleting tenant ${tenantId}:`, error);
@@ -148,7 +179,7 @@ const TenantService = {
 
   searchTenants: async (searchQuery) => {
     try {
-      const response = await api.get(`/api/v1/tenants/tenant/?search=${encodeURIComponent(searchQuery)}`);
+      const response = await api.get(`/api/v1/tenants/tenants/?search=${encodeURIComponent(searchQuery)}`);
       return response;
     } catch (error) {
       console.error('Error searching tenants:', error);
@@ -162,10 +193,82 @@ const TenantService = {
         throw new Error("Property ID is required");
       }
       
-      const response = await api.get(`/api/v1/tenants/tenant/?property=${propertyId}`);
-      return response;
+      // Use the new dedicated endpoint
+      return await this.getPropertyTenants(propertyId);
     } catch (error) {
       console.error(`Error fetching tenants for property ${propertyId}:`, error);
+      throw error;
+    }
+  },
+
+  getRentDue: async () => {
+    try {
+      const response = await api.get('/api/v1/tenants/rent/due/');
+      return response;
+    } catch (error) {
+      console.error('Error fetching rent due:', error);
+      throw error;
+    }
+  },
+
+  getLandlordInfo: async () => {
+    try {
+      const response = await api.get('/api/v1/tenants/landlord/info/');
+      return response;
+    } catch (error) {
+      console.error('Error fetching landlord info:', error);
+      throw error;
+    }
+  },
+
+  getPaymentHistory: async () => {
+    try {
+      const response = await api.get('/api/v1/tenants/payment/history/');
+      return response;
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      throw error;
+    }
+  },
+
+  getTenantDocuments: async (tenantId) => {
+    try {
+      if (!tenantId) {
+        throw new Error("Tenant ID is required");
+      }
+      
+      const response = await api.get(`/api/v1/tenants/tenants/${tenantId}/documents/`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching tenant documents:', error);
+      throw error;
+    }
+  },
+
+  uploadTenantDocument: async (tenantId, documentData) => {
+    try {
+      if (!tenantId) {
+        throw new Error("Tenant ID is required");
+      }
+      
+      const response = await api.post(`/api/v1/tenants/tenants/${tenantId}/documents/`, documentData);
+      return response;
+    } catch (error) {
+      console.error('Error uploading tenant document:', error);
+      throw error;
+    }
+  },
+
+  getTenantNotes: async (tenantId) => {
+    try {
+      if (!tenantId) {
+        throw new Error("Tenant ID is required");
+      }
+      
+      const response = await api.get(`/api/v1/tenants/tenants/${tenantId}/notes/`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching tenant notes:', error);
       throw error;
     }
   },

@@ -1,4 +1,3 @@
-// components/landlord/properties/UnitConfiguration.jsx
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -7,7 +6,10 @@ import { Home, Edit, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/components/cloudflare/Card";
 import { Badge } from "@/components/ui/badge";
-import UnitConfigurationDialog from "@/components/landlord/properties/UnitConfigurationDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function UnitConfiguration({ 
   onValidationChange, 
@@ -249,14 +251,194 @@ export default function UnitConfiguration({
       ))}
 
       {/* Unit Configuration Dialog */}
-      <UnitConfigurationDialog
+      <UnitConfigDialog
         unit={editingUnit}
         isOpen={isDialogOpen}
         onClose={handleCloseDialog}
         onSave={handleSaveUnit}
       />
-
-
     </div>
+  );
+}
+
+// Simplified Unit Configuration Dialog Component
+function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    unit_name: '',
+    bedrooms: 1,
+    area_sqm: 150,
+    rent_amount: 0,
+    payment_freq: 'monthly',
+    status: 'vacant'
+  });
+
+  useEffect(() => {
+    if (unit) {
+      setFormData({
+        unit_name: unit.unit_name || '',
+        bedrooms: unit.bedrooms || 1,
+        area_sqm: unit.area_sqm || 150,
+        rent_amount: unit.rent_amount || 0,
+        payment_freq: unit.payment_freq || 'monthly',
+        status: unit.status || 'vacant'
+      });
+    }
+  }, [unit]);
+
+  const handleSave = useCallback(() => {
+    if (onSave && unit) {
+      const updatedUnit = {
+        ...unit,
+        ...formData
+      };
+      onSave(updatedUnit);
+    }
+  }, [formData, onSave, unit]);
+
+  const handleChange = useCallback((field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  if (!unit) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Configure Unit {unit.unit_name}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Unit Name */}
+          <div>
+            <Label htmlFor="unit_name">Unit Name</Label>
+            <Input
+              id="unit_name"
+              value={formData.unit_name}
+              onChange={(e) => handleChange('unit_name', e.target.value)}
+              placeholder="e.g., A1, B2"
+            />
+          </div>
+
+          {/* Rent Amount - Main focus */}
+          <div>
+            <Label htmlFor="rent_amount">Monthly Rent (TZS) *</Label>
+            <Input
+              id="rent_amount"
+              type="number"
+              min="0"
+              step="1000"
+              value={formData.rent_amount}
+              onChange={(e) => handleChange('rent_amount', parseFloat(e.target.value) || 0)}
+              placeholder="Enter rent amount"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Monthly rent: TZS {formData.rent_amount.toLocaleString()}
+            </p>
+          </div>
+
+          {/* Basic Details */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="bedrooms">Bedrooms</Label>
+              <Select 
+                value={formData.bedrooms?.toString()} 
+                onValueChange={(value) => handleChange('bedrooms', parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select bedrooms" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <SelectItem key={num} value={num.toString()}>
+                      {num} Bedroom{num > 1 ? 's' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="area_sqm">Area (sq m)</Label>
+              <Input
+                id="area_sqm"
+                type="number"
+                min="1"
+                step="0.01"
+                value={formData.area_sqm}
+                onChange={(e) => handleChange('area_sqm', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+
+          {/* Payment Frequency */}
+          <div>
+            <Label htmlFor="payment_freq">Payment Frequency</Label>
+            <Select
+              value={formData.payment_freq}
+              onValueChange={(value) => handleChange('payment_freq', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="biannual">Bi-Annual</SelectItem>
+                <SelectItem value="annual">Annual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Status */}
+          <div>
+            <Label htmlFor="status">Status</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => handleChange('status', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vacant">Vacant</SelectItem>
+                <SelectItem value="occupied">Occupied</SelectItem>
+                <SelectItem value="maintenance">Under Maintenance</SelectItem>
+                <SelectItem value="reserved">Reserved</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Summary */}
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <h4 className="font-medium text-blue-800 mb-2">Unit Summary</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-blue-600">Bedrooms:</span> {formData.bedrooms}
+              </div>
+              <div>
+                <span className="text-blue-600">Area:</span> {formData.area_sqm} sq m
+              </div>
+              <div className="col-span-2">
+                <span className="text-blue-600">Monthly Rent:</span> TZS {formData.rent_amount.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave}>
+              Save Unit
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,11 +1,11 @@
 // app/layout.jsx
-import { Comic_Neue } from "next/font/google";
+import { Quicksand } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
-const comicNeue = Comic_Neue({
-  variable: "--font-comic-neue",
-  weight: ["300", "400", "700"],
+const comicNeue = Quicksand({
+  variable: "--font-quicksand",
+  weight: ["300", "400","600", "700"],
   subsets: ["latin"],
 });
 

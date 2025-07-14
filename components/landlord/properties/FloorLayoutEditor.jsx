@@ -42,9 +42,53 @@ export default function FloorLayoutEditor({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Extract grid data from existing layout
+  const extractGridDataFromLayout = useCallback((layout) => {
+    if (!layout) return [];
+
+    // Try different sources for grid data
+    let gridCells = [];
+
+    // 1. Check for grid_configuration (from useFloorPlan hook)
+    if (layout.grid_configuration?.selected_cells) {
+      gridCells = layout.grid_configuration.selected_cells;
+    }
+    // 2. Check for units_ids (from floorMemory)
+    else if (layout.units_ids?.length > 0) {
+      gridCells = layout.units_ids;
+    }
+    // 3. Extract from units data (svg_id)
+    else if (layout.units?.length > 0) {
+      gridCells = layout.units
+        .map(unit => unit.svg_id)
+        .filter(id => id !== undefined && id !== null)
+        .sort((a, b) => a - b);
+    }
+    // 4. Try to parse from layout_data SVG
+    else if (layout.layout_data && typeof layout.layout_data === 'string') {
+      try {
+        // Extract unit_X ids from SVG
+        const unitMatches = layout.layout_data.match(/id="unit_(\d+)"/g);
+        if (unitMatches) {
+          gridCells = unitMatches
+            .map(match => parseInt(match.match(/\d+/)[0]))
+            .filter(id => !isNaN(id))
+            .sort((a, b) => a - b);
+        }
+      } catch (err) {
+        console.warn('Failed to parse grid data from SVG:', err);
+      }
+    }
+
+    console.log('Extracted grid cells:', gridCells);
+    return gridCells;
+  }, []);
+
   // Initialize with existing layout data
   useEffect(() => {
-    if (existingLayout && existingLayout.configured) {
+    if (existingLayout) {
+      console.log('Loading existing layout:', existingLayout);
+      
       setLayoutData({
         layout_type: existingLayout.layout_type || 'rectangular',
         creation_method: existingLayout.creation_method || 'manual',
@@ -53,12 +97,13 @@ export default function FloorLayoutEditor({
         notes: existingLayout.notes || ''
       });
       
-      // Extract selected units from existing layout if available
-      if (existingLayout.grid_configuration && existingLayout.grid_configuration.selected_cells) {
-        setSelectedUnits(existingLayout.grid_configuration.selected_cells);
-      }
+      // Extract and set selected units
+      const extractedUnits = extractGridDataFromLayout(existingLayout);
+      setSelectedUnits(extractedUnits);
+      
+      console.log('Loaded selected units:', extractedUnits);
     }
-  }, [existingLayout]);
+  }, [existingLayout, extractGridDataFromLayout]);
 
   const handleCellClick = useCallback((cellIndex) => {
     if (previewMode) return;
@@ -98,6 +143,50 @@ export default function FloorLayoutEditor({
             </svg>`;
   }, []);
 
+  const generateLayoutPreview = useCallback((units) => {
+    if (!units || units.length === 0) return null;
+    
+    const positions = units.map(cellIndex => ({
+      x: cellIndex % GRID_SIZE,
+      y: Math.floor(cellIndex / GRID_SIZE),
+      cellIndex
+    }));
+    
+    const sortedUnits = [...units].sort((a, b) => a - b);
+    const minX = Math.min(...positions.map(p => p.x));
+    const maxX = Math.max(...positions.map(p => p.x));
+    const minY = Math.min(...positions.map(p => p.y));
+    const maxY = Math.max(...positions.map(p => p.y));
+    
+    const width = maxX - minX + 1;
+    const height = maxY - minY + 1;
+    
+    let layoutType = 'custom';
+    if (width === 1) layoutType = 'vertical_line';
+    else if (height === 1) layoutType = 'horizontal_line';
+    else if (width === height) layoutType = 'square';
+    else if (width > height * 1.5) layoutType = 'wide_rectangle';
+    else if (height > width * 1.5) layoutType = 'tall_rectangle';
+    else layoutType = 'rectangle';
+    
+    return {
+      svg: generateSVGString(units),
+      units_count: units.length,
+      layout_type: layoutType,
+      dimensions: { width, height },
+      coverage_area: width * height,
+      density: (units.length / (width * height)) * 100,
+      unit_positions: positions,
+      sorted_units: sortedUnits,
+      metadata: {
+        min_coordinates: { x: minX, y: minY },
+        max_coordinates: { x: maxX, y: maxY },
+        total_cells_used: units.length,
+        layout_efficiency: ((units.length / (GRID_SIZE * GRID_SIZE)) * 100).toFixed(1)
+      }
+    };
+  }, [generateSVGString]);
+
   const handleSaveLayout = async () => {
     if (selectedUnits.length === 0) {
       setError('Please select at least one unit before saving');
@@ -109,43 +198,57 @@ export default function FloorLayoutEditor({
 
     try {
       const svgString = generateSVGString(selectedUnits);
+      const layoutPreview = generateLayoutPreview(selectedUnits);
       
       const floorData = {
-        floor_id: existingLayout?.id || null,
-        floor_no: floorNumber - 1, // Convert to 0-based for backend
+        floor_number: floorNumber,
         units_total: selectedUnits.length,
         layout_type: layoutData.layout_type,
         creation_method: layoutData.creation_method,
         layout_data: svgString,
-        units: selectedUnits.map((cellIndex, idx) => ({
-          svg_id: cellIndex,
-          svg_geom: `<rect width="${CELL_SIZE}" height="${CELL_SIZE}" x="${(cellIndex % GRID_SIZE) * CELL_SIZE}" y="${Math.floor(cellIndex / GRID_SIZE) * CELL_SIZE}" id="unit_${cellIndex}" fill="#3b82f6" stroke="#1e40af" stroke-width="2" />`,
-          floor_number: floorNumber - 1,
-          unit_name: `${String.fromCharCode(65 + Math.floor(idx / 26))}${(idx % 26) + 1}`,
-          area_sqm: 150,
-          bedrooms: 1,
-          status: 'vacant',
-          rent_amount: 0,
-          payment_freq: 'monthly',
-          utilities: {
-            electricity: false,
-            water: false,
-            wifi: false
-          }
-        }))
+        
+        // Add grid configuration for future editing
+        grid_configuration: {
+          grid_size: GRID_SIZE,
+          cell_size: CELL_SIZE,
+          selected_cells: selectedUnits,
+          layout_type: 'manual_grid',
+          created_at: new Date().toISOString()
+        },
+        
+        // Add layout preview for summary
+        layout_preview: layoutPreview,
+        
+        // Generate units details
+        units_details: selectedUnits.map((cellIndex, idx) => {
+          const x = cellIndex % GRID_SIZE;
+          const y = Math.floor(cellIndex / GRID_SIZE);
+          return {
+            svg_id: cellIndex,
+            unit_number: idx + 1,
+            grid_position: { x, y },
+            coordinates: { x: x * CELL_SIZE, y: y * CELL_SIZE },
+            area_sqm: 150,
+            status: 'available',
+            floor_number: floorNumber - 1, // Backend expects 0-based
+            unit_name: `${String.fromCharCode(65 + Math.floor(idx / 26))}${(idx % 26) + 1}`,
+            rent_amount: 0,
+            rooms: 1,
+            utilities: {
+              electricity: false,
+              water: false,
+              wifi: false
+            },
+            svg_geom: `M${x * CELL_SIZE},${y * CELL_SIZE} L${(x + 1) * CELL_SIZE},${y * CELL_SIZE} L${(x + 1) * CELL_SIZE},${(y + 1) * CELL_SIZE} L${x * CELL_SIZE},${(y + 1) * CELL_SIZE} Z`
+          };
+        })
       };
 
-      let response;
-      if (existingLayout && existingLayout.configured) {
-        // Update existing floor
-        response = await PropertyService.updateFloorLayout(propertyId, floorData);
-      } else {
-        // Create new floor
-        response = await PropertyService.addFloor(propertyId, floorData);
-      }
-
-      console.log('Floor layout saved successfully:', response);
-      onSave();
+      console.log('Saving floor data:', floorData);
+      
+      // Pass the data to the parent component
+      await onSave(floorData);
+      
     } catch (err) {
       console.error('Error saving floor layout:', err);
       setError(err.message || 'Failed to save floor layout');
@@ -208,6 +311,11 @@ export default function FloorLayoutEditor({
             : 'Create a new floor layout by selecting units on the grid'
           }
         </p>
+        {existingLayout && existingLayout.configured && (
+          <div className="mt-2 text-sm text-green-600">
+            ✓ Loaded existing layout with {selectedUnits.length} units
+          </div>
+        )}
       </div>
 
       {/* Error Alert */}
@@ -269,68 +377,44 @@ export default function FloorLayoutEditor({
                   placeholder="Add any notes about this floor layout..."
                   value={layoutData.notes}
                   onChange={(e) => setLayoutData(prev => ({ ...prev, notes: e.target.value }))}
-                  rows={3}
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* Current Selection Info */}
+          {/* Units Summary */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Selection Info</CardTitle>
+              <CardTitle className="text-lg">Units Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Selected Units</p>
-                <p className="text-2xl font-bold text-primary-600">
-                  {selectedUnits.length}
-                </p>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Total Units:</span>
+                <Badge variant="outline">{selectedUnits.length}</Badge>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Grid Utilization:</span>
+                <Badge variant="outline">
+                  {((selectedUnits.length / (GRID_SIZE * GRID_SIZE)) * 100).toFixed(1)}%
+                </Badge>
               </div>
 
-              <div>
-                <p className="text-sm text-muted-foreground">Estimated Area</p>
-                <p className="text-lg font-semibold">
-                  {(selectedUnits.length * 150).toLocaleString()} sq m
-                </p>
-              </div>
-
-              <div className="space-y-2">
+              <div className="flex gap-2">
                 <Button
-                  onClick={handleSaveLayout}
-                  disabled={selectedUnits.length === 0 || isLoading}
-                  className="w-full"
-                >
-                  {isLoading ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Layout
-                    </>
-                  )}
-                </Button>
-
-                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleClearSelection}
                   disabled={selectedUnits.length === 0}
-                  variant="outline"
-                  className="w-full"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Clear Selection
+                  Clear All
                 </Button>
-              </div>
-
-              <div className="flex items-center gap-2">
+                
                 <Button
-                  onClick={() => setPreviewMode(!previewMode)}
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="flex-1"
+                  onClick={() => setPreviewMode(!previewMode)}
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   {previewMode ? 'Edit Mode' : 'Preview Mode'}

@@ -1,7 +1,7 @@
-// components/landlord/properties/TenantDetailsDialog.jsx
+// components/landlord/properties/TenantDetailsDialog.jsx - FIXED
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   User, 
   Phone, 
@@ -29,8 +29,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CloudflareCard } from "@/components/cloudflare/Card";
 import { CloudflareTable } from "@/components/cloudflare/Table";
-import { useTenantManagement } from "@/hooks/landlord/useTenantAssignment";
+import { useTenantManagement } from "@/hooks/landlord/useTenantManagement";
 import TenantVacationDialog from "./TenantVacationDialog";
+import customToast from "@/components/ui/custom-toast";
 
 export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantUpdated, onTenantVacated }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -43,11 +44,12 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
     loading, 
     error, 
     sendTenantReminder, 
-    addTenantNote 
+    addTenantNote,
+    updateTenant
   } = useTenantManagement();
 
   // Initialize edited tenant data when dialog opens
-  useState(() => {
+  useEffect(() => {
     if (tenant) {
       setEditedTenant({
         full_name: tenant.full_name || '',
@@ -77,114 +79,74 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
 
   const handleSaveChanges = async () => {
     try {
-      // Here you would call your update tenant API
-      // const updated = await TenantService.updateTenant(tenant.id, editedTenant);
-      onTenantUpdated?.(editedTenant);
+      await updateTenant(tenant.id, editedTenant);
       setIsEditing(false);
-    } catch (error) {
-      console.error("Error updating tenant:", error);
+      customToast.success("Tenant Updated", {
+        description: "Tenant information has been updated successfully"
+      });
+      onTenantUpdated?.();
+    } catch (err) {
+      console.error('Error updating tenant:', err);
+      customToast.error("Update Failed", {
+        description: err.message || "Failed to update tenant information"
+      });
     }
   };
 
   const handleSendReminder = async () => {
-    if (!reminderText.trim()) return;
-    
-    try {
-      await sendTenantReminder(tenant.id, {
-        message: reminderText,
-        type: 'payment_reminder'
+    if (!reminderText.trim()) {
+      customToast.error("Message Required", {
+        description: "Please enter a message to send"
       });
+      return;
+    }
+
+    try {
+      await sendTenantReminder(tenant.id, { message: reminderText });
       setReminderText("");
-      // Show success message
-    } catch (error) {
-      console.error("Error sending reminder:", error);
+      customToast.success("Reminder Sent", {
+        description: "Reminder message has been sent to the tenant"
+      });
+    } catch (err) {
+      console.error('Error sending reminder:', err);
+      customToast.error("Send Failed", {
+        description: err.message || "Failed to send reminder"
+      });
     }
   };
 
   const handleAddNote = async () => {
-    if (!noteText.trim()) return;
-    
-    try {
-      await addTenantNote(tenant.id, {
-        note: noteText,
-        type: 'general'
+    if (!noteText.trim()) {
+      customToast.error("Note Required", {
+        description: "Please enter a note to add"
       });
+      return;
+    }
+
+    try {
+      await addTenantNote(tenant.id, { note: noteText });
       setNoteText("");
-      // Show success message
-    } catch (error) {
-      console.error("Error adding note:", error);
+      customToast.success("Note Added", {
+        description: "Note has been added to tenant record"
+      });
+    } catch (err) {
+      console.error('Error adding note:', err);
+      customToast.error("Add Note Failed", {
+        description: err.message || "Failed to add note"
+      });
     }
   };
 
   const handleVacationSuccess = () => {
     setShowVacationDialog(false);
-    onTenantVacated?.(tenant);
-    onClose();
+    onTenantVacated?.();
   };
 
+
+
+
+
   if (!tenant) return null;
-
-  // Mock payment history data - replace with actual data
-  const paymentHistory = [
-    {
-      id: 1,
-      date: '2024-01-01',
-      amount: 500000,
-      status: 'paid',
-      method: 'M-Pesa'
-    },
-    {
-      id: 2,
-      date: '2024-02-01',
-      amount: 500000,
-      status: 'paid',
-      method: 'Bank Transfer'
-    },
-    {
-      id: 3,
-      date: '2024-03-01',
-      amount: 500000,
-      status: 'pending',
-      method: ''
-    }
-  ];
-
-  const paymentColumns = [
-    {
-      header: 'Date',
-      accessorKey: 'date',
-      cell: ({ row }) => new Date(row.original.date).toLocaleDateString()
-    },
-    {
-      header: 'Amount',
-      accessorKey: 'amount',
-      cell: ({ row }) => `TSh ${row.original.amount.toLocaleString()}`
-    },
-    {
-      header: 'Status',
-      accessorKey: 'status',
-      cell: ({ row }) => {
-        const status = row.original.status;
-        return (
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-            status === 'paid' ? 'bg-green-100 text-green-800' :
-            status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-red-100 text-red-800'
-          }`}>
-            {status === 'paid' && <CheckCircle className="w-3 h-3 mr-1" />}
-            {status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
-            {status === 'overdue' && <AlertTriangle className="w-3 h-3 mr-1" />}
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </span>
-        );
-      }
-    },
-    {
-      header: 'Method',
-      accessorKey: 'method',
-      cell: ({ row }) => row.original.method || '-'
-    }
-  ];
 
   return (
     <>
@@ -208,7 +170,7 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
                     <div className="flex gap-2">
                       {isEditing ? (
                         <>
-                          <Button size="sm" onClick={handleSaveChanges}>
+                          <Button size="sm" onClick={handleSaveChanges} disabled={loading}>
                             <Save className="w-4 h-4 mr-1" />
                             Save
                           </Button>
@@ -251,7 +213,7 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
                       )}
                     </div>
 
-                    <div>
+                    <div className="md:col-span-2">
                       <Label>Alternative Phone</Label>
                       {isEditing ? (
                         <Input
@@ -261,11 +223,6 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
                       ) : (
                         <p className="mt-1 text-sm">{tenant.alternative_phone || 'Not provided'}</p>
                       )}
-                    </div>
-
-                    <div>
-                      <Label>Date of Birth</Label>
-                      <p className="mt-1 text-sm">{tenant.dob || 'Not provided'}</p>
                     </div>
                   </div>
                 </div>
@@ -308,77 +265,42 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
                           onChange={(e) => setEditedTenant(prev => ({ ...prev, emergency_contact_relationship: e.target.value }))}
                         />
                       ) : (
-                        <p className="mt-1 text-sm">{tenant.emergency_contact_relationship || 'Not provided'}</p>
+                        <p className="mt-1 text-sm">{tenant.emergency_contact_relationship || 'Not specified'}</p>
                       )}
                     </div>
                   </div>
                 </div>
               </CloudflareCard>
 
-              {/* Tenancy Information */}
+              {/* Unit Information */}
               <CloudflareCard>
                 <div className="p-4">
-                  <h3 className="font-medium mb-4">Tenancy Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3">
-                      <Home className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <Label>Unit</Label>
-                        <p className="text-sm font-medium">{tenant.unit?.unit_name}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <Calendar className="w-5 h-5 text-green-600" />
-                      <div>
-                        <Label>Move-in Date</Label>
-                        <p className="text-sm">{tenant.start_date}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="w-5 h-5 text-purple-600" />
-                      <div>
-                        <Label>Monthly Rent</Label>
-                        <p className="text-sm font-medium">TSh {parseFloat(tenant.rent_amount || 0).toLocaleString()}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="w-5 h-5 text-orange-600" />
-                      <div>
-                        <Label>Deposit Paid</Label>
-                        <p className="text-sm">TSh {parseFloat(tenant.deposit_amount || 0).toLocaleString()}</p>
-                      </div>
-                    </div>
-
+                  <h3 className="font-medium mb-4">Unit Information</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <Label>Payment Frequency</Label>
-                      <p className="text-sm capitalize">{tenant.payment_frequency || 'Monthly'}</p>
+                      <span className="text-gray-500">Unit:</span>
+                      <span className="ml-2 font-medium">{tenant.unit?.unit_name || 'N/A'}</span>
                     </div>
-
                     <div>
-                      <Label>Payment Day</Label>
-                      <p className="text-sm">{tenant.payment_day || 1} of each period</p>
+                      <span className="text-gray-500">Floor:</span>
+                      <span className="ml-2">{tenant.unit?.floor_name || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Monthly Rent:</span>
+                      <span className="ml-2 font-medium">TSh {parseFloat(tenant.rent_amount || 0).toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Move-in Date:</span>
+                      <span className="ml-2">{tenant.move_in_date ? new Date(tenant.move_in_date).toLocaleDateString() : 'N/A'}</span>
                     </div>
                   </div>
                 </div>
               </CloudflareCard>
 
-              {/* Payment History */}
-              <CloudflareCard>
-                <div className="p-4">
-                  <h3 className="font-medium mb-4">Payment History</h3>
-                  <CloudflareTable
-                    data={paymentHistory}
-                    columns={paymentColumns}
-                    pageSize={5}
-                  />
-                </div>
-              </CloudflareCard>
+
             </div>
 
-            {/* Right Column - Actions */}
+            {/* Right Column - Actions & Status */}
             <div className="space-y-6">
               {/* Quick Actions */}
               <CloudflareCard>
@@ -386,8 +308,9 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
                   <h3 className="font-medium mb-4">Quick Actions</h3>
                   <div className="space-y-3">
                     <Button
-                      className="w-full justify-start"
                       variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
                       onClick={() => setShowVacationDialog(true)}
                     >
                       <UserX className="w-4 h-4 mr-2" />
@@ -409,12 +332,13 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
                       rows={3}
                     />
                     <Button
-                      className="w-full"
+                      size="sm"
                       onClick={handleSendReminder}
-                      disabled={!reminderText.trim() || loading}
+                      disabled={loading || !reminderText.trim()}
+                      className="w-full"
                     >
                       <MessageSquare className="w-4 h-4 mr-2" />
-                      Send SMS Reminder
+                      Send Reminder
                     </Button>
                   </div>
                 </div>
@@ -426,18 +350,18 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
                   <h3 className="font-medium mb-4">Add Note</h3>
                   <div className="space-y-3">
                     <Textarea
-                      placeholder="Enter note about tenant..."
+                      placeholder="Enter note..."
                       value={noteText}
                       onChange={(e) => setNoteText(e.target.value)}
                       rows={3}
                     />
                     <Button
-                      className="w-full"
+                      size="sm"
                       variant="outline"
                       onClick={handleAddNote}
-                      disabled={!noteText.trim() || loading}
+                      disabled={loading || !noteText.trim()}
+                      className="w-full"
                     >
-                      <Edit3 className="w-4 h-4 mr-2" />
                       Add Note
                     </Button>
                   </div>
@@ -470,7 +394,7 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
           {/* Error Display */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-md p-3">
-              <p className="text-red-600 text-sm">{error.message}</p>
+              <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
 

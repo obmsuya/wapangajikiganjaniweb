@@ -131,6 +131,7 @@ export default function PropertyDetailsPage({ params }) {
     
     const floors = {};
     
+    // Initialize all floors first
     for (let i = 1; i <= processedProperty.total_floors; i++) {
       floors[i] = {
         floor_number: i,
@@ -140,39 +141,95 @@ export default function PropertyDetailsPage({ params }) {
         layout_data: null,
         configured: false,
         occupancy_rate: 0,
-        total_rent: 0
+        total_rent: 0,
+        occupied_units: 0,
+        vacant_units: 0
       };
     }
     
-    processedProperty.property_floor.forEach(floor => {
-      const floorNumber = floor.floor_no + 1;
-      if (floors[floorNumber]) {
-        const units = floor.units_floor || [];
-        const occupiedUnits = units.filter(unit => 
-          unit.status === 'occupied' || unit.current_tenant
-        ).length;
-        const totalRent = units.reduce((sum, unit) => 
-          sum + (parseFloat(unit.rent_amount) || 0), 0
-        );
-        
-        floors[floorNumber] = {
-          ...floors[floorNumber],
-          id: floor.id,
-          units: units,
-          units_total: floor.units_total || units.length,
-          layout_data: floor.layout_data,
-          layout_type: floor.layout_type,
-          creation_method: floor.layout_creation_method,
-          configured: units.length > 0,
-          occupied_units: occupiedUnits,
-          vacant_units: units.length - occupiedUnits,
-          occupancy_rate: units.length > 0 ? Math.round((occupiedUnits / units.length) * 100) : 0,
-          total_rent: totalRent,
-          updated_at: floor.updated_at
-        };
-      }
-    });
+    // Process existing floors with enhanced data including tenant information
+    if (processedProperty.property_floor && Array.isArray(processedProperty.property_floor)) {
+      processedProperty.property_floor.forEach(floor => {
+        const floorNumber = floor.floor_no + 1;
+        if (floors[floorNumber]) {
+          const units = floor.units_floor || [];
+          
+          // Enhanced tenant processing - ensure current_tenant data is preserved
+          const processedUnits = units.map(unit => ({
+            ...unit,
+            // Ensure current_tenant is properly formatted
+            current_tenant: unit.current_tenant ? {
+              id: unit.current_tenant.id,
+              full_name: unit.current_tenant.full_name,
+              phone_number: unit.current_tenant.phone_number,
+              email: unit.current_tenant.email,
+              move_in_date: unit.current_tenant.move_in_date,
+              status: unit.current_tenant.status || 'active',
+              emergency_contact_name: unit.current_tenant.emergency_contact_name,
+              emergency_contact_phone: unit.current_tenant.emergency_contact_phone,
+              emergency_contact_relationship: unit.current_tenant.emergency_contact_relationship
+            } : null,
+            // Ensure unit status is correct based on tenant presence
+            status: unit.current_tenant ? 'occupied' : (unit.status || 'available')
+          }));
+          
+          const occupiedUnits = processedUnits.filter(unit => 
+            unit.status === 'occupied' || unit.current_tenant
+          ).length;
+          
+          const totalRent = processedUnits.reduce((sum, unit) => 
+            sum + (parseFloat(unit.rent_amount) || 0), 0
+          );
+          
+          // Enhanced floor data with all necessary information
+          floors[floorNumber] = {
+            ...floors[floorNumber],
+            id: floor.id,
+            units: processedUnits,
+            units_total: floor.units_total || processedUnits.length,
+            layout_data: floor.layout_data,
+            layout_type: floor.layout_type,
+            creation_method: floor.layout_creation_method,
+            configured: processedUnits.length > 0,
+            occupied_units: occupiedUnits,
+            vacant_units: processedUnits.length - occupiedUnits,
+            occupancy_rate: processedUnits.length > 0 ? Math.round((occupiedUnits / processedUnits.length) * 100) : 0,
+            total_rent: totalRent,
+            updated_at: floor.updated_at,
+            
+            // Grid editing data
+            units_ids: processedUnits.map(unit => unit.svg_id).filter(id => id !== undefined),
+            
+            // Grid configuration for editing
+            grid_configuration: floor.grid_configuration || (
+              floor.layout_data ? {
+                grid_size: 8,
+                cell_size: 40,
+                selected_cells: processedUnits.map(unit => unit.svg_id).filter(id => id !== undefined),
+                layout_type: 'manual_grid'
+              } : null
+            ),
+            
+            // Units details for editing
+            units_details: processedUnits.map(unit => ({
+              svg_id: unit.svg_id,
+              unit_name: unit.unit_name,
+              area_sqm: unit.area_sqm,
+              rooms: unit.rooms,
+              rent_amount: unit.rent_amount,
+              status: unit.status,
+              current_tenant: unit.current_tenant,
+              svg_geom: unit.svg_geom,
+              floor_number: unit.floor_number,
+              utilities: unit.utilities || {},
+              payment_freq: unit.payment_freq || 'monthly'
+            }))
+          };
+        }
+      });
+    }
     
+    console.log('Processed floor data with tenants:', floors);
     return floors;
   }, [processedProperty]);
 

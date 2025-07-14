@@ -54,6 +54,7 @@
 
 /* Light theme (default) */
 :root {
+    --font-quicksand: 'Quicksand', sans-serif;
   --background: var(--color-white);
   --foreground: var(--color-gray-900);
   
@@ -119,7 +120,7 @@
   body {
     background-color: rgb(var(--background));
     color: rgb(var(--foreground));
-    font-family: 'Comic Neue', system-ui, sans-serif;
+   font-family: var(--font-quicksand);
   }
 }
 

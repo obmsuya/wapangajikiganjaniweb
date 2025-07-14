@@ -34,13 +34,42 @@ export default function PropertyFloorsTab({
 
   const handleSaveLayout = async (layoutData) => {
     try {
+      console.log('Saving layout data:', layoutData);
+      
       await onSaveFloorLayout?.(editingFloor, layoutData);
+      
       setShowLayoutEditor(false);
       setEditingFloor(null);
       refreshProperty?.();
     } catch (error) {
       console.error('Error saving floor layout:', error);
+      throw error;
     }
+  };
+
+  const prepareExistingLayout = (floor) => {
+    if (!floor) return null;
+
+    console.log('Preparing existing layout for floor:', floor);
+
+    const existingLayout = {
+      id: floor.id,
+      floor_number: floor.floor_number,
+      configured: floor.configured || false,
+      layout_type: floor.layout_type || 'rectangular',
+      creation_method: floor.creation_method || 'manual',
+      layout_data: floor.layout_data || '',
+      units_total: floor.units_total || 0,
+      notes: floor.notes || '',
+      
+      units: floor.units || [],
+      grid_configuration: floor.grid_configuration || null,
+      units_ids: floor.units_ids || null,
+      layout_preview: floor.layout_preview || null
+    };
+
+    console.log('Prepared existing layout:', existingLayout);
+    return existingLayout;
   };
 
   const getFloorStatusInfo = (floor) => {
@@ -74,13 +103,13 @@ export default function PropertyFloorsTab({
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => {/* Bulk floor operations */}}
+            onClick={() => {}}
           >
             <Settings className="w-4 h-4 mr-2" />
             Bulk Edit
           </Button>
           <Button
-            onClick={() => {/* Add new floor */}}
+            onClick={() => {}}
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Floor
@@ -88,7 +117,6 @@ export default function PropertyFloorsTab({
         </div>
       </div>
 
-      {/* Floor Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Object.values(floorData).map((floor) => {
           const statusInfo = getFloorStatusInfo(floor);
@@ -110,7 +138,7 @@ export default function PropertyFloorsTab({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {/* Preview floor layout */}}
+                        onClick={() => {}}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -120,7 +148,6 @@ export default function PropertyFloorsTab({
               />
               <CloudflareCardContent>
                 <div className="space-y-4">
-                  {/* Status */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {statusInfo.icon}
@@ -129,7 +156,6 @@ export default function PropertyFloorsTab({
                     {statusInfo.badge}
                   </div>
 
-                  {/* Floor Statistics */}
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Total Units:</span>
@@ -153,7 +179,6 @@ export default function PropertyFloorsTab({
                     </div>
                   </div>
 
-                  {/* Layout Info */}
                   <div className="pt-3 border-t space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Layout Type:</span>
@@ -174,7 +199,6 @@ export default function PropertyFloorsTab({
                     </div>
                   </div>
 
-                  {/* Layout Preview */}
                   <div className="pt-3 border-t">
                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 h-32 flex items-center justify-center">
                       {floor.layout_data ? (
@@ -194,7 +218,6 @@ export default function PropertyFloorsTab({
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="pt-3 border-t">
                     <Button
                       variant="outline"
@@ -213,9 +236,8 @@ export default function PropertyFloorsTab({
         })}
       </div>
 
-      {/* Floor Layout Editor Dialog */}
       <Dialog open={showLayoutEditor} onOpenChange={setShowLayoutEditor}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+         <DialogContent className="w-full max-w-screen-lg max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle>
               Edit Floor {editingFloor} Layout
@@ -226,7 +248,7 @@ export default function PropertyFloorsTab({
             <FloorLayoutEditor
               propertyId={property.id}
               floorNumber={editingFloor}
-              existingLayout={floorData[editingFloor]}
+              existingLayout={prepareExistingLayout(floorData[editingFloor])}
               onSave={handleSaveLayout}
               onCancel={() => {
                 setShowLayoutEditor(false);

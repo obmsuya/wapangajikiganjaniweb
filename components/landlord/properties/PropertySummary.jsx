@@ -390,39 +390,7 @@ export default function PropertySummary({
         </TabsContent>
       </Tabs>
 
-      {/* Create Property Button */}
-      <div className="flex justify-center pt-6">
-        <CloudflareCard className="w-full max-w-md">
-          <CloudflareCardContent className="p-6 text-center">
-            <h3 className="text-lg font-semibold mb-2">Ready to Create Property?</h3>
-            <p className="text-gray-600 mb-4">
-              {validationResults.valid 
-                ? "Your property configuration is complete and ready to be created. Units can be configured with rent amounts later."
-                : "Please resolve the validation issues before creating the property."
-              }
-            </p>
-            <Button
-              onClick={handleCreateProperty}
-              disabled={!validationResults.valid || isLoading}
-              size="lg"
-              className="w-full"
-            >
-              {isLoading ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"
-                  />
-                  Creating Property...
-                </>
-              ) : (
-                'Create Property'
-              )}
-            </Button>
-          </CloudflareCardContent>
-        </CloudflareCard>
-      </div>
+
 
       {/* Layout Preview Dialog */}
       <Dialog open={showLayoutDialog} onOpenChange={setShowLayoutDialog}>
