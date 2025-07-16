@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CloudflareBreadcrumbs, CloudflarePageHeader } from "@/components/cloudflare/Breadcrumbs";
-import { CloudflareStatCard } from "@/components/cloudflare/Card";
 import { usePropertyDetails } from "@/hooks/properties/useProperties";
 import PropertyService from "@/services/landlord/property";
 import PropertyOverviewTab from "@/components/landlord/properties/tabs/PropertyOverviewTab";
@@ -328,28 +327,7 @@ export default function PropertyDetailsPage({ params }) {
         actions={pageActions}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <CloudflareStatCard
-          title="Total Units"
-          value={propertyStats?.totalUnits || 0}
-          icon={<Home className="h-5 w-5" />}
-        />
-        <CloudflareStatCard
-          title="Occupied Units"
-          value={propertyStats?.occupiedUnits || 0}
-          icon={<Users className="h-5 w-5" />}
-        />
-        <CloudflareStatCard
-          title="Occupancy Rate"
-          value={`${propertyStats?.occupancyRate || 0}%`}
-          icon={<Grid className="h-5 w-5" />}
-        />
-        <CloudflareStatCard
-          title="Monthly Revenue"
-          value={`TSh ${(propertyStats?.totalRent || 0).toLocaleString()}`}
-          icon={<DollarSign className="h-5 w-5" />}
-        />
-      </div>
+    
 
       <Card className="p-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

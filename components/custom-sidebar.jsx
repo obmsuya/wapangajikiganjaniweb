@@ -9,16 +9,17 @@ import {
   Users, 
   Building2, 
   UserRound, 
-  CreditCard, 
+  Crown, 
   Settings, 
   Menu, 
   X,
   ChevronDown,
   Handshake
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import NotificationSidebarFooter from "./sidebar/NotificationSidebarFooter";
 
-const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen, toggleSubmenu }) => {
+const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen, toggleSubmenu, proBadge = false }) => {
   const hasSubmenu = Array.isArray(children) && children.length > 0;
 
   if (hasSubmenu) {
@@ -53,7 +54,13 @@ const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen,
   return (
     <Link href={href} className={`sidebar-link mb-1 ${active ? 'active' : ''}`}>
       <Icon size={20} />
-      <span>{label}</span>
+      <span className="flex-1">{label}</span>
+      {proBadge && (
+        <Badge className="bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs px-2 py-0.5 ml-2">
+          <Crown className="w-3 h-3 mr-1" />
+          PRO
+        </Badge>
+      )}
     </Link>
   );
 };
@@ -74,12 +81,6 @@ export function CustomSidebar({ role = "admin", user }) {
     if (user?.user_type === 'landlord' || role === 'landlord') {
       return [
         {
-          label: "Dashboard",
-          icon: LayoutDashboard,
-          href: "/landlord/dashboard",
-          active: pathname === "/landlord/dashboard",
-        },
-        {
           label: "Properties",
           icon: Building2,
           href: "/landlord/properties",
@@ -92,10 +93,11 @@ export function CustomSidebar({ role = "admin", user }) {
           active: pathname.includes("/landlord/tenants"),
         },
         {
-          label: "Payments",
-          icon: CreditCard,
-          href: "/landlord/payments",
-          active: pathname.includes("/landlord/payments"),
+          label: "Wapangaji",
+          icon: Crown,
+          href: "/landlord/subscriptions/plans",
+          active: pathname.includes("/landlord/subscriptions"),
+          proBadge: true,
         },
         {
           label: "Settings",
@@ -146,7 +148,7 @@ export function CustomSidebar({ role = "admin", user }) {
       },
       {
         label: "Payments",
-        icon: CreditCard,
+        icon: Crown,
         href: "/admin/payments",
         active: pathname.includes("/admin/payments"),
       },
@@ -216,6 +218,7 @@ export function CustomSidebar({ role = "admin", user }) {
                 isSubmenuOpen={route.submenuKey ? openSubmenus[route.submenuKey] : false}
                 toggleSubmenu={() => route.submenuKey && toggleSubmenu(route.submenuKey)}
                 children={route.submenu}
+                proBadge={route.proBadge}
               />
             ))}
           </nav>
@@ -251,6 +254,7 @@ export function CustomSidebar({ role = "admin", user }) {
                 isSubmenuOpen={route.submenuKey ? openSubmenus[route.submenuKey] : false}
                 toggleSubmenu={() => route.submenuKey && toggleSubmenu(route.submenuKey)}
                 children={route.submenu}
+                proBadge={route.proBadge}
               />
             ))}
           </nav>
