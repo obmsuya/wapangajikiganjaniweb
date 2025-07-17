@@ -32,6 +32,15 @@ module.exports = {
         'secondary-fg': 'rgb(var(--secondary-fg))',
         'secondary-hover': 'rgb(var(--secondary-hover))',
         
+        popover: 'rgb(var(--popover))',
+        'popover-foreground': 'rgb(var(--popover-foreground))',
+        
+        accent: 'rgb(var(--accent))',
+        'accent-foreground': 'rgb(var(--accent-foreground))',
+
+        'muted-foreground': 'rgb(var(--muted-foreground))',
+        border: 'rgb(var(--border))',
+        
         sidebar: 'rgb(var(--sidebar-bg))',
         'sidebar-border': 'rgb(var(--sidebar-border))',
         'sidebar-fg': 'rgb(var(--sidebar-fg))',

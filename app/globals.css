@@ -54,7 +54,7 @@
 
 /* Light theme (default) */
 :root {
-    --font-quicksand: 'Quicksand', sans-serif;
+  --font-quicksand: 'Quicksand', sans-serif;
   --background: var(--color-white);
   --foreground: var(--color-gray-900);
   
@@ -73,6 +73,20 @@
   --secondary-bg: var(--color-gray-100);
   --secondary-fg: var(--color-gray-800);
   --secondary-hover: var(--color-gray-200);
+  
+  /* Popover/Dropdown variables - FIXED */
+  --popover: var(--color-white);
+  --popover-foreground: var(--color-gray-900);
+  
+  /* Accent variables for hover states */
+  --accent: var(--color-gray-100);
+  --accent-foreground: var(--color-gray-900);
+  
+  /* Muted text */
+  --muted-foreground: var(--color-gray-500);
+  
+  /* Border colors */
+  --border: var(--color-gray-200);
   
   --sidebar-bg: var(--color-white);
   --sidebar-border: var(--color-gray-200);
@@ -103,6 +117,20 @@
   --secondary-fg: var(--color-gray-100);
   --secondary-hover: var(--color-gray-600);
   
+  /* Popover/Dropdown variables for dark theme - FIXED */
+  --popover: var(--color-gray-800);
+  --popover-foreground: var(--color-gray-100);
+  
+  /* Accent variables for hover states */
+  --accent: var(--color-gray-700);
+  --accent-foreground: var(--color-gray-100);
+  
+  /* Muted text */
+  --muted-foreground: var(--color-gray-400);
+  
+  /* Border colors */
+  --border: var(--color-gray-700);
+  
   --sidebar-bg: var(--color-gray-800);
   --sidebar-border: var(--color-gray-700);
   --sidebar-fg: var(--color-gray-300);
@@ -120,7 +148,7 @@
   body {
     background-color: rgb(var(--background));
     color: rgb(var(--foreground));
-   font-family: var(--font-quicksand);
+    font-family: var(--font-quicksand);
   }
 }
 

@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { CustomSidebar } from "@/components/custom-sidebar";
 import AuthService from "@/services/auth";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const isSetupRoute = pathname?.includes('/setup') || pathname?.includes('/welcome');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -41,6 +44,15 @@ export default function DashboardLayout({ children }) {
   }
 
   if (!user) return null;
+
+  if (isSetupRoute) {
+    return (
+      <div className="min-h-screen bg-background">
+        {children}
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex h-screen overflow-hidden">

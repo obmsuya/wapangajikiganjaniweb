@@ -1,4 +1,3 @@
-// services/landlord/payment.js
 import api from '@/lib/api/api-client';
 
 const PaymentService = {
@@ -7,6 +6,7 @@ const PaymentService = {
       const params = new URLSearchParams();
       
       if (filters.propertyId) params.append('property_id', filters.propertyId);
+      if (filters.unitId) params.append('unit_id', filters.unitId);
       if (filters.tenantId) params.append('tenant_id', filters.tenantId);
       if (filters.startDate) params.append('start_date', filters.startDate);
       if (filters.endDate) params.append('end_date', filters.endDate);
@@ -23,6 +23,31 @@ const PaymentService = {
       return response;
     } catch (error) {
       console.error("Error fetching rent payments:", error);
+      throw error;
+    }
+  },
+
+  getPropertyPayments: async (propertyId, filters = {}) => {
+    try {
+      if (!propertyId) {
+        throw new Error("Property ID is required");
+      }
+      
+      const params = new URLSearchParams();
+      params.append('property_id', propertyId);
+      
+      if (filters.startDate) params.append('start_date', filters.startDate);
+      if (filters.endDate) params.append('end_date', filters.endDate);
+      if (filters.status) params.append('status', filters.status);
+      if (filters.unitId) params.append('unit_id', filters.unitId);
+      
+      const queryString = params.toString();
+      const url = `/api/v1/payments/rent/property/${propertyId}/units/?${queryString}`;
+      
+      const response = await api.get(url);
+      return response;
+    } catch (error) {
+      console.error(`Error fetching property payments for ${propertyId}:`, error);
       throw error;
     }
   },
@@ -75,7 +100,7 @@ const PaymentService = {
         throw new Error("Property ID is required");
       }
       
-      const response = await api.get(`/api/v1/payments/rent/settings/${propertyId}/`);
+      const response = await api.get(`/api/v1/payments/rent/property/${propertyId}/settings/`);
       return response.settings || {};
     } catch (error) {
       console.error(`Error fetching payment settings for property ${propertyId}:`, error);
@@ -89,7 +114,7 @@ const PaymentService = {
         throw new Error("Property ID is required");
       }
       
-      const response = await api.put(`/api/v1/payments/rent/settings/${propertyId}/`, settings);
+      const response = await api.put(`/api/v1/payments/rent/property/${propertyId}/settings/`, settings);
       return response;
     } catch (error) {
       console.error(`Error updating payment settings for property ${propertyId}:`, error);
@@ -129,7 +154,7 @@ const PaymentService = {
     }
   },
 
-  requestWalletWithdrawal: async (amount, withdrawalMethod, recipientDetails) => {
+  requestWalletWithdrawal: async (amount, withdrawalMethod, recipientDetails = {}) => {
     try {
       if (!amount || !withdrawalMethod) {
         throw new Error("Amount and withdrawal method are required");
@@ -149,32 +174,14 @@ const PaymentService = {
     }
   },
 
-  checkOverduePayments: async () => {
-    try {
-      const response = await api.get('/api/v1/payments/rent/overdue/');
-      return response;
-    } catch (error) {
-      console.error("Error checking overdue payments:", error);
-      throw error;
-    }
-  },
-
-  getLandlordRejectionRate: async () => {
-    try {
-      const response = await api.get('/api/v1/payments/rent/rejection-rate/');
-      return response;
-    } catch (error) {
-      console.error("Error fetching rejection rate:", error);
-      throw error;
-    }
-  },
-
   formatPaymentForDisplay: (payment) => {
     return {
       id: payment.id,
       tenantName: payment.tenant_name || 'Unknown Tenant',
+      tenantPhone: payment.tenant_phone || '',
       propertyName: payment.property_name || 'Unknown Property',
       unitName: payment.unit_name || 'Unknown Unit',
+      floorNumber: payment.floor_number || null,
       amount: parseFloat(payment.amount || 0),
       periodStart: payment.payment_period_start,
       periodEnd: payment.payment_period_end,
@@ -230,6 +237,26 @@ const PaymentService = {
     return payments
       .filter(payment => ['completed', 'confirmed'].includes(payment.status))
       .reduce((total, payment) => total + parseFloat(payment.amount || 0), 0);
+  },
+
+  calculatePropertyStats: (propertyPayments) => {
+    if (!propertyPayments || !propertyPayments.unit_breakdown) {
+      return {
+        totalExpected: 0,
+        totalCollected: 0,
+        outstanding: 0,
+        collectionRate: 0
+      };
+    }
+
+    const { property_summary } = propertyPayments;
+    
+    return {
+      totalExpected: parseFloat(property_summary?.total_expected || 0),
+      totalCollected: parseFloat(property_summary?.total_collected || 0),
+      outstanding: parseFloat(property_summary?.outstanding_amount || 0),
+      collectionRate: parseFloat(property_summary?.collection_rate || 0)
+    };
   },
 
   groupPaymentsByPeriod: (payments, period = 'month') => {
