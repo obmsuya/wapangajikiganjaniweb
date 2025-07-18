@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import DashboardService from '@/services/landlord/dashboard';
-import PropertyService from '@/services/landlord/property';
 
 /**
  * Hook for managing the main landlord dashboard
