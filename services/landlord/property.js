@@ -1,4 +1,4 @@
-// services/landlord/property.js - FIXED VERSION
+// services/landlord/property.js 
 import api from '@/lib/api/api-client';
 
 const extractGridCellsFromSVG = (svgData) => {
