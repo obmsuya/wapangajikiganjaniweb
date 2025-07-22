@@ -108,7 +108,7 @@ const TenantService = {
         throw new Error("Tenant ID is required");
       }
       
-      const response = await api.post(`/api/v1/tenants/tenants/${tenantId}/send-reminder/`, reminderData);
+      const response = await api.post(`/api/v1/tenants/${tenantId}/send-reminder/`, reminderData);
       return response;
     } catch (error) {
       console.error('Error sending tenant reminder:', error);
