@@ -66,7 +66,7 @@ const TenantService = {
       }
       
       console.log('Vacating tenant:', tenantId, vacationData);
-      const response = await api.post(`/api/v1/tenants/tenants/${tenantId}/vacate/`, vacationData);
+      const response = await api.post(`/api/v1/tenants/${tenantId}/vacate/`, vacationData);
       return response;
     } catch (error) {
       console.error('Error vacating tenant:', error);
