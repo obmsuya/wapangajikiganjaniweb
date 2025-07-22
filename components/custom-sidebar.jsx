@@ -14,10 +14,13 @@ import {
   Menu, 
   X,
   ChevronDown,
-  Handshake
+  Handshake,
+  Banknote,
+  User
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import NotificationSidebarFooter from "./sidebar/NotificationSidebarFooter";
+import ProfileAvatar from "./ui/ProfileAvatar";
 
 const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen, toggleSubmenu, proBadge = false }) => {
   const hasSubmenu = Array.isArray(children) && children.length > 0;
@@ -100,10 +103,16 @@ export function CustomSidebar({ role = "admin", user }) {
           proBadge: true,
         },
         {
-          label: "Settings",
-          icon: Settings,
-          href: "/landlord/settings",
-          active: pathname.includes("/landlord/settings"),
+          label: "Payments",
+          icon: Banknote,
+          href: "/landlord/payments",
+          active: pathname.includes("/landlord/payments"),
+        },
+        {
+          label: "Profile",
+          icon: User,
+          href: "/profile",
+          active: pathname.includes("/profile"),
         },
       ];
     }
@@ -233,13 +242,16 @@ export function CustomSidebar({ role = "admin", user }) {
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:block min-w-sidebar max-w-sidebar w-sidebar h-screen border-r border-sidebar-border bg-sidebar">
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
+        <div className="flex flex-col h-full bg-sidebar-bg text-sidebar-text">
+          {/* Profile Section */}
           <div className="p-4 border-b border-sidebar-border">
-            <h2 className="text-xl font-bold">Wapangaji Kiganjani</h2>
-            <p className="text-sm text-sidebar-fg/70">
-              {user?.user_type === 'landlord' ? "Landlord Portal" : "Admin Portal"}
-            </p>
+            <div className="flex items-center space-x-3">
+              <ProfileAvatar user={user} className="h-10 w-10" />
+              <div>
+                <p className="font-medium">{user?.name || 'User'}</p>
+                <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
+              </div>
+            </div>
           </div>
 
           {/* Navigation Links */}

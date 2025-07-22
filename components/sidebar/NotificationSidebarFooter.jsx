@@ -1,7 +1,7 @@
 // components/sidebar/NotificationSidebarFooter.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { 
   Bell, 
   User, 
@@ -62,303 +62,249 @@ const NotificationIcon = ({ type }) => {
 
 const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMarking, setIsMarking] = useState(false);
   
   const handleMarkAsRead = async () => {
-    if (!notification.isRead) {
+    if (!notification.isRead && !isMarking) {
+      setIsMarking(true);
       await onMarkAsRead(notification.id);
+      setIsMarking(false);
     }
   };
   
   const handleDelete = async () => {
-    setIsDeleting(true);
-    await onDelete(notification.id);
-    setIsDeleting(false);
+    if (!isDeleting) {
+      setIsDeleting(true);
+      await onDelete(notification.id);
+      setIsDeleting(false);
+    }
   };
   
   const colorClass = NotificationService.getNotificationColor(notification.type, notification.priority);
   
   return (
-    <div className={`p-3 border-l-4 ${notification.isRead ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-700'} ${colorClass.split(' ')[2]} mb-2 rounded-r-md`}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className={`p-1 rounded-full ${colorClass}`}>
+    <div className={`p-3 border-l-4 ${notification.isRead ? 
+      'bg-gray-50/50 dark:bg-gray-800/50' : 
+      'bg-white dark:bg-gray-900'
+    } ${colorClass.split(' ')[2]} hover:bg-gray-50 dark:hover:bg-gray-800/70 transition-colors`}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-start space-x-3 flex-1">
+          <div className={`p-2 rounded-full ${colorClass}`}>
             <NotificationIcon type={notification.type} />
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                {notification.title}
-              </h4>
-              {!notification.isRead && (
-                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-              )}
-            </div>
-            
-            <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 mb-1">
+            <h4 className={`text-sm font-medium ${
+              notification.isRead ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'
+            }`}>
+              {notification.title}
+            </h4>
+            <p className={`text-xs mt-1 ${
+              notification.isRead ? 'text-gray-500 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'
+            }`}>
               {notification.message}
             </p>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {NotificationService.formatTimeAgo(notification.createdAt)}
-              </span>
-              
-              {notification.priority === 'high' && (
-                <Badge variant="destructive" className="text-xs px-1 py-0">
-                  High
-                </Badge>
-              )}
-            </div>
+            <span className="text-xs text-gray-400 mt-1 block">
+              {NotificationService.formatTimeAgo(notification.createdAt)}
+            </span>
           </div>
         </div>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-              <MoreVertical className="w-3 h-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            {!notification.isRead && (
-              <DropdownMenuItem onClick={handleMarkAsRead}>
-                <Check className="w-3 h-3 mr-2" />
-                Mark read
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem 
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="text-red-600 focus:text-red-600"
+        <div className="flex items-center space-x-1 ml-2">
+          {!notification.isRead && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMarkAsRead}
+              disabled={isMarking}
+              className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
             >
-              <Trash2 className="w-3 h-3 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <Check className="w-3 h-3" />
+            </Button>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </div>
       </div>
     </div>
   );
 };
 
-export default function NotificationSidebarFooter({ user, onLogout }) {
-  const { theme, toggleTheme } = useTheme();
+export default function NotificationSidebarFooter() {
+  const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const {
-    notifications,
-    unreadCount,
-    loading,
-    markAsRead,
-    markAllAsRead,
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  
+  // Use ref to prevent re-fetching when popover opens/closes
+  const hasInitialized = useRef(false);
+  
+  const { 
+    notifications, 
+    unreadCount, 
+    loading, 
+    markAsRead, 
     deleteNotification,
     refreshNotifications
   } = useNotifications();
 
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  // Only refresh when popover is opened, not every render
+  const handleNotificationOpen = () => {
+    if (!hasInitialized.current) {
+      refreshNotifications();
+      hasInitialized.current = true;
+    }
+    setNotificationOpen(true);
+  };
 
   const handleLogout = async () => {
     try {
+      setIsLoggingOut(true);
       await AuthService.logout();
-      if (onLogout) onLogout();
       router.push('/login');
     } catch (error) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      router.push('/login');
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
-  const handleNotificationAction = async (action, notificationId = null) => {
-    switch (action) {
-      case 'markAsRead':
-        await markAsRead(notificationId);
-        break;
-      case 'markAllAsRead':
-        await markAllAsRead();
-        break;
-      case 'delete':
-        await deleteNotification(notificationId);
-        break;
-      case 'refresh':
-        refreshNotifications();
-        break;
-    }
-  };
-
+  // Get only recent notifications for sidebar (limit to 5)
   const recentNotifications = notifications.slice(0, 5);
-  
+
   return (
-    <div className="p-4 border-t border-sidebar-border bg-sidebar">
-      {/* Notifications Bell */}
-      <div className="flex items-center justify-between mb-3">
-        <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="relative p-2 hover:bg-sidebar-hover"
-            >
-              <Bell className="w-5 h-5 text-sidebar-fg" />
+    <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-3">
+      {/* Notifications */}
+      <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-3 h-9"
+            onClick={handleNotificationOpen}
+          >
+            <div className="relative">
+              <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center text-xs"
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs rounded-full flex items-center justify-center"
                 >
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </Badge>
               )}
-            </Button>
-          </PopoverTrigger>
-          
-          <PopoverContent 
-            className="w-80 p-0" 
-            side="top" 
-            align="start"
-            sideOffset={8}
-          >
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-semibold text-sm">Notifications</h3>
-              <div className="flex items-center gap-2">
-                {unreadCount > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleNotificationAction('markAllAsRead')}
-                    className="text-xs h-6 px-2"
-                  >
-                    Mark all read
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleNotificationAction('refresh')}
-                  className="p-1 h-6 w-6"
-                >
-                  <Bell className="w-3 h-3" />
-                </Button>
-              </div>
             </div>
-            
-            <ScrollArea className="max-h-96">
-              <div className="p-2">
-                {loading ? (
-                  <div className="text-center py-8 text-sm text-gray-500">
-                    Loading notifications...
-                  </div>
-                ) : recentNotifications.length > 0 ? (
-                  <>
-                    {recentNotifications.map((notification) => (
-                      <NotificationItem
-                        key={notification.id}
-                        notification={notification}
-                        onMarkAsRead={(id) => handleNotificationAction('markAsRead', id)}
-                        onDelete={(id) => handleNotificationAction('delete', id)}
-                      />
-                    ))}
-                    
-                    {notifications.length > 5 && (
-                      <div className="text-center pt-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setIsNotificationOpen(false);
-                            router.push('/landlord/notifications');
-                          }}
-                          className="text-xs"
-                        >
-                          View all notifications
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <Bell className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">No notifications</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          </PopoverContent>
-        </Popover>
+            <span className="text-sm">Notifications</span>
+          </Button>
+        </PopoverTrigger>
         
-        {/* Theme Toggle */}
-        <Button
-          onClick={toggleTheme}
-          variant="ghost"
-          size="sm"
-          className="p-2 hover:bg-sidebar-hover text-sidebar-fg"
+        <PopoverContent 
+          className="w-80 p-0" 
+          side="right" 
+          align="end"
+          sideOffset={8}
         >
-          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </Button>
-      </div>
-
-      {/* User Profile Section */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Avatar className="w-9 h-9">
-            <AvatarFallback className="bg-sidebar-hover text-sidebar-fg text-sm">
-              {user?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-fg truncate">
-              {user?.full_name || 'User Name'}
-            </p>
-            <p className="text-xs text-sidebar-fg/70 truncate">
-              {user?.user_type === 'landlord' ? 'Landlord' : 'Administrator'}
-            </p>
+          <div className="border-b border-gray-200 dark:border-gray-700 p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-sm">Notifications</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/landlord/notifications')}
+                className="text-xs"
+              >
+                View all
+              </Button>
+            </div>
           </div>
-        </div>
-
-        {/* User Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-2 hover:bg-sidebar-hover text-sidebar-fg"
-            >
-              <User className="w-5 h-5" />
-            </Button>
-          </DropdownMenuTrigger>
           
-          <DropdownMenuContent align="end" className="w-56" side="top">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            
-            <DropdownMenuItem onClick={() => router.push('/landlord/profile')}>
-              <User className="w-4 h-4 mr-2" />
-              Profile
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem onClick={() => router.push('/landlord/settings')}>
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem onClick={() => router.push('/landlord/notifications')}>
-              <Bell className="w-4 h-4 mr-2" />
-              All Notifications
-              {unreadCount > 0 && (
-                <Badge variant="secondary" className="ml-auto">
-                  {unreadCount}
-                </Badge>
-              )}
-            </DropdownMenuItem>
-            
-            <DropdownMenuSeparator />
-            
-            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+          <ScrollArea className="h-80">
+            {loading ? (
+              <div className="p-4 text-center text-sm text-gray-500">
+                Loading notifications...
+              </div>
+            ) : recentNotifications.length === 0 ? (
+              <div className="p-4 text-center text-sm text-gray-500">
+                No notifications yet
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {recentNotifications.map((notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    notification={notification}
+                    onMarkAsRead={markAsRead}
+                    onDelete={deleteNotification}
+                  />
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </PopoverContent>
+      </Popover>
+
+      {/* Theme Toggle */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+        className="w-full justify-start gap-3 h-9"
+      >
+        {theme === "light" ? (
+          <Moon className="w-4 h-4" />
+        ) : (
+          <Sun className="w-4 h-4" />
+        )}
+        <span className="text-sm">
+          {theme === "light" ? "Dark mode" : "Light mode"}
+        </span>
+      </Button>
+
+      {/* User Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-9">
+            <Avatar className="w-4 h-4">
+              <AvatarFallback className="text-xs">U</AvatarFallback>
+            </Avatar>
+            <span className="text-sm">Account</span>
+          </Button>
+        </DropdownMenuTrigger>
+        
+        <DropdownMenuContent className="w-56" side="right" align="end">
+          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem onClick={() => router.push('/landlord/profile')}>
+            <User className="w-4 h-4 mr-2" />
+            Profile
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem onClick={() => router.push('/landlord/settings')}>
+            <Settings className="w-4 h-4 mr-2" />
+            Settings
+          </DropdownMenuItem>
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem 
+            onClick={handleLogout} 
+            disabled={isLoggingOut}
+            className="text-red-600 dark:text-red-400"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            {isLoggingOut ? 'Logging out...' : 'Log out'}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

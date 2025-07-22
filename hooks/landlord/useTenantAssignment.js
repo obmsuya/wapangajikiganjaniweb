@@ -1,152 +1,111 @@
-// hooks/landlord/useTenantAssignment.js
+// hooks/landlord/useTenantAssignment.js - SIMPLIFIED MVP VERSION
 "use client";
 
 import { useState, useCallback } from 'react';
 import TenantService from '@/services/landlord/tenant';
 
-/**
- * Hook for tenant assignment operations
- * @returns {Object} Assignment state and functions
- */
+
 export function useTenantAssignment() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  /**
-   * Assign tenant to unit
-   * @param {Object} assignmentData -
-   * @returns {Promise<Object>} Assignment result
-   */
   const assignTenant = useCallback(async (assignmentData) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Validate required fields based on backend serializer
-      const requiredFields = ['unit_id', 'full_name', 'phone_number', 'rent_amount', 'deposit_amount', 'payment_frequency'];
-      const missingFields = requiredFields.filter(field => {
-        const value = assignmentData[field];
-        return value === undefined || value === null || value === '';
-      });
-
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      const validation = TenantService.validateTenantAssignment(assignmentData);
+      
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join(', '));
       }
 
-      // Format data exactly as expected by backend
       const formattedData = {
-        // Required fields
         unit_id: parseInt(assignmentData.unit_id),
         full_name: String(assignmentData.full_name).trim(),
         phone_number: String(assignmentData.phone_number).trim(),
         rent_amount: parseFloat(assignmentData.rent_amount),
-        deposit_amount: parseFloat(assignmentData.deposit_amount),
         payment_frequency: assignmentData.payment_frequency,
         
-        // Optional fields with proper defaults
-        start_date: assignmentData.start_date || new Date().toISOString().split('T')[0],
-        payment_day: parseInt(assignmentData.payment_day) || 1,
-        key_deposit: parseFloat(assignmentData.key_deposit) || 0,
-        allowed_occupants: parseInt(assignmentData.allowed_occupants) || 1,
-        special_conditions: assignmentData.special_conditions || ''
+        start_date: assignmentData.start_date || new Date().toISOString().split('T')[0]
       };
 
-      console.log('Assigning tenant with formatted data:', formattedData);
+      console.log('Assigning tenant with simplified data:', formattedData);
       
       const result = await TenantService.assignTenantToUnit(formattedData);
       
       return result;
     } catch (err) {
       console.error('Assignment error:', err);
-      let errorMessage = 'Failed to assign tenant';
-      
-      if (err.response?.data) {
-        // Handle Django validation errors
-        const errors = err.response.data;
-        if (typeof errors === 'object') {
-          const errorMessages = [];
-          Object.entries(errors).forEach(([field, messages]) => {
-            if (Array.isArray(messages)) {
-              errorMessages.push(`${field}: ${messages.join(', ')}`);
-            } else {
-              errorMessages.push(`${field}: ${messages}`);
-            }
-          });
-          errorMessage = errorMessages.join('; ');
-        } else if (typeof errors === 'string') {
-          errorMessage = errors;
-        }
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      setError(err.message || 'Failed to assign tenant');
+      throw err;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /**
-   * Clear any existing errors
-   */
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
   return {
+    assignTenant,
     loading,
     error,
-    assignTenant,
     clearError
   };
 }
 
 /**
- * Hook for tenant management operations (notes, reminders, etc.)
- * @returns {Object} Management state and functions
+ * Hook for tenant management operations - SIMPLIFIED
  */
 export function useTenantManagement() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const sendTenantReminder = useCallback(async (tenantId, reminderData) => {
+  const sendReminder = useCallback(async (tenantId) => {
     try {
       setLoading(true);
       setError(null);
-      
-      if (!tenantId) {
-        throw new Error('Tenant ID is required');
-      }
 
-      const result = await TenantService.sendTenantReminder(tenantId, reminderData);
+      const result = await TenantService.sendTenantReminder(tenantId);
       return result;
     } catch (err) {
-      console.error('Reminder error:', err);
-      const errorMessage = err.message || 'Failed to send reminder';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      console.error('Error sending reminder:', err);
+      setError(err.message || 'Failed to send reminder');
+      throw err;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const addTenantNote = useCallback(async (tenantId, noteData) => {
+  const vacateTenant = useCallback(async (tenantId) => {
     try {
       setLoading(true);
       setError(null);
-      
-      if (!tenantId) {
-        throw new Error('Tenant ID is required');
-      }
 
-      const result = await TenantService.addTenantNote(tenantId, noteData);
+      const result = await TenantService.vacateTenant(tenantId);
       return result;
     } catch (err) {
-      console.error('Note error:', err);
-      const errorMessage = err.message || 'Failed to add note';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      console.error('Error vacating tenant:', err);
+      setError(err.message || 'Failed to vacate tenant');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getTenantHistory = useCallback(async (tenantId) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result = await TenantService.getTenantHistory(tenantId);
+      return result;
+    } catch (err) {
+      console.error('Error fetching history:', err);
+      setError(err.message || 'Failed to fetch history');
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -159,82 +118,65 @@ export function useTenantManagement() {
   return {
     loading,
     error,
-    sendTenantReminder,
-    addTenantNote,
+    sendReminder,
+    vacateTenant,
+    getTenantHistory,
     clearError
   };
 }
 
 /**
- * Hook for tenant vacation operations
- * @param {number} tenantId - Tenant ID
- * @returns {Object} Vacation state and functions
+ * Hook for fetching property tenants - SIMPLIFIED
  */
-export function useTenantVacation(tenantId) {
+export function usePropertyTenants(property) {
+  const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
-  const [vacationData, setVacationData] = useState({
-    vacate_date: new Date().toISOString().split('T')[0],
-    vacate_reason: '',
-    refund_deposit: true
-  });
 
-  const updateVacationData = useCallback((field, value) => {
-    setVacationData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
+  const fetchTenants = useCallback(async () => {
+    if (!property?.id) {
+      setTenants([]);
+      return;
+    }
 
-  const submitVacation = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      setSuccess(false);
       
-      if (!tenantId) {
-        throw new Error('Tenant ID is required');
+      const response = await TenantService.getPropertyTenants(property.id);
+      
+      if (response && response.tenants && Array.isArray(response.tenants)) {
+        // Format tenants for display
+        const formattedTenants = response.tenants.map(tenant => 
+          TenantService.formatTenantForDisplay(tenant)
+        );
+        setTenants(formattedTenants);
+      } else {
+        setTenants([]);
       }
-
-      if (!vacationData.vacate_date) {
-        throw new Error('Vacation date is required');
-      }
-
-      const result = await TenantService.vacateTenant(tenantId, vacationData);
-      setSuccess(true);
-      return result;
+      
     } catch (err) {
-      console.error('Vacation error:', err);
-      const errorMessage = err.message || 'Failed to vacate tenant';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      console.error('Error fetching tenants:', err);
+      setError(err.message || 'Failed to load tenants');
+      setTenants([]);
     } finally {
       setLoading(false);
     }
-  }, [tenantId, vacationData]);
+  }, [property?.id]);
 
-  const resetVacationForm = useCallback(() => {
-    setVacationData({
-      vacate_date: new Date().toISOString().split('T')[0],
-      vacate_reason: '',
-      refund_deposit: true
-    });
-    setError(null);
-    setSuccess(false);
-  }, []);
+  const refreshTenants = useCallback(() => {
+    fetchTenants();
+  }, [fetchTenants]);
 
-  const isVacationValid = vacationData.vacate_date && vacationData.vacate_reason;
+  // Auto-fetch when property changes
+  useState(() => {
+    fetchTenants();
+  }, [fetchTenants]);
 
   return {
-    vacationData,
+    tenants,
     loading,
     error,
-    success,
-    isVacationValid,
-    updateVacationData,
-    submitVacation,
-    resetVacationForm,
-    isVacating: loading
+    refreshTenants
   };
 }

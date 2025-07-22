@@ -1,4 +1,4 @@
-// hooks/landlord/ation/useNotifications.js
+// hooks/landlord/useNotifications.js
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,6 +10,7 @@ export function useNotifications() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Simple fetch functions without dependencies causing re-renders
   const fetchNotifications = useCallback(async (unreadOnly = false, limit = 50) => {
     try {
       setLoading(true);
@@ -27,7 +28,7 @@ export function useNotifications() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // No dependencies - function is stable
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -36,7 +37,7 @@ export function useNotifications() {
     } catch (err) {
       console.error('Error fetching unread count:', err);
     }
-  }, []);
+  }, []); // No dependencies - function is stable
 
   const markAsRead = useCallback(async (notificationId) => {
     try {
@@ -105,25 +106,26 @@ export function useNotifications() {
     return notifications.filter(notification => notification.type === type);
   }, [notifications]);
 
+  // Simple refresh function with no dependencies
   const refreshNotifications = useCallback(() => {
     fetchNotifications();
     fetchUnreadCount();
-  }, [fetchNotifications, fetchUnreadCount]);
+  }, []); // No dependencies - prevents infinite loops
 
-  // Auto-refresh notifications every 30 seconds
+  // Auto-refresh every 30 seconds - ONLY the count, not full notifications
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchUnreadCount();
+      fetchUnreadCount(); // Only fetch count, not full list
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+  }, []); // Empty dependency array - interval won't restart
 
-  // Initial load
+  // Initial load ONLY runs once
   useEffect(() => {
     fetchNotifications();
     fetchUnreadCount();
-  }, [fetchNotifications, fetchUnreadCount]);
+  }, []); // Empty dependency array - runs only on mount
 
   return {
     notifications,
@@ -137,61 +139,5 @@ export function useNotifications() {
     getUnreadNotifications,
     getNotificationsByType,
     refreshNotifications
-  };
-}
-
-export function useNotificationPreferences() {
-  const [preferences, setPreferences] = useState({
-    rent_reminder_sms: false,
-    payment_confirmation_sms: true,
-    overdue_notifications_sms: true,
-    wallet_notifications_sms: false
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const fetchPreferences = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await NotificationService.getNotificationPreferences();
-      setPreferences(response);
-    } catch (err) {
-      console.error('Error fetching notification preferences:', err);
-      setError(err.message || 'Failed to fetch preferences');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const updatePreferences = useCallback(async (newPreferences) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await NotificationService.updateNotificationPreferences(newPreferences);
-      setPreferences(response);
-      
-      return true;
-    } catch (err) {
-      console.error('Error updating notification preferences:', err);
-      setError(err.message || 'Failed to update preferences');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPreferences();
-  }, [fetchPreferences]);
-
-  return {
-    preferences,
-    loading,
-    error,
-    updatePreferences,
-    fetchPreferences
   };
 }

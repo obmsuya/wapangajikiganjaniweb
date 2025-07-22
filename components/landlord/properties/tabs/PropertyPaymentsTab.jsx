@@ -3,21 +3,17 @@
 
 import { useState, useEffect } from "react";
 import { 
-  CreditCard, 
-  TrendingUp, 
+  Banknote, 
   Clock, 
   AlertCircle,
-  Download,
-  Calendar,
-  DollarSign,
-  Users,
-  Eye,
   Check,
   X,
-  Filter,
+  Eye,
   RefreshCw,
-  Search
+  Search,
+  ArrowUpRight
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -33,15 +29,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent, CloudflareStatCard } from "@/components/cloudflare/Card";
+import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/components/cloudflare/Card";
 import { CloudflareTable } from "@/components/cloudflare/Table";
-import { usePropertyPayments } from "@/hooks/landlord/usePropertyPayments";
-import PaymentService from "@/services/landlord/payment";
+import { usePaymentTabStore } from "@/stores/landlord/UsePaymentTabStore";
 import customToast from "@/components/ui/custom-toast";
 
 export default function PropertyPaymentsTab({ property }) {
@@ -49,113 +43,77 @@ export default function PropertyPaymentsTab({ property }) {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [confirmAction, setConfirmAction] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const {
-    payments,
-    paymentStats,
-    unitBreakdown,
     loading,
     error,
+    summary,
     filters,
     updateFilters,
     confirmPayment,
-    getUpcomingPayments,
-    getOverduePayments,
+    getFilteredPayments,
+    getPendingPayments,
     getRecentPayments,
-    refetchPayments
-  } = usePropertyPayments(property?.id);
-
-  const [upcomingPayments, setUpcomingPayments] = useState([]);
-  const [overduePayments, setOverduePayments] = useState([]);
+    formatCurrency,
+    getStatusColor,
+    initializeTab,
+    refreshData
+  } = usePaymentTabStore();
 
   useEffect(() => {
     if (property?.id) {
-      loadScheduleData();
+      initializeTab(property.id);
     }
-  }, [property?.id]);
+  }, [property?.id, initializeTab]);
 
-  const loadScheduleData = async () => {
-    try {
-      const [upcomingResponse, overdueResponse] = await Promise.all([
-        getUpcomingPayments(),
-        getOverduePayments()
-      ]);
-
-      if (upcomingResponse.success) {
-        setUpcomingPayments(upcomingResponse.schedules || []);
-      }
-      
-      if (overdueResponse.success) {
-        setOverduePayments(overdueResponse.schedules || []);
-      }
-    } catch (error) {
-      console.error('Error loading schedule data:', error);
-    }
-  };
-
-  const handleConfirmPayment = async (payment, action) => {
+  const handleConfirmPayment = (payment, action) => {
     setSelectedPayment(payment);
     setConfirmAction(action);
     setShowConfirmDialog(true);
   };
 
-  const processPaymentConfirmation = async () => {
+  const handleConfirmSubmit = async () => {
     if (!selectedPayment || !confirmAction) return;
 
-    try {
-      setIsProcessing(true);
-      
-      await confirmPayment(selectedPayment.id, confirmAction, rejectionReason);
-      
+    const success = await confirmPayment(
+      selectedPayment.id, 
+      confirmAction, 
+      rejectionReason
+    );
+
+    if (success) {
       customToast.success("Payment Updated", {
-        description: `Payment has been ${confirmAction === 'accept' ? 'confirmed' : 'rejected'} successfully.`
+        description: `Payment ${confirmAction === 'accept' ? 'confirmed' : 'rejected'} successfully.`
       });
-      
       setShowConfirmDialog(false);
       setSelectedPayment(null);
       setConfirmAction('');
       setRejectionReason('');
-      
-    } catch (error) {
-      customToast.error("Update Failed", {
-        description: error.message || "Failed to update payment status."
-      });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
-  const filteredPayments = payments.filter(payment => {
-    const matchesSearch = payment.tenantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.unitName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-
+  const filteredPayments = getFilteredPayments();
+  const pendingPayments = getPendingPayments();
   const recentPayments = getRecentPayments(5);
 
   const paymentColumns = [
     {
-      accessorKey: 'tenantName',
+      accessorKey: 'tenant_name',
       header: 'Tenant',
       cell: ({ row }) => (
         <div>
-          <div className="font-medium">{row.original.tenantName}</div>
-          <div className="text-sm text-gray-500">{row.original.tenantPhone}</div>
+          <div className="font-medium">{row.original.tenant_name}</div>
+          <div className="text-sm text-gray-500">{row.original.tenant_phone}</div>
         </div>
       )
     },
     {
-      accessorKey: 'unitName',
+      accessorKey: 'unit_name',
       header: 'Unit',
       cell: ({ row }) => (
         <div>
-          <div className="font-medium">{row.original.unitName}</div>
-          <div className="text-sm text-gray-500">Floor {row.original.floorNumber}</div>
+          <div className="font-medium">{row.original.unit_name}</div>
+          <div className="text-sm text-gray-500">Floor {row.original.floor_number}</div>
         </div>
       )
     },
@@ -164,38 +122,35 @@ export default function PropertyPaymentsTab({ property }) {
       header: 'Amount',
       cell: ({ row }) => (
         <div className="font-medium">
-          {PaymentService.formatCurrency(row.original.amount)}
+          {formatCurrency(row.original.amount)}
         </div>
       )
     },
     {
-      accessorKey: 'periodStart',
+      accessorKey: 'payment_period_start',
       header: 'Period',
       cell: ({ row }) => (
         <div className="text-sm">
-          {new Date(row.original.periodStart).toLocaleDateString()} - 
-          {new Date(row.original.periodEnd).toLocaleDateString()}
+          {new Date(row.original.payment_period_start).toLocaleDateString()} - 
+          {new Date(row.original.payment_period_end).toLocaleDateString()}
         </div>
       )
     },
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => {
-        const statusColor = PaymentService.getPaymentStatusColor(row.original.status);
-        return (
-          <Badge className={`${statusColor} text-xs`}>
-            {row.original.status}
-          </Badge>
-        );
-      }
+      cell: ({ row }) => (
+        <Badge className={getStatusColor(row.original.status)}>
+          {row.original.status}
+        </Badge>
+      )
     },
     {
-      accessorKey: 'createdAt',
+      accessorKey: 'created_at',
       header: 'Date',
       cell: ({ row }) => (
         <div className="text-sm">
-          {new Date(row.original.createdAt).toLocaleDateString()}
+          {new Date(row.original.created_at).toLocaleDateString()}
         </div>
       )
     },
@@ -227,7 +182,6 @@ export default function PropertyPaymentsTab({ property }) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {/* View payment details */}}
           >
             <Eye className="h-4 w-4" />
           </Button>
@@ -249,11 +203,11 @@ export default function PropertyPaymentsTab({ property }) {
     return (
       <div className="text-center py-8">
         <AlertCircle className="h-12 w-12 mx-auto text-red-300 mb-4" />
-        <h3 className="text-lg font-medium text-red-900 mb-2">Error Loading Payments</h3>
-        <p className="text-red-700 mb-4">{error}</p>
-        <Button onClick={refetchPayments} variant="outline">
+        <h3 className="text-lg font-medium text-red-800 mb-2">Failed to Load Payments</h3>
+        <p className="text-red-600 mb-4">{error}</p>
+        <Button onClick={() => refreshData(property?.id)} variant="outline">
           <RefreshCw className="h-4 w-4 mr-2" />
-          Retry
+          Try Again
         </Button>
       </div>
     );
@@ -261,238 +215,179 @@ export default function PropertyPaymentsTab({ property }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <CloudflareStatCard
-          title="Expected Revenue"
-          value={PaymentService.formatCurrency(paymentStats.totalExpected)}
-          icon={<DollarSign className="h-5 w-5" />}
-          className="bg-blue-50 border-blue-200"
-        />
-        <CloudflareStatCard
-          title="Collected"
-          value={PaymentService.formatCurrency(paymentStats.totalCollected)}
-          icon={<TrendingUp className="h-5 w-5" />}
-          className="bg-green-50 border-green-200"
-        />
-        <CloudflareStatCard
-          title="Outstanding"
-          value={PaymentService.formatCurrency(paymentStats.outstanding)}
-          icon={<Clock className="h-5 w-5" />}
-          className="bg-yellow-50 border-yellow-200"
-        />
-        <CloudflareStatCard
-          title="Collection Rate"
-          value={`${paymentStats.collectionRate}%`}
-          icon={<CreditCard className="h-5 w-5" />}
-          className="bg-purple-50 border-purple-200"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <CloudflareCard>
-          <CloudflareCardHeader 
-            title="Upcoming Payments" 
-            actions={
-              <Button variant="outline" size="sm">
-                <Calendar className="w-4 h-4 mr-2" />
-                View Calendar
-              </Button>
-            }
-          />
-          <CloudflareCardContent>
-            {upcomingPayments.length === 0 ? (
-              <div className="text-center py-8">
-                <Clock className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Upcoming Payments</h3>
-                <p className="text-gray-500">All payments are up to date for this property.</p>
+          <CloudflareCardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Banknote className="h-6 w-6 text-green-600" />
               </div>
-            ) : (
-              <div className="space-y-3">
-                {upcomingPayments.slice(0, 5).map((schedule) => (
-                  <div key={schedule.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <div className="font-medium">{schedule.tenant_name}</div>
-                      <div className="text-sm text-gray-500">{schedule.unit_name}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">{PaymentService.formatCurrency(schedule.rent_amount)}</div>
-                      <div className="text-sm text-gray-500">Due: {new Date(schedule.due_date).toLocaleDateString()}</div>
-                    </div>
-                  </div>
-                ))}
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Collected</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.totalAmount)}</p>
               </div>
-            )}
+            </div>
           </CloudflareCardContent>
         </CloudflareCard>
 
         <CloudflareCard>
-          <CloudflareCardHeader 
-            title="Recent Payments" 
-            actions={
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            }
-          />
-          <CloudflareCardContent>
-            {recentPayments.length === 0 ? (
-              <div className="text-center py-8">
-                <CreditCard className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Recent Payments</h3>
-                <p className="text-gray-500">Payment history will appear here once payments are processed.</p>
+          <CloudflareCardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Clock className="h-6 w-6 text-blue-600" />
               </div>
-            ) : (
-              <div className="space-y-3">
-                {recentPayments.map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <div className="font-medium">{payment.tenantName}</div>
-                      <div className="text-sm text-gray-500">{payment.unitName}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">{PaymentService.formatCurrency(payment.amount)}</div>
-                      <div className="text-sm text-gray-500">{new Date(payment.createdAt).toLocaleDateString()}</div>
-                    </div>
-                  </div>
-                ))}
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.pendingCount}</p>
               </div>
-            )}
+            </div>
           </CloudflareCardContent>
         </CloudflareCard>
-      </div>
 
-      {overduePayments.length > 0 && (
         <CloudflareCard>
-          <CloudflareCardContent>
-            <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-              <AlertCircle className="h-5 w-5 text-red-600" />
+          <CloudflareCardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <AlertCircle className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Overdue</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.overdueCount}</p>
+              </div>
+            </div>
+          </CloudflareCardContent>
+        </CloudflareCard>
+
+        <CloudflareCard>
+          <CloudflareCardContent className="p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium text-red-900 dark:text-red-100">
-                  {overduePayments.length} Overdue Payment{overduePayments.length > 1 ? 's' : ''}
-                </h4>
-                <p className="text-sm text-red-700 dark:text-red-200 mt-1">
-                  Some payments are past due and require immediate attention.
-                </p>
+                <p className="text-sm font-medium text-gray-600">View All Payments</p>
+                <p className="text-sm text-gray-500">Detailed payment page</p>
+              </div>
+              <Link href="/landlord/payments">
+                <Button size="sm" variant="outline">
+                  <ArrowUpRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </CloudflareCardContent>
+        </CloudflareCard>
+      </div>
+
+      {/* Pending Payments Alert */}
+      {pendingPayments.length > 0 && (
+        <CloudflareCard>
+          <CloudflareCardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Clock className="h-5 w-5 text-yellow-600" />
+              <div>
+                <h3 className="font-medium text-gray-900">
+                  {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} need confirmation
+                </h3>
+                <p className="text-sm text-gray-600">Review and confirm tenant payments below</p>
               </div>
             </div>
           </CloudflareCardContent>
         </CloudflareCard>
       )}
 
+      {/* Filters */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search tenant or unit..."
+              value={filters.search}
+              onChange={(e) => updateFilters({ search: e.target.value })}
+              className="pl-10 w-64"
+            />
+          </div>
+          
+          <Select value={filters.status} onValueChange={(value) => updateFilters({ status: value })}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button onClick={() => refreshData(property?.id)} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
+
+      {/* Payments Table */}
       <CloudflareCard>
-        <CloudflareCardHeader 
-          title="All Payments" 
-          actions={
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search payments..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-48"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" onClick={refetchPayments}>
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
-          }
-        />
+        <CloudflareCardHeader>
+          <h3 className="text-lg font-semibold">Recent Payments</h3>
+          <p className="text-sm text-gray-600">Payment history for this property</p>
+        </CloudflareCardHeader>
         <CloudflareCardContent>
           <CloudflareTable
-            columns={paymentColumns}
             data={filteredPayments}
-            searchable={false}
-            pagination={true}
-            pageSize={10}
+            columns={paymentColumns}
+            emptyMessage="No payments found"
           />
         </CloudflareCardContent>
       </CloudflareCard>
 
+      {/* Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
               {confirmAction === 'accept' ? 'Confirm Payment' : 'Reject Payment'}
             </DialogTitle>
-            <DialogDescription>
-              {confirmAction === 'accept' 
-                ? 'Are you sure you want to confirm this payment?'
-                : 'Please provide a reason for rejecting this payment.'
-              }
-            </DialogDescription>
           </DialogHeader>
           
-          {selectedPayment && (
-            <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Tenant:</span> {selectedPayment.tenantName}
-                  </div>
-                  <div>
-                    <span className="font-medium">Unit:</span> {selectedPayment.unitName}
-                  </div>
-                  <div>
-                    <span className="font-medium">Amount:</span> {PaymentService.formatCurrency(selectedPayment.amount)}
-                  </div>
-                  <div>
-                    <span className="font-medium">Period:</span> {new Date(selectedPayment.periodStart).toLocaleDateString()} - {new Date(selectedPayment.periodEnd).toLocaleDateString()}
-                  </div>
-                </div>
+          <div className="py-4">
+            <p className="text-sm text-gray-600 mb-4">
+              {confirmAction === 'accept' 
+                ? 'Confirm that you received this payment from the tenant.'
+                : 'Reject this payment and provide a reason.'
+              }
+            </p>
+            
+            {selectedPayment && (
+              <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                <p><strong>Tenant:</strong> {selectedPayment.tenant_name}</p>
+                <p><strong>Amount:</strong> {formatCurrency(selectedPayment.amount)}</p>
+                <p><strong>Unit:</strong> {selectedPayment.unit_name}</p>
               </div>
-              
-              {confirmAction === 'reject' && (
-                <div>
-                  <Label htmlFor="rejection-reason">Rejection Reason *</Label>
-                  <Textarea
-                    id="rejection-reason"
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    placeholder="Please provide a detailed reason for rejecting this payment..."
-                    className="mt-1"
-                    rows={3}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-          
+            )}
+
+            {confirmAction === 'reject' && (
+              <div>
+                <Label htmlFor="rejection-reason">Reason for rejection</Label>
+                <Textarea
+                  id="rejection-reason"
+                  placeholder="Explain why you're rejecting this payment..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="mt-2"
+                />
+              </div>
+            )}
+          </div>
+
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowConfirmDialog(false)}
-              disabled={isProcessing}
-            >
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={processPaymentConfirmation}
-              disabled={isProcessing || (confirmAction === 'reject' && !rejectionReason.trim())}
+            <Button 
+              onClick={handleConfirmSubmit}
               className={confirmAction === 'accept' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
             >
-              {isProcessing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                confirmAction === 'accept' ? 'Confirm Payment' : 'Reject Payment'
-              )}
+              {confirmAction === 'accept' ? 'Confirm Payment' : 'Reject Payment'}
             </Button>
           </DialogFooter>
         </DialogContent>
