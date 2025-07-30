@@ -10,7 +10,7 @@ export const useTenantPaymentStore = create((set, get) => ({
   paymentFlow: 'select',
   paymentHistory: [],
   currentTransaction: null,
-  
+  occupancies: [],
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
@@ -34,7 +34,7 @@ export const useTenantPaymentStore = create((set, get) => ({
       }
     } catch (error) {
       const errorMessage = error.message || 'Failed to load occupancies';
-      set({ error: errorMessage, loading: false });
+      set({ error: errorMessage, loading: false, occupancies: [] });
       toast.error("Error", { description: errorMessage });
       throw error;
     }
@@ -69,7 +69,8 @@ export const useTenantPaymentStore = create((set, get) => ({
       const errorMessage = error.message || 'Failed to load payment history';
       set({ 
         error: errorMessage,
-        loading: false 
+        loading: false,
+        paymentHistory: [] 
       });
       toast({
         title: "Error",
@@ -79,48 +80,36 @@ export const useTenantPaymentStore = create((set, get) => ({
     }
   },
 
-  recordManualPayment: async (unitId, amount, notes = '', customDates = null) => {
+  recordManualPayment: async (amount, unitId = null, notes = '') => {
     try {
       set({ loading: true, error: null });
       
-      const paymentData = {
-        unit_id: unitId,
-        amount: amount
-      };
-      
+      const paymentData = { amount };
+      if (unitId) paymentData.unit_id = unitId;
       if (notes) paymentData.notes = notes;
-      if (customDates) {
-        paymentData.payment_date = customDates.payment_date;
-        paymentData.period_start = customDates.period_start;
-        paymentData.period_end = customDates.period_end;
-      }
       
       const response = await api.post('/api/v1/payments/rent/manual/record/', paymentData);
       
       if (response.success) {
-        set({ 
-          currentTransaction: response,
-          paymentFlow: 'success',
-          loading: false 
-        });
-        
-        toast.success("Payment Recorded", {
-          description: response.message || "Payment recorded successfully and sent to landlord for confirmation",
-        });
-        
+        set({ currentTransaction: response, paymentFlow: 'success', loading: false });
+        toast.success("Payment Recorded", { description: response.message });
         await get().refreshPaymentHistory();
         return response;
       } else {
+        if (response.requires_unit_selection) {
+          set({ 
+            error: response.message,
+            availableUnits: response.available_units,
+            requiresUnitSelection: true,
+            loading: false 
+          });
+          return { requiresUnitSelection: true, availableUnits: response.available_units };
+        }
         throw new Error(response.message || 'Payment recording failed');
       }
     } catch (error) {
       const errorMessage = error.message || 'Failed to record payment';
-      set({ 
-        error: errorMessage,
-        loading: false,
-        paymentFlow: 'error'
-      });
-      
+      set({ error: errorMessage, loading: false, paymentFlow: 'error' });
       toast.error("Payment Failed", { description: errorMessage });
       throw error;
     }
@@ -161,7 +150,8 @@ export const useTenantPaymentStore = create((set, get) => ({
       set({ 
         error: errorMessage,
         loading: false,
-        paymentFlow: 'error'
+        paymentFlow: 'error',
+        paymentHistory: [] 
       });
       
       toast.error("Payment Failed", {
@@ -197,7 +187,8 @@ export const useTenantPaymentStore = create((set, get) => ({
       set({ 
         error: errorMessage,
         loading: false,
-        paymentFlow: 'error'
+        paymentFlow: 'error',
+        paymentHistory: [] 
       });
       
       toast.error("Payment Failed", {
@@ -233,7 +224,8 @@ export const useTenantPaymentStore = create((set, get) => ({
       set({ 
         error: errorMessage,
         loading: false,
-        paymentFlow: 'error'
+        paymentFlow: 'error',
+        paymentHistory: [] 
       });
       
       toast.error("Payment Failed", {
