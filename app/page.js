@@ -1,3 +1,4 @@
+// app/page.jsx
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -495,7 +496,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden light">
       <style jsx>{`
         @keyframes fadeInUp {
           from {

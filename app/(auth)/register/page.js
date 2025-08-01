@@ -314,7 +314,7 @@ export default function RegisterPage() {
                   {/* Submit Button */}
                   <Button 
                     type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold"
+                    className="w-full h-12 bg-primary-700 hover:bg-primary-700 text-white font-semibold"
                     disabled={isLoading}
                   >
                     {isLoading ? (

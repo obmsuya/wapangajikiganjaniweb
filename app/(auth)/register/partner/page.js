@@ -392,14 +392,10 @@ export default function PartnerRegisterPage() {
                       )}
                   </motion.div>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.35 }}
-                  >
+ 
                     <Button 
                       type="submit" 
-                      className="w-full h-12 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                      className="w-full h-12 bg-primary-700 hover:bg-primary-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -414,13 +410,11 @@ export default function PartnerRegisterPage() {
                         </>
                       )}
                     </Button>
-                  </motion.div>
                 </form>
 
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
                   className="mt-8 text-center space-y-4"
                 >
                   <p className="text-sm text-muted-foreground">

@@ -319,20 +319,14 @@ export default function LoginPage() {
                     </Link>
                   </motion.div>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-primary-700 hover:bg-primary-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                    isLoading={isLoading}
+                    disabled={isLoading}
                   >
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                      isLoading={isLoading}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Signing in..." : "Sign In"}
-                    </Button>
-                  </motion.div>
+                    {isLoading ? "Signing in..." : "Sign In"}
+                  </Button>
                 </form>
 
                 <motion.div
