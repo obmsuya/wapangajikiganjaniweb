@@ -32,6 +32,16 @@ export default function PropertyTypeSelection({ onValidationChange }) {
   const [floorCount, setFloorCount] = useState(propertyData.total_floors || 1);
   const [errors, setErrors] = useState({});
 
+  // Sync local state with propertyData changes
+  useEffect(() => {
+    if (propertyData.category !== selectedType) {
+      setSelectedType(propertyData.category || '');
+    }
+    if (propertyData.total_floors !== floorCount) {
+      setFloorCount(propertyData.total_floors || 1);
+    }
+  }, [propertyData.category, propertyData.total_floors, selectedType, floorCount]);
+
   const validateForm = useCallback(() => {
     const newErrors = {};
 
@@ -59,20 +69,57 @@ export default function PropertyTypeSelection({ onValidationChange }) {
 
   const handleTypeSelection = (typeId) => {
     setSelectedType(typeId);
-    const floors = typeId === 'Single Floor' ? 1 : Math.max(2, floorCount);
+    
+    // Determine floor count based on type
+    let floors;
+    if (typeId === 'Single Floor') {
+      floors = 1;
+    } else {
+      // For Multi-Floor, keep current count if valid, otherwise default to 2
+      floors = floorCount >= 2 ? floorCount : 2;
+    }
+    
     setFloorCount(floors);
     
+    // Update the property data immediately
     updatePropertyData({
       category: typeId,
-      total_floors: floors
+      total_floors: floors,
+      // Reset floors configuration when type changes
+      floors: {}
     });
+
+    console.log(`Property type updated: ${typeId}, Floors: ${floors}`);
   };
 
   const handleFloorCountChange = (value) => {
-    const count = parseInt(value) || 1;
-    setFloorCount(count);
-    updatePropertyData({ total_floors: count });
+    const count = parseInt(value, 10);
+  
+    if (!isNaN(count)) {
+      setFloorCount(count);
+
+      // Only update property data if the count is valid
+      if (count >= 2 && count <= 20) {
+        updatePropertyData({ 
+          total_floors: count,
+          // Reset floors configuration when count changes
+          floors: {}
+        });
+        console.log(`Floor count updated: ${count}`);
+      }
+    }
   };
+
+  // Debug information (remove in production)
+  useEffect(() => {
+    console.log('PropertyTypeSelection State:', {
+      selectedType,
+      floorCount,
+      propertyDataCategory: propertyData.category,
+      propertyDataFloors: propertyData.total_floors,
+      floorsData: propertyData.floors
+    });
+  }, [selectedType, floorCount, propertyData]);
 
   return (
     <div className="space-y-8">
@@ -181,6 +228,13 @@ export default function PropertyTypeSelection({ onValidationChange }) {
             <p className="text-xs text-muted-foreground mt-2">
               Specify how many floors your property has (2-20 floors)
             </p>
+            
+            {/* Floor count confirmation */}
+            <div className="mt-3 p-3 bg-blue-100 dark:bg-blue-800/30 rounded-md">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>Configuration:</strong> {floorCount} floor{floorCount !== 1 ? 's' : ''} will be created for layout design
+              </p>
+            </div>
           </div>
         </motion.div>
       )}
@@ -202,13 +256,29 @@ export default function PropertyTypeSelection({ onValidationChange }) {
               </p>
               <p className="text-sm text-muted-foreground">
                 {selectedType === 'Multi-Floor' 
-                  ? `${floorCount} floors configured`
+                  ? `${floorCount} floors configured - Each floor can have its own layout`
                   : 'Single floor property'
                 }
               </p>
             </div>
           </div>
         </motion.div>
+      )}
+
+      {/* Development Debug Panel (remove in production) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-8 p-4 bg-gray-100 rounded-lg text-xs">
+          <strong>Debug Info:</strong>
+          <pre>{JSON.stringify({
+            selectedType,
+            floorCount,
+            propertyData: {
+              category: propertyData.category,
+              total_floors: propertyData.total_floors,
+              floors_count: Object.keys(propertyData.floors || {}).length
+            }
+          }, null, 2)}</pre>
+        </div>
       )}
     </div>
   );

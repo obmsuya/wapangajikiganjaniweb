@@ -23,7 +23,6 @@ const steps = [
 ];
 
 export default function PropertySetupForm({ onComplete, onCancel }) {
-  // Get ALL needed data and functions from the hook
   const {
     currentStep,
     propertyData,
@@ -73,7 +72,6 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
   };
 
   const renderStepContent = () => {
-    // Pass ALL the needed props to each component
     const baseProps = {
       onValidationChange: setCanProceed,
       onNext: handleNext,
@@ -104,6 +102,8 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
             propertyData={propertyData}
             floorData={floorData}
             updateFloorData={updateFloorData}
+            updatePropertyData={updatePropertyData}
+            existingProperty={null}
           />
         );
       case 4:
@@ -143,82 +143,59 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Create New Property</h1>
               <p className="text-muted-foreground mt-1">
-                Set up your property to start managing tenants and rent collection
+                Step {currentStep} of {maxSteps}: {steps[currentStep - 1]?.description}
               </p>
             </div>
-            {onCancel && (
-              <Button variant="outline" onClick={onCancel}>
-                Cancel
+            {currentStep > 1 && (
+              <Button variant="outline" onClick={handlePrevious}>
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
               </Button>
             )}
           </div>
 
-          {/* Progress Bar */}
-          <div className="mb-6">
+          <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-foreground">
-                Step {currentStep} of {maxSteps}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {Math.round(progressPercentage)}% Complete
-              </span>
+              <span className="text-sm text-muted-foreground">Progress</span>
+              <span className="text-sm text-muted-foreground">{Math.round(progressPercentage)}%</span>
             </div>
             <Progress value={progressPercentage} className="h-2" />
           </div>
 
-          {/* Step Navigation */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-8">
             {steps.map((step, index) => (
-              <motion.div
-                key={step.id}
-                className={`flex items-center cursor-pointer ${
-                  index < steps.length - 1 ? 'flex-1' : ''
-                }`}
-                onClick={() => handleStepClick(step.id)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="flex items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                      step.id === currentStep
-                        ? 'bg-primary-600 text-white'
-                        : step.id < currentStep
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-200 text-gray-500'
-                    }`}
-                  >
-                    {step.id < currentStep ? '✓' : step.id}
-                  </div>
-                  <div className="ml-3 hidden md:block">
-                    <p className={`text-sm font-medium ${
-                      step.id <= currentStep ? 'text-foreground' : 'text-muted-foreground'
-                    }`}>
-                      {step.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {step.description}
-                    </p>
-                  </div>
-                </div>
+              <div key={step.id} className="flex items-center">
+                <button
+                  onClick={() => handleStepClick(step.id)}
+                  disabled={step.id > currentStep}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                    step.id === currentStep
+                      ? 'bg-primary-600 text-white'
+                      : step.id < currentStep
+                      ? 'bg-green-500 text-white cursor-pointer hover:bg-green-600'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {step.id < currentStep ? '✓' : step.id}
+                </button>
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 h-px mx-4 ${
-                    step.id < currentStep ? 'bg-green-500' : 'bg-gray-200'
-                  }`} />
+                  <div
+                    className={`h-1 w-12 mx-2 ${
+                      step.id < currentStep ? 'bg-green-500' : 'bg-gray-200'
+                    }`}
+                  />
                 )}
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Main Content */}
-        <Card className="border-0 shadow-lg">
+        <Card className="min-h-[600px]">
           <CardContent className="p-8">
             <AnimatePresence mode="wait">
               <motion.div
@@ -234,40 +211,37 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
           </CardContent>
         </Card>
 
-        {/* Navigation Footer */}
-        <div className="flex items-center justify-between mt-6">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 1}
-            className="flex items-center gap-2"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Previous
+        {error && (
+          <Card className="mt-4 border-red-200 bg-red-50">
+            <CardContent className="p-4">
+              <p className="text-red-600 text-sm">{error}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="flex items-center justify-between mt-8">
+          <Button variant="outline" onClick={onCancel}>
+            Cancel Setup
           </Button>
-
-          <div className="text-sm text-muted-foreground">
-            {totalUnits > 0 && `${totalUnits} units configured`}
+          
+          <div className="flex items-center gap-4">
+            {currentStep < maxSteps ? (
+              <Button 
+                onClick={handleNext} 
+                disabled={!canProceed}
+              >
+                Next Step
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleComplete}
+                disabled={!canProceed || isLoading}
+              >
+                {isLoading ? 'Creating Property...' : 'Create Property'}
+              </Button>
+            )}
           </div>
-
-          {currentStep < maxSteps ? (
-            <Button
-              onClick={handleNext}
-              disabled={!canProceed || isLoading}
-              className="flex items-center gap-2"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              onClick={handleComplete}
-              disabled={!canProceed || isLoading}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isLoading ? 'Creating Property...' : 'Create Property'}
-            </Button>
-          )}
         </div>
       </div>
     </div>

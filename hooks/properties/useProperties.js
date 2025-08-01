@@ -1,11 +1,10 @@
-// hooks/properties/useProperties.js
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import PropertyService from '@/services/landlord/property';
 import TenantService from '@/services/landlord/tenant';
 
-export function useFloorPlan(updateFloorData, existingFloorData = {}, existingProperty = null) {
+export function useFloorPlan(updateFloorData, existingFloorData = {}, existingProperty = null, propertyData = null) {
   const [selectedUnits, setSelectedUnits] = useState([]);
   const [currentFloor, setCurrentFloor] = useState(1);
   const [floorMemory, setFloorMemory] = useState({});
@@ -63,6 +62,60 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
     }
   }, [existingProperty]);
 
+  useEffect(() => {
+    if (!existingProperty && propertyData?.total_floors && Object.keys(floorMemory).length === 0) {
+      const memory = {};
+      for (let i = 1; i <= propertyData.total_floors; i++) {
+        memory[i] = {
+          floor_number: i,
+          units_ids: [],
+          units_total: 0,
+          configured: false,
+          layout_data: '',
+          layout_type: 'manual_grid',
+          creation_method: 'manual'
+        };
+      }
+      setFloorMemory(memory);
+    }
+  }, [propertyData?.total_floors, existingProperty, floorMemory]);
+
+  useEffect(() => {
+    if (!existingProperty && propertyData?.total_floors) {
+      setFloorMemory(prev => {
+        const currentFloors = Object.keys(prev).length;
+        const newFloorCount = propertyData.total_floors;
+        
+        if (currentFloors === newFloorCount) return prev;
+        
+        const updated = { ...prev };
+        
+        if (newFloorCount > currentFloors) {
+          for (let i = currentFloors + 1; i <= newFloorCount; i++) {
+            updated[i] = {
+              floor_number: i,
+              units_ids: [],
+              units_total: 0,
+              configured: false,
+              layout_data: '',
+              layout_type: 'manual_grid',
+              creation_method: 'manual'
+            };
+          }
+        } else if (newFloorCount < currentFloors) {
+          for (let i = newFloorCount + 1; i <= currentFloors; i++) {
+            delete updated[i];
+          }
+          if (currentFloor > newFloorCount) {
+            setCurrentFloor(1);
+          }
+        }
+        
+        return updated;
+      });
+    }
+  }, [propertyData?.total_floors, existingProperty, currentFloor]);
+
   const loadFloorData = useCallback(async (floorNumber) => {
     setIsLoading(true);
     
@@ -77,7 +130,10 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
         
         setFloorMemory(prev => ({
           ...prev,
-          [currentFloor]: currentFloorData
+          [currentFloor]: {
+            ...prev[currentFloor],
+            ...currentFloorData
+          }
         }));
       }
       
@@ -91,7 +147,6 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
       setCurrentFloor(floorNumber);
       
     } catch (error) {
-      console.error('Error loading floor data:', error);
       throw error;
     } finally {
       setIsLoading(false);

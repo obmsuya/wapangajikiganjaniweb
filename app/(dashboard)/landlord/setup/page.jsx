@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import PropertySetupForm from "@/components/landlord/properties/PropertySetupForm";
 import customToast from "@/components/ui/custom-toast";
 
@@ -26,7 +25,7 @@ export default function PropertySetupPage() {
   };
 
   const handleCancel = () => {
-    const hasUnsavedChanges = true; // You can implement this logic
+    const hasUnsavedChanges = true; 
     
     if (hasUnsavedChanges) {
       const confirmLeave = window.confirm(
