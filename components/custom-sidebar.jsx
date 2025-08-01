@@ -14,15 +14,14 @@ import {
   Menu, 
   X,
   ChevronDown,
+  ChevronLeft,
   Handshake,
   Banknote,
-  User
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import NotificationSidebarFooter from "./sidebar/NotificationSidebarFooter";
-import ProfileAvatar from "./ui/ProfileAvatar";
 
-const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen, toggleSubmenu, proBadge = false }) => {
+const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen, toggleSubmenu, proBadge = false, isCollapsed }) => {
   const hasSubmenu = Array.isArray(children) && children.length > 0;
 
   if (hasSubmenu) {
@@ -30,22 +29,27 @@ const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen,
       <div className="mb-1">
         <button 
           onClick={toggleSubmenu}
-          className={`w-full sidebar-link ${active ? 'active' : ''}`}
+          className={`w-full sidebar-link group ${active ? 'active' : ''} ${isCollapsed ? 'justify-center' : ''}`}
+          title={isCollapsed ? label : ''}
         >
-          <Icon size={20} />
-          <span className="flex-1 text-left">{label}</span>
-          <ChevronDown size={16} className={`transition-transform ${isSubmenuOpen ? 'rotate-180' : ''}`} />
+          <Icon size={20} className="shrink-0" />
+          {!isCollapsed && (
+            <>
+              <span className="flex-1 text-left truncate">{label}</span>
+              <ChevronDown size={16} className={`transition-transform shrink-0 ${isSubmenuOpen ? 'rotate-180' : ''}`} />
+            </>
+          )}
         </button>
         
-        {isSubmenuOpen && (
-          <div className="ml-8 mt-1 space-y-1 border-l-2 border-sidebar-border pl-2">
+        {isSubmenuOpen && !isCollapsed && (
+          <div className="ml-8 mt-1 space-y-1 border-l-2 border-sidebar-border pl-3">
             {children.map((item, index) => (
               <Link
                 key={index}
                 href={item.href}
-                className={`sidebar-link text-sm py-1.5 ${item.active ? 'active' : ''}`}
+                className={`sidebar-link text-sm py-2 ${item.active ? 'active' : ''}`}
               >
-                {item.label}
+                <span className="truncate">{item.label}</span>
               </Link>
             ))}
           </div>
@@ -55,14 +59,22 @@ const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen,
   }
 
   return (
-    <Link href={href} className={`sidebar-link mb-1 ${active ? 'active' : ''}`}>
-      <Icon size={20} />
-      <span className="flex-1">{label}</span>
-      {proBadge && (
-        <Badge className="bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs px-2 py-0.5 ml-2">
-          <Crown className="w-3 h-3 mr-1" />
-          PRO
-        </Badge>
+    <Link 
+      href={href} 
+      className={`sidebar-link mb-1 group ${active ? 'active' : ''} ${isCollapsed ? 'justify-center' : ''}`}
+      title={isCollapsed ? label : ''}
+    >
+      <Icon size={20} className="shrink-0" />
+      {!isCollapsed && (
+        <>
+          <span className="flex-1 truncate">{label}</span>
+          {proBadge && (
+            <Badge className="bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs px-2 py-0.5 ml-2 shrink-0">
+              <Crown className="w-3 h-3 mr-1" />
+              PRO
+            </Badge>
+          )}
+        </>
       )}
     </Link>
   );
@@ -71,6 +83,7 @@ const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen,
 export function CustomSidebar({ role = "admin", user }) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState({});
 
   const toggleSubmenu = (key) => {
@@ -78,6 +91,13 @@ export function CustomSidebar({ role = "admin", user }) {
       ...prev,
       [key]: !prev[key]
     }));
+  };
+
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+    if (!isCollapsed) {
+      setOpenSubmenus({});
+    }
   };
 
   const getRoutes = () => {
@@ -90,10 +110,10 @@ export function CustomSidebar({ role = "admin", user }) {
           active: pathname.includes("/landlord/properties"),
         },
         {
-          label: "Tenants",
-          icon: UserRound,
-          href: "/landlord/tenants",
-          active: pathname.includes("/landlord/tenants"),
+          label: "Payments",
+          icon: Banknote,
+          href: "/landlord/payments",
+          active: pathname.includes("/landlord/payments"),
         },
         {
           label: "Wapangaji",
@@ -102,17 +122,16 @@ export function CustomSidebar({ role = "admin", user }) {
           active: pathname.includes("/landlord/subscriptions"),
           proBadge: true,
         },
+      ];
+    }
+
+    if (user?.user_type === 'tenant' || role === 'tenant') {
+      return [
         {
-          label: "Payments",
-          icon: Banknote,
-          href: "/landlord/payments",
-          active: pathname.includes("/landlord/payments"),
-        },
-        {
-          label: "Profile",
-          icon: User,
-          href: "/profile",
-          active: pathname.includes("/profile"),
+          label: "Dashboard",
+          icon: LayoutDashboard,
+          href: "/tenant",
+          active: pathname === "/tenant" || pathname === "/tenant/",
         },
       ];
     }
@@ -130,7 +149,7 @@ export function CustomSidebar({ role = "admin", user }) {
         href: "#",
         active: pathname.includes("/admin/users"),
         submenuKey: "users",
-        submenu: [
+        children: [
           {
             label: "All Users",
             href: "/admin/users",
@@ -164,117 +183,113 @@ export function CustomSidebar({ role = "admin", user }) {
       {
         label: "Settings",
         icon: Settings,
-        href: "/admin/settings",
-        active: pathname.includes("/admin/settings"),
+        href: "/profile",
+        active: pathname.includes("/profile"),
       },
     ];
   };
 
   const routes = getRoutes();
+  const sidebarWidth = isCollapsed ? 'w-16' : 'w-64';
+
+  const getUserPortalTitle = () => {
+    if (user?.user_type === 'tenant') return "Tenant Portal";
+    if (user?.user_type === 'landlord') return "Landlord Portal";
+    return "Admin Portal";
+  };
+
+  const renderSidebarContent = (isMobile = false) => (
+    <div className="flex flex-col h-full">
+      <div className={`flex items-center justify-between p-4 border-b border-sidebar-border ${isCollapsed && !isMobile ? 'px-2' : ''}`}>
+        {(!isCollapsed || isMobile) && (
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold truncate">Wapangaji Kiganjani</h2>
+            <p className="text-sm text-sidebar-fg/70 truncate">
+              {getUserPortalTitle()}
+            </p>
+          </div>
+        )}
+        
+        {isMobile ? (
+          <button 
+            onClick={() => setIsMobileOpen(false)}
+            className="p-1 rounded-md hover:bg-sidebar-hover ml-2"
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
+        ) : (
+          <button 
+            onClick={toggleCollapse}
+            className={`p-1.5 rounded-md hover:bg-sidebar-hover transition-colors ${isCollapsed ? 'mx-auto' : 'ml-2'}`}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <ChevronLeft size={18} className={`transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+      </div>
+
+      <nav className={`flex-1 overflow-y-auto p-3 space-y-1 ${isCollapsed && !isMobile ? 'px-2' : ''}`}>
+        {routes.map((route) => (
+          <SidebarItem
+            key={route.href || route.label}
+            icon={route.icon}
+            label={route.label}
+            href={route.href}
+            active={route.active}
+            isSubmenuOpen={route.submenuKey ? openSubmenus[route.submenuKey] : false}
+            toggleSubmenu={() => route.submenuKey && toggleSubmenu(route.submenuKey)}
+            children={route.children}
+            proBadge={route.proBadge}
+            isCollapsed={isCollapsed && !isMobile}
+          />
+        ))}
+      </nav>
+
+      {(!isCollapsed || isMobile) && (
+        <div className="border-t border-sidebar-border">
+          <NotificationSidebarFooter user={user} isCollapsed={false} />
+        </div>
+      )}
+      
+      {(isCollapsed && !isMobile) && (
+        <div className="border-t border-sidebar-border">
+          <NotificationSidebarFooter user={user} isCollapsed={true} />
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <>
-      {/* Mobile Trigger Button */}
       <button 
         onClick={() => setIsMobileOpen(true)}
-        className="fixed z-40 bottom-4 right-4 md:hidden bg-primary text-primary-fg p-3 rounded-full shadow-lg"
+        className="fixed z-40 bottom-4 right-4 md:hidden bg-primary text-primary-fg p-3 rounded-full shadow-lg hover:shadow-xl transition-all"
         aria-label="Open menu"
       >
         <Menu size={24} />
       </button>
 
-      {/* Mobile Overlay */}
       <div 
-        className={`fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm md:hidden transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-black/20 backdrop-blur-sm md:hidden transition-opacity duration-300 ${
           isMobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setIsMobileOpen(false)}
       />
 
-      {/* Mobile Sidebar */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-sidebar bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 md:hidden ${
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="flex justify-between items-center p-4 border-b border-sidebar-border">
-            <div>
-              <h2 className="text-xl font-bold">Wapangaji Kiganjani</h2>
-              <p className="text-sm text-sidebar-fg/70">
-                {user?.user_type === 'landlord' ? "Landlord Portal" : "Admin Portal"}
-              </p>
-            </div>
-            <button 
-              onClick={() => setIsMobileOpen(false)}
-              className="p-1 rounded-md hover:bg-sidebar-hover"
-              aria-label="Close menu"
-            >
-              <X size={24} />
-            </button>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-            {routes.map((route) => (
-              <SidebarItem
-                key={route.href || route.label}
-                icon={route.icon}
-                label={route.label}
-                href={route.href}
-                active={route.active}
-                isSubmenuOpen={route.submenuKey ? openSubmenus[route.submenuKey] : false}
-                toggleSubmenu={() => route.submenuKey && toggleSubmenu(route.submenuKey)}
-                children={route.submenu}
-                proBadge={route.proBadge}
-              />
-            ))}
-          </nav>
-
-          {/* Enhanced Sidebar Footer with Notifications */}
-          <NotificationSidebarFooter 
-            user={user} 
-            onLogout={() => setIsMobileOpen(false)}
-          />
-        </div>
+        {renderSidebarContent(true)}
       </aside>
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:block min-w-sidebar max-w-sidebar w-sidebar h-screen border-r border-sidebar-border bg-sidebar">
-        <div className="flex flex-col h-full bg-sidebar-bg text-sidebar-text">
-          {/* Profile Section */}
-          <div className="p-4 border-b border-sidebar-border">
-            <div className="flex items-center space-x-3">
-              <ProfileAvatar user={user} className="h-10 w-10" />
-              <div>
-                <p className="font-medium">{user?.name || 'User'}</p>
-                <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-            {routes.map((route) => (
-              <SidebarItem
-                key={route.href || route.label}
-                icon={route.icon}
-                label={route.label}
-                href={route.href}
-                active={route.active}
-                isSubmenuOpen={route.submenuKey ? openSubmenus[route.submenuKey] : false}
-                toggleSubmenu={() => route.submenuKey && toggleSubmenu(route.submenuKey)}
-                children={route.submenu}
-                proBadge={route.proBadge}
-              />
-            ))}
-          </nav>
-
-          {/* Enhanced Sidebar Footer with Notifications */}
-          <NotificationSidebarFooter user={user} />
-        </div>
+      <aside className={`hidden md:flex fixed inset-y-0 left-0 z-30 ${sidebarWidth} bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out`}>
+        {renderSidebarContent(false)}
       </aside>
+
+      <div className={`hidden md:block ${sidebarWidth} transition-all duration-300 ease-in-out`} />
     </>
   );
 }

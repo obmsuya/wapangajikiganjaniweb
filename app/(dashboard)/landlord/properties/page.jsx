@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Building2, Users, DollarSign, TrendingUp, AlertCircle } from "lucide-react";
+import { Plus, Search, Building2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CloudflareCard } from "@/components/cloudflare/Card";
@@ -65,52 +65,7 @@ export default function PropertiesPage() {
           }
         />
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <CloudflareCard className="hover:shadow-md transition-shadow">
-            <div className="flex items-center p-4">
-              <Building2 className="w-8 h-8 text-blue-600 mr-3" />
-              <div>
-                <p className="text-2xl font-bold">{stats.totalProperties || 0}</p>
-                <p className="text-sm text-gray-500">Properties</p>
-              </div>
-            </div>
-          </CloudflareCard>
 
-          <CloudflareCard className="hover:shadow-md transition-shadow">
-            <div className="flex items-center p-4">
-              <Users className="w-8 h-8 text-green-600 mr-3" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {stats.occupiedUnits || 0}/{stats.totalUnits || 0}
-                </p>
-                <p className="text-sm text-gray-500">Occupied Units</p>
-              </div>
-            </div>
-          </CloudflareCard>
-
-          <CloudflareCard className="hover:shadow-md transition-shadow">
-            <div className="flex items-center p-4">
-              <DollarSign className="w-8 h-8 text-purple-600 mr-3" />
-              <div>
-                <p className="text-2xl font-bold">
-                  TSh {(stats.totalMonthlyRent || 0).toLocaleString()}
-                </p>
-                <p className="text-sm text-gray-500">Monthly Revenue</p>
-              </div>
-            </div>
-          </CloudflareCard>
-
-          <CloudflareCard className="hover:shadow-md transition-shadow">
-            <div className="flex items-center p-4">
-              <TrendingUp className="w-8 h-8 text-orange-600 mr-3" />
-              <div>
-                <p className="text-2xl font-bold">{stats.occupancyRate || 0}%</p>
-                <p className="text-sm text-gray-500">Occupancy Rate</p>
-              </div>
-            </div>
-          </CloudflareCard>
-        </div>
 
         {/* Search Bar */}
         <div className="mb-6">

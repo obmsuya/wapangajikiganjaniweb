@@ -1,3 +1,4 @@
+// components/tenant/TenantPaymentFlow.jsx
 "use client";
 
 import { useState, useEffect } from 'react';

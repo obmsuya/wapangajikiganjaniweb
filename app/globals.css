@@ -1,13 +1,12 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
-
 :root {
   /* Base colors */
   --color-white: 255, 255, 255;
   --color-black: 0, 0, 0;
   
-  /* Primary color palette */
+  /* Primary color palette - Keep your blue brand */
   --color-primary-50: 239, 246, 255;
   --color-primary-100: 219, 234, 254;
   --color-primary-200: 191, 219, 254;
@@ -19,26 +18,36 @@
   --color-primary-800: 30, 64, 175;
   --color-primary-900: 30, 58, 138;
   
-  /* Gray palette */
-  --color-gray-50: 249, 250, 251;
-  --color-gray-100: 243, 244, 246;
-  --color-gray-200: 229, 231, 235;
-  --color-gray-300: 209, 213, 219;
-  --color-gray-400: 156, 163, 175;
-  --color-gray-500: 107, 114, 128;
-  --color-gray-600: 75, 85, 99;
-  --color-gray-700: 55, 65, 81;
-  --color-gray-800: 31, 41, 55;
-  --color-gray-900: 17, 24, 39;
+  /* Neutral palette - Professional grays */
+  --color-neutral-50: 250, 250, 250;
+  --color-neutral-100: 245, 245, 245;
+  --color-neutral-200: 229, 229, 229;
+  --color-neutral-300: 212, 212, 212;
+  --color-neutral-400: 163, 163, 163;
+  --color-neutral-500: 115, 115, 115;
+  --color-neutral-600: 82, 82, 82;
+  --color-neutral-700: 64, 64, 64;
+  --color-neutral-800: 38, 38, 38;
+  --color-neutral-900: 23, 23, 23;
   
-  /* Success/Error colors */
+  /* Success/Error colors - Professional tones */
   --color-success-50: 240, 253, 244;
+  --color-success-100: 220, 252, 231;
   --color-success-500: 34, 197, 94;
+  --color-success-600: 22, 163, 74;
   --color-success-700: 21, 128, 61;
   
   --color-error-50: 254, 242, 242;
+  --color-error-100: 254, 226, 226;
   --color-error-500: 239, 68, 68;
+  --color-error-600: 220, 38, 38;
   --color-error-700: 185, 28, 28;
+  
+  --color-warning-50: 255, 251, 235;
+  --color-warning-100: 254, 243, 199;
+  --color-warning-500: 245, 158, 11;
+  --color-warning-600: 217, 119, 6;
+  --color-warning-700: 180, 83, 9;
   
   /* UI Elements */
   --radius-sm: 0.25rem;
@@ -56,87 +65,87 @@
 :root {
   --font-quicksand: 'Quicksand', sans-serif;
   --background: var(--color-white);
-  --foreground: var(--color-gray-900);
+  --foreground: var(--color-neutral-900);
   
   --card-bg: var(--color-white);
-  --card-border: var(--color-gray-200);
-  --card-fg: var(--color-gray-900);
+  --card-border: var(--color-neutral-200);
+  --card-fg: var(--color-neutral-900);
   
   --input-bg: var(--color-white);
-  --input-border: var(--color-gray-300);
-  --input-fg: var(--color-gray-900);
+  --input-border: var(--color-neutral-300);
+  --input-fg: var(--color-neutral-900);
   
   --primary-bg: var(--color-primary-600);
   --primary-fg: var(--color-white);
   --primary-hover: var(--color-primary-700);
   
-  --secondary-bg: var(--color-gray-100);
-  --secondary-fg: var(--color-gray-800);
-  --secondary-hover: var(--color-gray-200);
+  --secondary-bg: var(--color-neutral-100);
+  --secondary-fg: var(--color-neutral-800);
+  --secondary-hover: var(--color-neutral-200);
   
-  /* Popover/Dropdown variables - FIXED */
+  /* Popover/Dropdown variables */
   --popover: var(--color-white);
-  --popover-foreground: var(--color-gray-900);
+  --popover-foreground: var(--color-neutral-900);
   
   /* Accent variables for hover states */
-  --accent: var(--color-gray-100);
-  --accent-foreground: var(--color-gray-900);
+  --accent: var(--color-neutral-100);
+  --accent-foreground: var(--color-neutral-900);
   
   /* Muted text */
-  --muted-foreground: var(--color-gray-500);
+  --muted-foreground: var(--color-neutral-500);
   
   /* Border colors */
-  --border: var(--color-gray-200);
+  --border: var(--color-neutral-200);
   
   --sidebar-bg: var(--color-white);
-  --sidebar-border: var(--color-gray-200);
-  --sidebar-fg: var(--color-gray-800);
-  --sidebar-hover: var(--color-gray-100);
+  --sidebar-border: var(--color-neutral-200);
+  --sidebar-fg: var(--color-neutral-700);
+  --sidebar-hover: var(--color-neutral-50);
   --sidebar-active: var(--color-primary-50);
   --sidebar-active-fg: var(--color-primary-700);
 }
 
 /* Dark theme */
 .dark {
-  --background: var(--color-gray-900);
-  --foreground: var(--color-gray-100);
+  --background: var(--color-neutral-900);
+  --foreground: var(--color-neutral-100);
   
-  --card-bg: var(--color-gray-800);
-  --card-border: var(--color-gray-700);
-  --card-fg: var(--color-gray-100);
+  --card-bg: var(--color-neutral-800);
+  --card-border: var(--color-neutral-700);
+  --card-fg: var(--color-neutral-100);
   
-  --input-bg: var(--color-gray-800);
-  --input-border: var(--color-gray-700);
-  --input-fg: var(--color-gray-100);
+  --input-bg: var(--color-neutral-800);
+  --input-border: var(--color-neutral-700);
+  --input-fg: var(--color-neutral-100);
   
   --primary-bg: var(--color-primary-600);
   --primary-fg: var(--color-white);
   --primary-hover: var(--color-primary-700);
   
-  --secondary-bg: var(--color-gray-700);
-  --secondary-fg: var(--color-gray-100);
-  --secondary-hover: var(--color-gray-600);
+  --secondary-bg: var(--color-neutral-700);
+  --secondary-fg: var(--color-neutral-100);
+  --secondary-hover: var(--color-neutral-600);
   
-  /* Popover/Dropdown variables for dark theme - FIXED */
-  --popover: var(--color-gray-800);
-  --popover-foreground: var(--color-gray-100);
+  /* Popover/Dropdown variables for dark theme */
+  --popover: var(--color-neutral-800);
+  --popover-foreground: var(--color-neutral-100);
   
   /* Accent variables for hover states */
-  --accent: var(--color-gray-700);
-  --accent-foreground: var(--color-gray-100);
+  --accent: var(--color-neutral-700);
+  --accent-foreground: var(--color-neutral-100);
   
   /* Muted text */
-  --muted-foreground: var(--color-gray-400);
+  --muted-foreground: var(--color-neutral-400);
   
   /* Border colors */
-  --border: var(--color-gray-700);
+  --border: var(--color-neutral-700);
   
-  --sidebar-bg: var(--color-gray-800);
-  --sidebar-border: var(--color-gray-700);
-  --sidebar-fg: var(--color-gray-300);
-  --sidebar-hover: var(--color-gray-700);
-  --sidebar-active: var(--color-primary-900);
-  --sidebar-active-fg: var(--color-primary-300);
+  --sidebar-bg: var(--color-neutral-800);
+  --sidebar-border: var(--color-neutral-700);
+  --sidebar-fg: var(--color-neutral-300);
+  --sidebar-hover: var(--color-neutral-700);
+  --sidebar-active: var(--color-neutral-700);
+  --sidebar-active-fg: var(--color-primary-400);
 }
 
 @layer base {
@@ -153,27 +162,201 @@
 }
 
 @layer components {
-  /* .btn-primary {
-    @apply bg-primary text-white font-medium py-2 px-4 rounded-md hover:bg-primary-hover transition-colors;
-  }
-  
-  .btn-secondary {
-    @apply bg-secondary text-secondary-fg font-medium py-2 px-4 rounded-md hover:bg-secondary-hover transition-colors;
-  }
-  
-  .card {
-    @apply bg-card border border-card-border rounded-lg p-4 shadow-sm;
-  } */
-  
   .input {
-    @apply bg-input border border-input-border text-input-fg rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500;
+    background-color: rgb(var(--input-bg));
+    border: 1px solid rgb(var(--input-border));
+    color: rgb(var(--input-fg));
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .input:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: rgb(var(--color-primary-500) / 0.5);
+    border-color: rgb(var(--color-primary-500));
   }
   
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-fg hover:bg-sidebar-hover transition-colors;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius-lg);
+    color: rgb(var(--sidebar-fg));
+    background-color: transparent;
+    transition: all 0.2s ease-in-out;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .sidebar-link:hover {
+    background-color: rgb(var(--sidebar-hover));
+    transform: scale(1.02);
   }
   
   .sidebar-link.active {
-    @apply bg-sidebar-active text-sidebar-active-fg font-medium;
+    background-color: rgb(var(--sidebar-active));
+    color: rgb(var(--sidebar-active-fg));
+    font-weight: 500;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    border-left: 4px solid rgb(var(--color-primary-500));
+  }
+  
+  .sidebar-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background-color: rgb(var(--color-primary-500));
+  }
+  
+  /* Collapsed sidebar styles */
+  .sidebar-link.justify-center {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    justify-content: center;
+  }
+  
+  .sidebar-link.justify-center.active {
+    border-left: none;
+    border-bottom: 4px solid rgb(var(--color-primary-500));
+  }
+  
+  .sidebar-link.justify-center.active::before {
+    width: 100%;
+    height: 4px;
+    top: auto;
+    bottom: 0;
+  }
+  
+  /* Submenu styles */
+  .sidebar-link + .ml-8 .sidebar-link {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  /* Focus states for accessibility */
+  .sidebar-link:focus-visible {
+    outline: none;
+    ring: 2px;
+    ring-color: rgb(var(--color-primary-500) / 0.5);
+    ring-offset: 2px;
+    ring-offset-color: rgb(var(--sidebar-bg));
+  }
+  
+  /* Enhanced scrollbar */
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--sidebar-border));
+    border-radius: 2px;
+  }
+  
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--sidebar-fg) / 0.3);
+  }
+  
+  /* Fixed popover and dropdown backgrounds */
+  [data-radix-popover-content],
+  [data-radix-dropdown-menu-content] {
+    background-color: rgb(var(--popover)) !important;
+    border: 1px solid rgb(var(--border)) !important;
+    color: rgb(var(--popover-foreground)) !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05) !important;
+  }
+  
+  /* Notification badge animation */
+  .notification-badge {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  /* Enhanced hover effects for footer items */
+  .footer-item {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .footer-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  /* Theme toggle icons */
+  .theme-icon {
+    transition: all 0.3s ease-in-out;
+  }
+  
+  /* Custom card styles */
+  .card {
+    background-color: rgb(var(--card-bg));
+    border: 1px solid rgb(var(--card-border));
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  }
+  
+  /* Button styles */
+  .btn-primary {
+    background-color: rgb(var(--primary-bg));
+    color: rgb(var(--primary-fg));
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    transition: background-color 0.2s ease-in-out;
+  }
+  
+  .btn-primary:hover {
+    background-color: rgb(var(--primary-hover));
+  }
+  
+  .btn-secondary {
+    background-color: rgb(var(--secondary-bg));
+    color: rgb(var(--secondary-fg));
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    transition: background-color 0.2s ease-in-out;
+  }
+  
+  .btn-secondary:hover {
+    background-color: rgb(var(--secondary-hover));
+  }
+  
+  /* Mobile overlay */
+  .mobile-overlay {
+    backdrop-filter: blur(4px);
+    background-color: rgb(0 0 0 / 0.2);
+  }
+  
+  /* Smooth transitions */
+  .sidebar-transition {
+    transition: all 0.3s ease-in-out;
+  }
+  
+  /* Avatar ring styles using standard colors */
+  .avatar-ring {
+    ring-width: 2px;
+    ring-color: rgb(var(--color-primary-200));
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .dark .avatar-ring {
+    ring-color: rgb(var(--color-primary-800));
+  }
+  
+  .avatar-ring:hover {
+    ring-color: rgb(var(--color-primary-400));
+  }
+  
+  .dark .avatar-ring:hover {
+    ring-color: rgb(var(--color-primary-600));
   }
 }

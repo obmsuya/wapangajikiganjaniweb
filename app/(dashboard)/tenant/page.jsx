@@ -1,16 +1,14 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Home, Calendar, CreditCard, History, User } from 'lucide-react';
+import { Home, Calendar, History, User } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { 
   CloudflareBreadcrumbs, 
   CloudflarePageHeader 
 } from '@/components/cloudflare/Breadcrumbs';
 import TenantOverview from '@/components/tenant/TenantOverview';
 import TenantRentSchedule from '@/components/tenant/TenantRentSchedule';
-import TenantPaymentFlow from '@/components/tenant/TenantPaymentFlow';
 import TenantPaymentHistory from '@/components/tenant/TenantPaymentHistory';
 import TenantPaymentDialog from '@/components/tenant/TenantPaymentDialog';
 import { useTenantDashboardStore } from '@/stores/tenant/useTenantDashboardStore';
@@ -18,11 +16,10 @@ import { useTenantPaymentStore } from '@/stores/tenant/useTenantPaymentStore';
 
 export default function TenantDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [showPaymentSheet, setShowPaymentSheet] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   const { refreshData } = useTenantDashboardStore();
-  const { paymentFlow, resetPaymentFlow, showPaymentDialog } = useTenantPaymentStore();
+  const { paymentFlow, resetPaymentFlow, setShowPaymentDialog } = useTenantPaymentStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -32,7 +29,6 @@ export default function TenantDashboard() {
   useEffect(() => {
     if (paymentFlow === 'success') {
       setTimeout(() => {
-        setShowPaymentSheet(false);
         resetPaymentFlow();
         refreshData();
       }, 3000);
@@ -40,7 +36,7 @@ export default function TenantDashboard() {
   }, [paymentFlow, resetPaymentFlow, refreshData]);
 
   const handlePayNow = () => {
-    setShowPaymentSheet(true);
+    setShowPaymentDialog(true);
   };
 
   const breadcrumbItems = [
@@ -80,9 +76,9 @@ export default function TenantDashboard() {
         key={tab.id}
         onClick={() => setActiveTab(tab.id)}
         className={`
-          relative flex flex-col items-center justify-center p-4 rounded-full transition-all duration-200
+          relative flex flex-col items-center justify-center p-4 rounded-lg
           ${isActive 
-            ? 'bg-blue-600 text-white shadow-lg scale-105' 
+            ? 'bg-blue-600 text-white shadow-sm' 
             : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-blue-600 shadow-sm border border-gray-200'
           }
           min-w-[80px] h-20
@@ -93,7 +89,7 @@ export default function TenantDashboard() {
           {tab.label}
         </span>
         {isActive && (
-          <div className="absolute -bottom-2 w-2 h-2 bg-blue-600 rounded-full" />
+          <div className="absolute -bottom-1 w-8 h-1 bg-blue-600 rounded-full" />
         )}
       </button>
     );
@@ -129,7 +125,7 @@ export default function TenantDashboard() {
                   const Icon = activeTabData?.icon;
                   return (
                     <>
-                      <div className="p-2 bg-blue-100 rounded-full">
+                      <div className="p-2 bg-blue-100 rounded-lg">
                         <Icon className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
@@ -153,20 +149,7 @@ export default function TenantDashboard() {
         </div>
       </div>
 
-      <Sheet open={showPaymentSheet} onOpenChange={setShowPaymentSheet}>
-        <SheetContent side="right" className="w-full sm:max-w-lg bg-white border-gray-200">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Make Payment
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6">
-            <TenantPaymentFlow />
-          </div>
-        </SheetContent>
-      </Sheet>
-
+      {/* Only use the Dialog - no more Sheet */}
       <TenantPaymentDialog />
     </div>
   );
