@@ -118,7 +118,7 @@ export function CustomSidebar({ role = "admin", user }) {
         {
           label: "Wapangaji",
           icon: Crown,
-          href: "/landlord/subscriptions/plans",
+          href: "/landlord/subscriptions",
           active: pathname.includes("/landlord/subscriptions"),
           proBadge: true,
         },
