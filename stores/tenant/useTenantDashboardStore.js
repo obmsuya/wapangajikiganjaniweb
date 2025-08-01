@@ -1,3 +1,4 @@
+// stores/tenant/useTenantDashboardStore.js
 import { create } from 'zustand';
 import api from '@/lib/api/api-client';
 import { toast } from 'sonner';

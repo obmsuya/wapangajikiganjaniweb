@@ -96,7 +96,7 @@ export default function PartnerRegisterPage() {
       });
       
       setTimeout(() => {
-        router.push("/partner/dashboard");
+        router.push("/partner");
       }, 500);
     } catch (error) {
       customToast.error("Partner Registration Failed", {

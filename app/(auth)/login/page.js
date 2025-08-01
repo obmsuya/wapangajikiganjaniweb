@@ -84,7 +84,7 @@ export default function LoginPage() {
             router.push("/tenant/");
             break;
           case 'partner':
-            router.push("/partner/dashboard");
+            router.push("/partner");
             break;
           default:
             // Fallback based on is_staff for legacy users

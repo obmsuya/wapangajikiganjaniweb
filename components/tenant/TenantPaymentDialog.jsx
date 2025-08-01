@@ -1,3 +1,4 @@
+// components/tenant/TenantPaymentDialog.jsx
 "use client";
 
 import { useState } from "react";

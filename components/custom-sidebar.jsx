@@ -136,6 +136,17 @@ export function CustomSidebar({ role = "admin", user }) {
       ];
     }
 
+    if (user?.user_type === 'partner' || role === 'partner') {
+      return [
+        {
+          label: "Dashboard",
+          icon: LayoutDashboard,
+          href: "/partner",
+          active: pathname === "/partner",
+        },
+      ];
+    }
+
     return [
       {
         label: "Dashboard",

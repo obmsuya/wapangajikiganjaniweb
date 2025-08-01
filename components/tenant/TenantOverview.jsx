@@ -1,3 +1,4 @@
+// components/tenant/TenantOverview.jsx
 "use client";
 
 import { useEffect } from 'react';
