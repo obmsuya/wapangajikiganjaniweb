@@ -11,12 +11,15 @@ export const useTenantPaymentStore = create((set, get) => ({
   paymentHistory: [],
   currentTransaction: null,
   occupancies: [],
+  showPaymentDialog: false,
+  
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
   setPaymentMethod: (method) => set({ paymentMethod: method }),
   setSelectedUnit: (unit) => set({ selectedUnit: unit }),
   setPaymentFlow: (flow) => set({ paymentFlow: flow }),
+  setShowPaymentDialog: (show) => set({ showPaymentDialog: show }),
 
   fetchOccupancies: async () => {
     try {
@@ -24,11 +27,8 @@ export const useTenantPaymentStore = create((set, get) => ({
       const response = await api.get('/api/v1/payments/rent/tenant/occupancy/');
       
       if (response.success) {
-        set({ 
-          occupancies: response.occupancies || [],
-          loading: false 
-        });
-        return response.occupancies;
+        set({ occupancies: response.occupancies || [], loading: false });
+        return response.occupancies || [];
       } else {
         throw new Error(response.error || 'Failed to load occupancies');
       }
@@ -51,32 +51,19 @@ export const useTenantPaymentStore = create((set, get) => ({
       if (filters.status) params.append('status', filters.status);
       
       const queryString = params.toString();
-      const url = queryString 
-        ? `/api/v1/payments/rent/tenant/history/?${queryString}`
-        : '/api/v1/payments/rent/tenant/history/';
+      const url = queryString ? `/api/v1/payments/rent/tenant/history/?${queryString}` : '/api/v1/payments/rent/tenant/history/';
       
       const response = await api.get(url);
       
       if (response.success) {
-        set({ 
-          paymentHistory: response.payments || [],
-          loading: false 
-        });
+        set({ paymentHistory: response.payments || [], loading: false });
       } else {
         throw new Error(response.error || 'Failed to load payment history');
       }
     } catch (error) {
       const errorMessage = error.message || 'Failed to load payment history';
-      set({ 
-        error: errorMessage,
-        loading: false,
-        paymentHistory: [] 
-      });
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      set({ error: errorMessage, loading: false });
+      toast.error("Error", { description: errorMessage });
     }
   },
 
@@ -115,143 +102,48 @@ export const useTenantPaymentStore = create((set, get) => ({
     }
   },
 
-  getOccupancyByUnitId: (unitId) => {
-    const { occupancies } = get();
-    return occupancies.find(occ => occ.unit_id === unitId);
-  },
-
-  processSystemPayment: async (unitId, accountNumber, provider) => {
+  processSystemPayment: async (unitId, accountNumber, provider, paymentType = 'mno') => {
     try {
       set({ loading: true, error: null, paymentFlow: 'processing' });
       
-      const response = await api.post('/api/v1/payments/rent/system/process/', {
-        unit_id: unitId,
-        accountNumber: accountNumber,
-        provider: provider
+      const endpoint = paymentType === 'bank' 
+        ? '/api/v1/payments/azampay/bank/checkout'
+        : '/api/v1/payments/rent/system/process/';
+      
+      const response = await api.post(endpoint, {
+        unit_id: unitId, accountNumber, provider
       });
       
       if (response.success) {
-        set({ 
-          currentTransaction: response,
-          paymentFlow: 'success',
-          loading: false 
-        });
-        
-        toast.success("Payment Initiated", {
-          description: response.message || "Rent payment initiated successfully. Complete payment on your mobile device.",
-        });
-        
+        set({ currentTransaction: response, paymentFlow: 'success', loading: false });
+        toast.success("Payment Initiated", { description: response.message });
         return response;
       } else {
         throw new Error(response.error || 'Payment processing failed');
       }
     } catch (error) {
       const errorMessage = error.message || 'Failed to process payment';
-      set({ 
-        error: errorMessage,
-        loading: false,
-        paymentFlow: 'error',
-        paymentHistory: [] 
-      });
-      
-      toast.error("Payment Failed", {
-        description: errorMessage,
-      });
-      
+      set({ error: errorMessage, loading: false, paymentFlow: 'error' });
+      toast.error("Payment Failed", { description: errorMessage });
       throw error;
     }
   },
 
-  initiateMNOPayment: async (paymentData) => {
-    try {
-      set({ loading: true, error: null, paymentFlow: 'processing' });
-      
-      const response = await api.post('/api/v1/payments/azampay/mno/checkout', paymentData);
-      
-      if (response.success) {
-        set({ 
-          currentTransaction: response,
-          loading: false 
-        });
-        
-        toast.success("Payment Initiated", {
-          description: "Payment request sent to your mobile device. Please complete the transaction.",
-        });
-        
-        return response;
-      } else {
-        throw new Error(response.error || 'MNO payment failed');
-      }
-    } catch (error) {
-      const errorMessage = error.message || 'Failed to initiate MNO payment';
-      set({ 
-        error: errorMessage,
-        loading: false,
-        paymentFlow: 'error',
-        paymentHistory: [] 
-      });
-      
-      toast.error("Payment Failed", {
-        description: errorMessage,
-      });
-      
-      throw error;
-    }
-  },
-
-  initiateBankPayment: async (paymentData) => {
-    try {
-      set({ loading: true, error: null, paymentFlow: 'processing' });
-      
-      const response = await api.post('/api/v1/payments/azampay/bank/checkout', paymentData);
-      
-      if (response.success) {
-        set({ 
-          currentTransaction: response,
-          loading: false 
-        });
-        
-        toast.success("Payment Initiated", {
-          description: "Bank payment initiated successfully. Complete the transaction in your banking app.",
-        });
-        
-        return response;
-      } else {
-        throw new Error(response.error || 'Bank payment failed');
-      }
-    } catch (error) {
-      const errorMessage = error.message || 'Failed to initiate bank payment';
-      set({ 
-        error: errorMessage,
-        loading: false,
-        paymentFlow: 'error',
-        paymentHistory: [] 
-      });
-      
-      toast.error("Payment Failed", {
-        description: errorMessage,
-      });
-      
-      throw error;
-    }
+  getOccupancyByUnitId: (unitId) => {
+    const { occupancies } = get();
+    return (occupancies || []).find(occ => occ.unit_id === unitId);
   },
 
   resetPaymentFlow: () => set({ 
-    paymentMethod: null,
-    selectedUnit: null,
-    paymentFlow: 'select',
-    currentTransaction: null,
-    error: null
+    paymentMethod: null, selectedUnit: null, paymentFlow: 'select',
+    currentTransaction: null, error: null, showPaymentDialog: false
   }),
 
   formatCurrency: (amount) => {
-    if (!amount) return 'TZS 0';
-    return new Intl.NumberFormat('en-TZ', {
-      style: 'currency',
-      currency: 'TZS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    if (!amount) return 'TSh 0';
+    return `TSh ${new Intl.NumberFormat('en-TZ', {
+      minimumFractionDigits: 0, maximumFractionDigits: 0
+    }).format(amount)}`;
   },
 
   getPaymentStatusColor: (status) => {
@@ -262,19 +154,6 @@ export const useTenantPaymentStore = create((set, get) => ({
       case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
-  },
-
-  validatePaymentAmount: (amount) => {
-    const errors = [];
-    
-    if (!amount || amount <= 0) {
-      errors.push('Valid payment amount is required');
-    }
-    
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
   },
 
   refreshPaymentHistory: async () => {

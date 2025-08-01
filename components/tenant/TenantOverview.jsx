@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { Home, Calendar, DollarSign, AlertTriangle, Clock } from 'lucide-react';
+import { Home, Calendar, DollarSign, AlertTriangle, Clock, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,19 +10,8 @@ import { useTenantDashboardStore } from '@/stores/tenant/useTenantDashboardStore
 import { useTenantPaymentStore } from '@/stores/tenant/useTenantPaymentStore';
 
 export default function TenantOverview({ onPayNow }) {
-  const { 
-    occupancies, 
-    loading, 
-    error, 
-    fetchOccupancies,
-    getUpcomingRent,
-    getOverdueRent,
-    getTotalMonthlyRent,
-    getOccupancyStats,
-    formatCurrency
-  } = useTenantDashboardStore();
-
-  const { setSelectedUnit, setPaymentFlow } = useTenantPaymentStore();
+  const { occupancies, loading, error, fetchOccupancies, getUpcomingRent, getOverdueRent, getTotalMonthlyRent, getOccupancyStats, formatCurrency } = useTenantDashboardStore();
+  const { setSelectedUnit, setShowPaymentDialog } = useTenantPaymentStore();
 
   useEffect(() => {
     fetchOccupancies();
@@ -30,14 +19,19 @@ export default function TenantOverview({ onPayNow }) {
 
   const handleQuickPay = (occupancy) => {
     setSelectedUnit({
-      id: occupancy.unit_id,
-      name: occupancy.unit_name,
-      property: occupancy.property_name,
-      amount: occupancy.rent_amount,
-      propertyId: occupancy.property_id
+      unit_id: occupancy.unit_id,
+      unit_name: occupancy.unit_name,
+      property_name: occupancy.property_name,
+      rent_amount: occupancy.rent_amount,
+      floor_number: occupancy.floor_number,
+      property_id: occupancy.property_id
     });
-    setPaymentFlow('select');
-    onPayNow?.();
+    
+    if (onPayNow) {
+      onPayNow();
+    } else {
+      setShowPaymentDialog(true);
+    }
   };
 
   const upcomingRent = getUpcomingRent();
@@ -73,7 +67,7 @@ export default function TenantOverview({ onPayNow }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card className="bg-white border-gray-200">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Home className="h-4 w-4" />
@@ -82,11 +76,11 @@ export default function TenantOverview({ onPayNow }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalUnits}</div>
-            <p className="text-xs text-muted-foreground mt-1">Active rentals</p>
+            <p className="text-xs text-gray-500 mt-1">Active rentals</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white border-gray-200">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <DollarSign className="h-4 w-4" />
@@ -95,11 +89,11 @@ export default function TenantOverview({ onPayNow }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(stats.totalMonthlyRent)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Total per month</p>
+            <p className="text-xs text-gray-500 mt-1">Total per month</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white border-gray-200">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Calendar className="h-4 w-4" />
@@ -147,18 +141,10 @@ export default function TenantOverview({ onPayNow }) {
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-red-900">{formatCurrency(rent.rent_amount)}</p>
-                  <Button 
-                    size="sm" 
-                    variant="destructive"
-                    onClick={() => handleQuickPay({
-                      unit_id: rent.unit_id,
-                      unit_name: rent.unit_name,
-                      property_name: rent.property_name,
-                      rent_amount: rent.rent_amount,
-                      property_id: rent.property_id
-                    })}
-                    className="mt-1"
-                  >
+                  <Button size="sm" variant="destructive" onClick={() => handleQuickPay({
+                    unit_id: rent.unit_id, unit_name: rent.unit_name, property_name: rent.property_name,
+                    rent_amount: rent.rent_amount, property_id: rent.property_id, floor_number: rent.floor_number
+                  })} className="mt-1">
                     Pay Now
                   </Button>
                 </div>
@@ -186,17 +172,10 @@ export default function TenantOverview({ onPayNow }) {
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-yellow-900">{formatCurrency(rent.rent_amount)}</p>
-                  <Button 
-                    size="sm"
-                    onClick={() => handleQuickPay({
-                      unit_id: rent.unit_id,
-                      unit_name: rent.unit_name,
-                      property_name: rent.property_name,
-                      rent_amount: rent.rent_amount,
-                      property_id: rent.property_id
-                    })}
-                    className="mt-1"
-                  >
+                  <Button size="sm" onClick={() => handleQuickPay({
+                    unit_id: rent.unit_id, unit_name: rent.unit_name, property_name: rent.property_name,
+                    rent_amount: rent.rent_amount, property_id: rent.property_id, floor_number: rent.floor_number
+                  })} className="mt-1">
                     Pay Now
                   </Button>
                 </div>
@@ -206,7 +185,7 @@ export default function TenantOverview({ onPayNow }) {
         </Card>
       )}
 
-      <Card>
+      <Card className="bg-white border-gray-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Home className="h-5 w-5" />
@@ -215,59 +194,64 @@ export default function TenantOverview({ onPayNow }) {
         </CardHeader>
         <CardContent>
           {!stats.hasActiveRentals ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-gray-500">
               <Home className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p className="text-lg font-medium mb-2">No active rentals</p>
               <p className="text-sm">Contact your landlord to get started with rent payments</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {occupancies.map((occupancy) => (
-                <div key={occupancy.unit_id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="font-medium">{occupancy.unit_name}</h3>
-                      <p className="text-sm text-muted-foreground">{occupancy.property_name}</p>
-                      <p className="text-xs text-muted-foreground">Floor {occupancy.floor_number}</p>
+                <Card key={occupancy.unit_id} className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">{occupancy.unit_name}</h3>
+                        <p className="text-sm text-gray-500">{occupancy.property_name}</p>
+                        <p className="text-xs text-gray-500">Floor {occupancy.floor_number}</p>
+                      </div>
+                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                        Active
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                      Active
-                    </Badge>
-                  </div>
+                  </CardHeader>
                   
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Rent Amount:</span>
-                      <span className="font-medium">{formatCurrency(occupancy.rent_amount)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Payment Schedule:</span>
-                      <span className="capitalize">{occupancy.payment_frequency}</span>
-                    </div>
-                  </div>
-
-                  <Button 
-                    size="sm" 
-                    className="w-full mt-3"
-                    onClick={() => handleQuickPay(occupancy)}
-                  >
-                    Make Payment
-                  </Button>
-
-                  {occupancy.recent_payments && occupancy.recent_payments.length > 0 && (
-                    <div className="mt-3 pt-3 border-t">
-                      <p className="text-xs text-muted-foreground mb-2">Recent Payments:</p>
-                      <div className="space-y-1">
-                        {occupancy.recent_payments.slice(0, 2).map((payment) => (
-                          <div key={payment.id} className="flex justify-between text-xs text-muted-foreground">
-                            <span>{new Date(payment.created_at).toLocaleDateString()}</span>
-                            <span>{formatCurrency(payment.amount)}</span>
-                          </div>
-                        ))}
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Rent Amount:</span>
+                        <span className="font-medium">{formatCurrency(occupancy.rent_amount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Payment Schedule:</span>
+                        <span className="capitalize">{occupancy.payment_frequency}</span>
                       </div>
                     </div>
-                  )}
-                </div>
+
+                    <Button 
+                      size="sm" 
+                      className="w-full flex items-center gap-2"
+                      onClick={() => handleQuickPay(occupancy)}
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      Make Payment
+                    </Button>
+
+                    {occupancy.recent_payments && occupancy.recent_payments.length > 0 && (
+                      <div className="pt-3 border-t">
+                        <p className="text-xs text-gray-500 mb-2">Recent Payments:</p>
+                        <div className="space-y-1">
+                          {occupancy.recent_payments.slice(0, 2).map((payment) => (
+                            <div key={payment.id} className="flex justify-between text-xs text-gray-500">
+                              <span>{new Date(payment.created_at).toLocaleDateString()}</span>
+                              <span>{formatCurrency(payment.amount)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}

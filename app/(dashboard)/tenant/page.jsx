@@ -12,16 +12,17 @@ import TenantOverview from '@/components/tenant/TenantOverview';
 import TenantRentSchedule from '@/components/tenant/TenantRentSchedule';
 import TenantPaymentFlow from '@/components/tenant/TenantPaymentFlow';
 import TenantPaymentHistory from '@/components/tenant/TenantPaymentHistory';
+import TenantPaymentDialog from '@/components/tenant/TenantPaymentDialog';
 import { useTenantDashboardStore } from '@/stores/tenant/useTenantDashboardStore';
 import { useTenantPaymentStore } from '@/stores/tenant/useTenantPaymentStore';
 
 export default function TenantDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [showPaymentFlow, setShowPaymentFlow] = useState(false);
+  const [showPaymentSheet, setShowPaymentSheet] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   const { refreshData } = useTenantDashboardStore();
-  const { paymentFlow, resetPaymentFlow } = useTenantPaymentStore();
+  const { paymentFlow, resetPaymentFlow, showPaymentDialog } = useTenantPaymentStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -31,7 +32,7 @@ export default function TenantDashboard() {
   useEffect(() => {
     if (paymentFlow === 'success') {
       setTimeout(() => {
-        setShowPaymentFlow(false);
+        setShowPaymentSheet(false);
         resetPaymentFlow();
         refreshData();
       }, 3000);
@@ -39,12 +40,7 @@ export default function TenantDashboard() {
   }, [paymentFlow, resetPaymentFlow, refreshData]);
 
   const handlePayNow = () => {
-    setShowPaymentFlow(true);
-  };
-
-  const handleClosePayment = () => {
-    setShowPaymentFlow(false);
-    resetPaymentFlow();
+    setShowPaymentSheet(true);
   };
 
   const breadcrumbItems = [
@@ -115,9 +111,8 @@ export default function TenantDashboard() {
       />
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Circular Tab Navigation */}
         <div className="lg:w-64 flex-shrink-0">
-          <Card className="p-6">
+          <Card className="p-6 bg-white border-gray-200">
             <h3 className="text-lg font-semibold mb-6 text-center">Navigation</h3>
             <div className="flex lg:flex-col gap-4 justify-center lg:justify-start">
               {tabs.map(renderTabButton)}
@@ -125,11 +120,9 @@ export default function TenantDashboard() {
           </Card>
         </div>
 
-        {/* Main Content */}
         <div className="flex-1">
-          <Card className="min-h-[600px]">
+          <Card className="min-h-[600px] bg-white border-gray-200">
             <div className="p-6">
-              {/* Tab Content Header */}
               <div className="flex items-center gap-3 mb-6 pb-4 border-b">
                 {(() => {
                   const activeTabData = tabs.find(tab => tab.id === activeTab);
@@ -141,7 +134,7 @@ export default function TenantDashboard() {
                       </div>
                       <div>
                         <h2 className="text-xl font-semibold">{activeTabData?.label}</h2>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-500">
                           {activeTab === 'overview' && 'Your rental overview and quick actions'}
                           {activeTab === 'schedule' && 'View and manage your rent payment schedule'}
                           {activeTab === 'history' && 'Track all your payment history'}
@@ -152,7 +145,6 @@ export default function TenantDashboard() {
                 })()}
               </div>
 
-              {/* Tab Content */}
               {isClient && ActiveComponent && (
                 <ActiveComponent onPayNow={handlePayNow} />
               )}
@@ -161,9 +153,8 @@ export default function TenantDashboard() {
         </div>
       </div>
 
-      {/* Payment Sheet */}
-      <Sheet open={showPaymentFlow} onOpenChange={setShowPaymentFlow}>
-        <SheetContent side="right" className="w-full sm:max-w-lg">
+      <Sheet open={showPaymentSheet} onOpenChange={setShowPaymentSheet}>
+        <SheetContent side="right" className="w-full sm:max-w-lg bg-white border-gray-200">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
@@ -175,6 +166,8 @@ export default function TenantDashboard() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <TenantPaymentDialog />
     </div>
   );
 }
