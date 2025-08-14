@@ -126,17 +126,17 @@ export default function SubscriptionPage() {
       let response;
       
       if (paymentData.method === 'mobile') {
-        response = await processMNOPayment({
-          plan_id: selectedPlan.id,
-          provider: paymentData.provider,
-          account_number: paymentData.accountNumber
-        });
+        response = await processMNOPayment(
+          selectedPlan.id,
+          paymentData.accountNumber,
+          paymentData.provider
+        );
       } else if (paymentData.method === 'bank') {
-        response = await processBankPayment({
-          plan_id: selectedPlan.id,
-          bank_name: paymentData.bankName,
-          account_number: paymentData.accountNumber
-        });
+        response = await processBankPayment(
+          selectedPlan.id,
+          paymentData.accountNumber,
+          paymentData.bankName
+        );
       }
 
       if (response?.success) {
