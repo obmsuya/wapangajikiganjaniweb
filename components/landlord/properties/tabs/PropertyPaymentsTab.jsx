@@ -96,75 +96,76 @@ export default function PropertyPaymentsTab({ property }) {
   const pendingPayments = getPendingPayments();
   const recentPayments = getRecentPayments(5);
 
+  // Fixed column definitions - removed 'original' references
   const paymentColumns = [
     {
       accessorKey: 'tenant_name',
       header: 'Tenant',
-      cell: ({ row }) => (
+      cell: (row) => (
         <div>
-          <div className="font-medium">{row.original.tenant_name}</div>
-          <div className="text-sm text-gray-500">{row.original.tenant_phone}</div>
+          <div className="font-medium">{row.tenant_name}</div>
+          <div className="text-sm text-gray-500">{row.tenant_phone}</div>
         </div>
       )
     },
     {
       accessorKey: 'unit_name',
       header: 'Unit',
-      cell: ({ row }) => (
+      cell: (row) => (
         <div>
-          <div className="font-medium">{row.original.unit_name}</div>
-          <div className="text-sm text-gray-500">Floor {row.original.floor_number}</div>
+          <div className="font-medium">{row.unit_name}</div>
+          <div className="text-sm text-gray-500">Floor {row.floor_number}</div>
         </div>
       )
     },
     {
       accessorKey: 'amount',
       header: 'Amount',
-      cell: ({ row }) => (
+      cell: (row) => (
         <div className="font-medium">
-          {formatCurrency(row.original.amount)}
+          {formatCurrency(row.amount)}
         </div>
       )
     },
     {
       accessorKey: 'payment_period_start',
       header: 'Period',
-      cell: ({ row }) => (
+      cell: (row) => (
         <div className="text-sm">
-          {new Date(row.original.payment_period_start).toLocaleDateString()} - 
-          {new Date(row.original.payment_period_end).toLocaleDateString()}
+          {new Date(row.payment_period_start).toLocaleDateString()} - 
+          {new Date(row.payment_period_end).toLocaleDateString()}
         </div>
       )
     },
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => (
-        <Badge className={getStatusColor(row.original.status)}>
-          {row.original.status}
+      cell: (row) => (
+        <Badge className={getStatusColor(row.status)}>
+          {row.status}
         </Badge>
       )
     },
     {
       accessorKey: 'created_at',
       header: 'Date',
-      cell: ({ row }) => (
+      cell: (row) => (
         <div className="text-sm">
-          {new Date(row.original.created_at).toLocaleDateString()}
+          {new Date(row.created_at).toLocaleDateString()}
         </div>
       )
     },
     {
       accessorKey: 'actions',
       header: 'Actions',
-      cell: ({ row }) => (
+      cell: (row) => (
         <div className="flex items-center gap-2">
-          {row.original.status === 'pending' && (
+          {row.status === 'pending' && (
             <>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleConfirmPayment(row.original, 'accept')}
+                onClick={() => handleConfirmPayment(row, 'accept')}
                 className="text-green-600 hover:text-green-700"
               >
                 <Check className="h-4 w-4" />
@@ -172,7 +173,7 @@ export default function PropertyPaymentsTab({ property }) {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleConfirmPayment(row.original, 'reject')}
+                onClick={() => handleConfirmPayment(row, 'reject')}
                 className="text-red-600 hover:text-red-700"
               >
                 <X className="h-4 w-4" />
