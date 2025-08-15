@@ -113,7 +113,7 @@ export function CustomSidebar({ role = "admin", user }) {
           label: "Payments",
           icon: Banknote,
           href: "/landlord/payments",
-          active: pathname.includes("/landlord/payments"),
+          active: pathname === "/landlord/payments",
         },
         {
           label: "Wapangaji",
@@ -122,6 +122,12 @@ export function CustomSidebar({ role = "admin", user }) {
           active: pathname.includes("/landlord/subscriptions"),
           proBadge: true,
         },
+        {
+          label: "Confirm Payments",
+          icon: Handshake,
+          href: "/landlord/payments/confirmations",
+          active: pathname.includes("/landlord/payments/confirmations"),
+        }
       ];
     }
 
