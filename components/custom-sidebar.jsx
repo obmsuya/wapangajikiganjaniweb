@@ -8,7 +8,7 @@ import {
   LayoutDashboard, 
   Users, 
   Building2, 
-  UserRound, 
+  Wrench, 
   Crown, 
   Settings, 
   Menu, 
@@ -116,6 +116,13 @@ export function CustomSidebar({ role = "admin", user }) {
           active: pathname === "/landlord/payments",
         },
         {
+          label: "Maintenance",
+          icon: Wrench,
+          href: "/landlord/maintenance",
+          active: pathname === "/landlord/maintenance",
+        },
+
+        {
           label: "Wapangaji",
           icon: Crown,
           href: "/landlord/subscriptions",
@@ -139,6 +146,13 @@ export function CustomSidebar({ role = "admin", user }) {
           href: "/tenant",
           active: pathname === "/tenant" || pathname === "/tenant/",
         },
+        {
+          label: "Maintenance",
+          icon: Wrench,
+          href: "/tenant/maintenance",
+          active: pathname === "/tenant/maintenance",
+        },
+
       ];
     }
 
