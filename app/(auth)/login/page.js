@@ -172,10 +172,10 @@ export default function LoginPage() {
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary-600  rounded-xl flex items-center justify-center">
                     <Building2 className="w-7 h-7 text-white" />
                   </div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 ">
                     Wapangaji Kiganjani
                   </h1>
                 </motion.div>
