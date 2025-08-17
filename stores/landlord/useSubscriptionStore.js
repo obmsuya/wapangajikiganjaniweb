@@ -1,6 +1,36 @@
+// stores/landlord/useSubscriptionStore.js
 import { create } from 'zustand';
 import api from '@/lib/api/api-client';
-import { toast } from 'sonner';
+import { customToast } from '@/components/ui/custom-toast';
+
+const ERROR_TYPES = {
+  NETWORK: 'network_error',
+  VALIDATION: 'validation_error',
+  PAYMENT: 'payment_error',
+  SERVER: 'server_error',
+  TIMEOUT: 'timeout_error'
+};
+
+const classifyError = (error) => {
+  if (!error) return { type: ERROR_TYPES.SERVER, message: 'Unknown error occurred' };
+  
+  const errorMessage = error.message || error.toString().toLowerCase();
+  
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return { type: ERROR_TYPES.NETWORK, message: 'Network connection failed' };
+  }
+  if (errorMessage.includes('validation') || errorMessage.includes('required')) {
+    return { type: ERROR_TYPES.VALIDATION, message: 'Please check your input' };
+  }
+  if (errorMessage.includes('payment') || errorMessage.includes('insufficient')) {
+    return { type: ERROR_TYPES.PAYMENT, message: 'Payment processing failed' };
+  }
+  if (errorMessage.includes('timeout')) {
+    return { type: ERROR_TYPES.TIMEOUT, message: 'Request timed out' };
+  }
+  
+  return { type: ERROR_TYPES.SERVER, message: errorMessage };
+};
 
 export const useSubscriptionStore = create((set, get) => ({
   loading: false,
@@ -10,10 +40,13 @@ export const useSubscriptionStore = create((set, get) => ({
   subscriptionStatus: null,
   subscriptionHistory: [],
   propertyVisibility: null,
+  processingPayment: false,
+  lastTransactionId: null,
   
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
+  setProcessingPayment: (processing) => set({ processingPayment: processing }),
 
   fetchPlans: async () => {
     try {
@@ -42,14 +75,14 @@ export const useSubscriptionStore = create((set, get) => ({
         throw new Error(response?.error || 'Failed to load subscription plans');
       }
     } catch (error) {
-      const errorMessage = error.message || 'Failed to load subscription plans';
+      const classified = classifyError(error);
       set({
-        error: errorMessage,
+        error: classified.message,
         loading: false
       });
       
-      toast.error("Plans Error", {
-        description: errorMessage
+      customToast.error("Plans Error", {
+        description: classified.message
       });
     }
   },
@@ -92,15 +125,15 @@ export const useSubscriptionStore = create((set, get) => ({
         });
       }
     } catch (error) {
-      const errorMessage = error.message || 'Failed to load current subscription';
+      const classified = classifyError(error);
       set({
-        error: errorMessage,
+        error: classified.message,
         loading: false,
         currentSubscription: null
       });
       
-      toast.error("Subscription Error", {
-        description: errorMessage
+      customToast.error("Subscription Error", {
+        description: classified.message
       });
     }
   },
@@ -141,14 +174,14 @@ export const useSubscriptionStore = create((set, get) => ({
         throw new Error(response?.error || 'Failed to load subscription status');
       }
     } catch (error) {
-      const errorMessage = error.message || 'Failed to load subscription status';
+      const classified = classifyError(error);
       set({
-        error: errorMessage,
+        error: classified.message,
         loading: false
       });
       
-      toast.error("Status Error", {
-        description: errorMessage
+      customToast.error("Status Error", {
+        description: classified.message
       });
     }
   },
@@ -181,14 +214,14 @@ export const useSubscriptionStore = create((set, get) => ({
         throw new Error(response?.error || 'Failed to load subscription history');
       }
     } catch (error) {
-      const errorMessage = error.message || 'Failed to load subscription history';
+      const classified = classifyError(error);
       set({
-        error: errorMessage,
+        error: classified.message,
         loading: false
       });
       
-      toast.error("History Error", {
-        description: errorMessage
+      customToast.error("History Error", {
+        description: classified.message
       });
     }
   },
@@ -230,54 +263,21 @@ export const useSubscriptionStore = create((set, get) => ({
         throw new Error(response?.error || 'Failed to load property visibility');
       }
     } catch (error) {
-      const errorMessage = error.message || 'Failed to load property visibility';
+      const classified = classifyError(error);
       set({
-        error: errorMessage,
+        error: classified.message,
         loading: false
       });
       
-      toast.error("Visibility Error", {
-        description: errorMessage
+      customToast.error("Visibility Error", {
+        description: classified.message
       });
-    }
-  },
-
-  generatePaymentDetails: async (planId) => {
-    try {
-      set({ loading: true, error: null });
-      
-      const response = await api.post('/api/v1/payments/subscription/subscribe/', {
-        plan_id: planId
-      });
-      
-      if (response && !response.error) {
-        set({ loading: false });
-        return {
-          success: true,
-          paymentDetails: response.payment_details,
-          plan: response.plan
-        };
-      } else {
-        throw new Error(response?.error || 'Failed to generate payment details');
-      }
-    } catch (error) {
-      const errorMessage = error.message || 'Failed to generate payment details';
-      set({
-        error: errorMessage,
-        loading: false
-      });
-      
-      toast.error("Payment Error", {
-        description: errorMessage
-      });
-      
-      return { success: false, error: errorMessage };
     }
   },
 
   processMNOPayment: async (planId, accountNumber, provider) => {
     try {
-      set({ loading: true, error: null });
+      set({ processingPayment: true, error: null });
       
       const response = await api.post('/api/v1/payments/subscription/mno/checkout/', {
         plan_id: planId,
@@ -285,40 +285,39 @@ export const useSubscriptionStore = create((set, get) => ({
         provider: provider
       });
       
-      if (response && !response.error) {
-        toast.success("Payment Initiated", {
-          description: "Your subscription payment has been initiated"
+      if (response && response.success !== false) {
+        set({ 
+          processingPayment: false,
+          lastTransactionId: response.transaction_id 
         });
-        
-        set({ loading: false });
         
         return {
           success: true,
           transactionId: response.transaction_id,
           externalId: response.external_id,
-          message: response.message
+          message: response.message || "Payment initiated successfully"
         };
       } else {
-        throw new Error(response?.error || 'Failed to process payment');
+        throw new Error(response?.error || 'Payment initiation failed');
       }
     } catch (error) {
-      const errorMessage = error.message || 'Failed to process payment';
+      const classified = classifyError(error);
       set({
-        error: errorMessage,
-        loading: false
+        error: classified.message,
+        processingPayment: false
       });
       
-      toast.error("Payment Failed", {
-        description: errorMessage
-      });
-      
-      return { success: false, error: errorMessage };
+      return { 
+        success: false, 
+        error: classified.message,
+        type: classified.type 
+      };
     }
   },
 
   processBankPayment: async (planId, accountNumber, bankName) => {
     try {
-      set({ loading: true, error: null });
+      set({ processingPayment: true, error: null });
       
       const response = await api.post('/api/v1/payments/subscription/bank/checkout/', {
         plan_id: planId,
@@ -326,34 +325,33 @@ export const useSubscriptionStore = create((set, get) => ({
         bankName: bankName
       });
       
-      if (response && !response.error) {
-        toast.success("Payment Initiated", {
-          description: "Your subscription payment has been initiated"
+      if (response && response.success !== false) {
+        set({ 
+          processingPayment: false,
+          lastTransactionId: response.transaction_id 
         });
-        
-        set({ loading: false });
         
         return {
           success: true,
           transactionId: response.transaction_id,
           externalId: response.external_id,
-          message: response.message
+          message: response.message || "Payment initiated successfully"
         };
       } else {
-        throw new Error(response?.error || 'Failed to process payment');
+        throw new Error(response?.error || 'Payment initiation failed');
       }
     } catch (error) {
-      const errorMessage = error.message || 'Failed to process payment';
+      const classified = classifyError(error);
       set({
-        error: errorMessage,
-        loading: false
+        error: classified.message,
+        processingPayment: false
       });
       
-      toast.error("Payment Failed", {
-        description: errorMessage
-      });
-      
-      return { success: false, error: errorMessage };
+      return { 
+        success: false, 
+        error: classified.message,
+        type: classified.type 
+      };
     }
   },
 
@@ -364,159 +362,30 @@ export const useSubscriptionStore = create((set, get) => ({
       const response = await api.post('/api/v1/payments/subscription/cancel/');
       
       if (response && !response.error) {
-        toast.success("Subscription Cancelled", {
+        customToast.success("Subscription Cancelled", {
           description: "Your subscription has been cancelled. Reverted to free plan."
         });
         
-        await get().fetchCurrentSubscription();
-        await get().fetchSubscriptionStatus();
-        await get().fetchPropertyVisibility();
-        
         set({ loading: false });
+        get().fetchCurrentSubscription();
         
-        return { success: true, message: response.detail };
+        return { success: true };
       } else {
         throw new Error(response?.error || 'Failed to cancel subscription');
       }
     } catch (error) {
-      const errorMessage = error.message || 'Failed to cancel subscription';
+      const classified = classifyError(error);
       set({
-        error: errorMessage,
+        error: classified.message,
         loading: false
       });
       
-      toast.error("Cancellation Failed", {
-        description: errorMessage
+      customToast.error("Cancellation Failed", {
+        description: classified.message
       });
       
-      return { success: false, error: errorMessage };
+      return { success: false, error: classified.message };
     }
-  },
-
-  upgradeProperty: async (propertyId) => {
-    try {
-      set({ loading: true, error: null });
-      
-      const response = await api.post('/api/v1/payments/subscription/upgrade-property/', {
-        property_id: propertyId
-      });
-      
-      if (response && !response.error) {
-        toast.success("Property Updated", {
-          description: "Property visibility has been updated"
-        });
-        
-        await get().fetchPropertyVisibility();
-        
-        set({ loading: false });
-        
-        return { success: true, message: response.detail };
-      } else {
-        throw new Error(response?.error || 'Failed to upgrade property');
-      }
-    } catch (error) {
-      const errorMessage = error.message || 'Failed to upgrade property';
-      set({
-        error: errorMessage,
-        loading: false
-      });
-      
-      toast.error("Upgrade Failed", {
-        description: errorMessage
-      });
-      
-      return { success: false, error: errorMessage };
-    }
-  },
-
-  refreshAllData: async () => {
-    try {
-      set({ loading: true });
-      await Promise.all([
-        get().fetchCurrentSubscription(),
-        get().fetchSubscriptionStatus(),
-        get().fetchPropertyVisibility()
-      ]);
-    } catch (error) {
-      toast.error("Refresh Failed", {
-        description: "Failed to refresh subscription data"
-      });
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  // CLIENT-SIDE PROPERTY VISIBILITY CHECKS
-  canAddProperty: () => {
-    const { subscriptionStatus, propertyVisibility } = get();
-    
-    if (!subscriptionStatus || !propertyVisibility) return false;
-    
-    // Check subscription limits
-    if (subscriptionStatus.propertyLimit === -1) return true; // Unlimited
-    
-    return propertyVisibility.totalProperties < subscriptionStatus.propertyLimit;
-  },
-
-  getPropertyVisibilityStatus: (propertyId) => {
-    const { propertyVisibility, subscriptionStatus } = get();
-    
-    if (!propertyVisibility || !subscriptionStatus) {
-      return { canView: false, reason: 'Loading subscription data...' };
-    }
-    
-    const property = propertyVisibility.properties.find(p => p.id === propertyId);
-    if (!property) {
-      return { canView: false, reason: 'Property not found' };
-    }
-    
-    // Free plan logic
-    if (subscriptionStatus.currentPlan.isFreePlan) {
-      if (property.isVisible) {
-        return { canView: true, reason: 'Visible on free plan' };
-      } else {
-        return { 
-          canView: false, 
-          reason: 'Hidden on free plan',
-          canSwitch: true,
-          switchMessage: 'Switch to make this property visible'
-        };
-      }
-    }
-    
-    // Paid plan - all properties should be visible
-    return { canView: true, reason: 'Visible on paid plan' };
-  },
-
-  isFeatureEnabled: (featureName) => {
-    const { subscriptionStatus } = get();
-    
-    if (!subscriptionStatus) return false;
-    
-    // Check subscription features
-    return subscriptionStatus.features[featureName] || false;
-  },
-
-  getSubscriptionLimits: () => {
-    const { subscriptionStatus, propertyVisibility } = get();
-    
-    if (!subscriptionStatus) {
-      return {
-        propertyLimit: 0,
-        currentProperties: 0,
-        canAddMore: false,
-        isFreePlan: true
-      };
-    }
-    
-    return {
-      propertyLimit: subscriptionStatus.propertyLimit,
-      currentProperties: propertyVisibility?.totalProperties || 0,
-      canAddMore: get().canAddProperty(),
-      isFreePlan: subscriptionStatus.currentPlan.isFreePlan,
-      visibleProperties: propertyVisibility?.visibleProperties || 0,
-      invisibleProperties: propertyVisibility?.invisibleProperties || 0
-    };
   },
 
   formatCurrency: (amount) => {
@@ -536,7 +405,7 @@ export const useSubscriptionStore = create((set, get) => ({
       premium: 'bg-purple-100 text-purple-800',
       enterprise: 'bg-green-100 text-green-800'
     };
-    return colors[planType] || colors.free;
+    return colors[planType] || colors.basic;
   },
 
   getSubscriptionStatusColor: (status) => {
@@ -547,5 +416,19 @@ export const useSubscriptionStore = create((set, get) => ({
       pending: 'bg-yellow-100 text-yellow-800'
     };
     return colors[status] || colors.pending;
+  },
+
+  reset: () => {
+    set({
+      loading: false,
+      error: null,
+      plans: [],
+      currentSubscription: null,
+      subscriptionStatus: null,
+      subscriptionHistory: [],
+      propertyVisibility: null,
+      processingPayment: false,
+      lastTransactionId: null
+    });
   }
 }));
