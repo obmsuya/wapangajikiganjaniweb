@@ -38,10 +38,48 @@ export const useSubscriptionStore = create((set, get) => ({
   plans: [],
   currentSubscription: null,
   subscriptionStatus: null,
+  tokenSubscriptionData: null,
   subscriptionHistory: [],
   propertyVisibility: null,
   processingPayment: false,
   lastTransactionId: null,
+
+   extractTokenSubscriptionData: () => {
+    if (typeof window === 'undefined') return null;
+    
+    const token = localStorage.getItem('access_token');
+    if (!token) return null;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.user_type === 'landlord') {
+        return {
+          canAddProperties: payload.can_add_properties,
+          propertyLimit: payload.property_limit,
+          currentProperties: payload.current_properties,
+          visibleProperties: payload.visible_properties,
+          planType: payload.plan_type,
+          isFreePlan: payload.is_free_plan,
+          planName: payload.plan_name
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing token:', error);
+    }
+    return null;
+  },
+
+  initializeTokenData: () => {
+    const tokenData = get().extractTokenSubscriptionData();
+    set({ tokenSubscriptionData: tokenData });
+  },
+  
+  canAddProperties: () => {
+    const tokenData = get().tokenSubscriptionData || get().extractTokenSubscriptionData();
+    const apiData = get().subscriptionStatus;
+
+    return apiData?.canAddProperties ?? tokenData?.canAddProperties ?? false;
+  },
   
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),

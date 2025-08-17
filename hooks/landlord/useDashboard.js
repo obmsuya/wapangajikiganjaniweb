@@ -6,21 +6,21 @@ import DashboardService from '@/services/landlord/dashboard';
 
 /**
  * Hook for managing the main landlord dashboard
- * @param {Object} options - Configuration options
- * @returns {Object} Dashboard state and management functions
+ * @param {Object} options 
+ * @returns {Object} 
  */
 export function useDashboard(options = {}) {
   const { autoRefresh = false, refreshInterval = 300000 } = options; // 5 minutes default
   
   const [dashboardStats, setDashboardStats] = useState(null);
   const [properties, setProperties] = useState([]);
+  const [subscriptionContext, setSubscriptionContext] = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
   const [financialOverview, setFinancialOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  // Fetch dashboard statistics
   const fetchDashboardStats = useCallback(async () => {
     try {
       const stats = await DashboardService.getDashboardStats();
@@ -32,11 +32,18 @@ export function useDashboard(options = {}) {
     }
   }, []);
 
-  // Fetch properties with details
-  const fetchProperties = useCallback(async (filters = {}) => {
+
+   const fetchProperties = useCallback(async (filters = {}) => {
     try {
-      const propertiesData = await DashboardService.getPropertiesWithDetails(filters);
-      setProperties(propertiesData);
+      const response = await DashboardService.getPropertiesWithDetails(filters);
+
+      if (response.subscription_context) {
+        setSubscriptionContext(response.subscription_context);
+        setProperties(response.results || response);
+      } else {
+        setProperties(response);
+      }
+      
       setError(null);
     } catch (err) {
       console.error("Error fetching properties:", err);
@@ -45,7 +52,7 @@ export function useDashboard(options = {}) {
     }
   }, []);
 
-  // Fetch recent activity
+
   const fetchRecentActivity = useCallback(async () => {
     try {
       const activity = await DashboardService.getRecentActivity(10);
@@ -56,7 +63,6 @@ export function useDashboard(options = {}) {
     }
   }, []);
 
-  // Fetch financial overview
   const fetchFinancialOverview = useCallback(async (period = 'month') => {
     try {
       const overview = await DashboardService.getFinancialOverview(period);
@@ -189,6 +195,8 @@ export function useDashboard(options = {}) {
     properties,
     recentActivity,
     financialOverview,
+    subscriptionContext,
+
     
     // Computed data
     computedStats,

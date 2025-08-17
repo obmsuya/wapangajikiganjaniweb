@@ -1,47 +1,76 @@
-// app/(dashboard)/landlord/properties/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Building2, AlertCircle } from "lucide-react";
+import { Plus, Search, Building2, AlertCircle, Crown, Users, Home, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CloudflareCard } from "@/components/cloudflare/Card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { CloudflarePageHeader } from "@/components/cloudflare/Breadcrumbs";
 import { useDashboard } from "@/hooks/landlord/useDashboard";
+import { useSubscriptionStore } from "@/stores/landlord/useSubscriptionStore";
 import PropertyCard from "@/components/landlord/properties/PropertyCard";
+import UpgradeModal from "@/components/landlord/subscription/UpgradeModal";
 
 export default function PropertiesPage() {
   const router = useRouter();
   const { 
     dashboardStats, 
     properties, 
+    subscriptionContext,
     loading, 
     error, 
     searchProperties, 
+    fetchDashboardData
   } = useDashboard();
   
+  const { 
+    canAddProperties, 
+    initializeTokenData, 
+    extractTokenSubscriptionData 
+  } = useSubscriptionStore();
+  
   const [searchTerm, setSearchTerm] = useState("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Initialize subscription data from token on mount
+  useEffect(() => {
+    initializeTokenData();
+  }, [initializeTokenData]);
 
   // Handle search with debounce
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       if (searchTerm) {
         searchProperties(searchTerm);
+      } else {
+        fetchDashboardData(); // Refresh all data when search is cleared
       }
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [searchTerm, searchProperties]);
+  }, [searchTerm, searchProperties, fetchDashboardData]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
 
   const handleNavigateToSetup = () => {
-    // Navigate to property setup - adjust route as needed
-    window.location.href = "/landlord/setup";
+    // Check if user can add properties from token or subscription context
+    const canAdd = canAddProperties();
+    
+    if (!canAdd) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    
+    router.push("/landlord/setup");
   };
+
+  // Get subscription data for display
+  const tokenData = extractTokenSubscriptionData();
+  const subscriptionData = subscriptionContext || tokenData;
 
   const stats = dashboardStats || {
     totalProperties: 0,
@@ -51,19 +80,82 @@ export default function PropertiesPage() {
     occupancyRate: 0
   };
 
+  // Separate visible and invisible properties
+  const visibleProperties = properties.filter(property => property.is_visible !== false);
+  const invisibleProperties = properties.filter(property => property.is_visible === false);
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Page Header */}
         <CloudflarePageHeader
           title="Properties"
           description="Manage your properties and tenants"
           actions={
-            <Button onClick={handleNavigateToSetup}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Property
-            </Button>
+            <div className="flex items-center gap-3">
+              {/* Subscription Status Badge */}
+              {subscriptionData && (
+                <Badge 
+                  variant="outline" 
+                  className={subscriptionData.isFreePlan ? 'border-orange-200 text-orange-700' : 'border-green-200 text-green-700'}
+                >
+                  <Crown className="h-3 w-3 mr-1" />
+                  {subscriptionData.planName || 'Free Plan'}
+                </Badge>
+              )}
+              
+              <Button onClick={handleNavigateToSetup}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Property
+              </Button>
+            </div>
           }
         />
+
+        {/* Subscription Status Card */}
+        {subscriptionData && (
+          <Card className="mb-6 border-l-4 border-l-blue-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium">
+                      Properties: {subscriptionData.currentProperties || 0} / {subscriptionData.propertyLimit === -1 ? '∞' : subscriptionData.propertyLimit}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Home className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium">
+                      Visible: {subscriptionData.visibleProperties || visibleProperties.length}
+                    </span>
+                  </div>
+                  
+                  {invisibleProperties.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-orange-600" />
+                      <span className="text-sm font-medium text-orange-600">
+                        Invisible: {invisibleProperties.length}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {subscriptionData.isFreePlan && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => router.push('/landlord/subscriptions')}
+                  >
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    Upgrade Plan
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Search Bar */}
         <div className="mb-6">
@@ -83,69 +175,87 @@ export default function PropertiesPage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-              <CloudflareCard key={i} className="animate-pulse">
-                <div className="h-48 bg-gray-200 rounded-t-lg"></div>
-                <div className="p-4 space-y-3">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                  <div className="flex justify-between">
-                    <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-                  </div>
-                </div>
-              </CloudflareCard>
+              <div key={i} className="bg-gray-200 rounded-lg h-80 animate-pulse"></div>
             ))}
           </div>
         ) : error ? (
-          <CloudflareCard className="text-center p-8">
-            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-            <p className="text-red-600 font-medium mb-2">Error loading properties</p>
-            <p className="text-gray-500 text-sm mb-4">{error.message || "Something went wrong"}</p>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.reload()}
-            >
-              Try Again
-            </Button>
-          </CloudflareCard>
-        ) : !properties || properties.length === 0 ? (
-          <CloudflareCard className="text-center p-8">
-            <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 mb-2">
-              {searchTerm ? "No properties found" : "No properties yet"}
-            </h3>
-            <p className="text-gray-500 mb-6">
-              {searchTerm 
-                ? `No properties match "${searchTerm}". Try a different search term.`
-                : "Get started by adding your first property to begin managing tenants and collecting rent."
-              }
-            </p>
-            {!searchTerm && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <div>
+                  <h3 className="font-medium text-red-800">Error loading properties</h3>
+                  <p className="text-red-600">{error.message || 'Failed to load properties'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : properties.length > 0 ? (
+          <div className="space-y-8">
+            {/* Visible Properties */}
+            {visibleProperties.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Home className="h-5 w-5 text-green-600" />
+                  Active Properties ({visibleProperties.length})
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {visibleProperties.map((property) => (
+                    <PropertyCard 
+                      key={property.id} 
+                      property={property}
+                      subscriptionContext={subscriptionData}
+                      isVisible={true}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Invisible Properties */}
+            {invisibleProperties.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-orange-600" />
+                  Upgrade Required ({invisibleProperties.length})
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {invisibleProperties.map((property) => (
+                    <PropertyCard 
+                      key={property.id} 
+                      property={property}
+                      subscriptionContext={subscriptionData}
+                      isVisible={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          // Empty State
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Yet</h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                Get started by adding your first property. You can manage tenants, 
+                collect rent, and track everything in one place.
+              </p>
               <Button onClick={handleNavigateToSetup} size="lg">
                 <Plus className="w-5 h-5 mr-2" />
                 Add Your First Property
               </Button>
-            )}
-          </CloudflareCard>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {properties.map((property) => (
-              <PropertyCard
-                key={property.id}
-                property={property}
-              />
-            ))}
-          </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Search Results Count */}
-        {searchTerm && properties && properties.length > 0 && (
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              Found {properties.length} propert{properties.length === 1 ? 'y' : 'ies'} matching "{searchTerm}"
-            </p>
-          </div>
-        )}
+        {/* Upgrade Modal */}
+        <UpgradeModal 
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          subscriptionData={subscriptionData}
+        />
       </div>
     </div>
   );
