@@ -1,7 +1,7 @@
 // app/(dashboard)/landlord/notifications/page.jsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   Bell, 
   Check, 
@@ -16,13 +16,21 @@ import {
   DollarSign,
   Users,
   Building2,
-  CreditCard
+  CreditCard,
+  Settings,
+  MessageSquare,
+  Smartphone,
+  Crown,
+  Wrench
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -39,13 +47,29 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNotifications } from "@/hooks/landlord/useNotifications";
 import NotificationService from "@/services/landlord/notification";
+import { customToast } from "@/components/ui/custom-toast";
 
 const NotificationIcon = ({ type, className = "w-5 h-5" }) => {
   const icons = {
+    payment_received: CreditCard,
+    payment_confirmed: CheckCircle,
+    payment_rejected: AlertTriangle,
+    system_payment_received: Smartphone,
+    subscription_payment_completed: Crown,
+    subscription_expired: AlertTriangle,
+    rent_overdue: AlertTriangle,
+    next_rent_due: Bell,
+    maintenance_request: Wrench,
+    maintenance_response: MessageSquare,
+    tenant_assigned: Users,
+    tenant_vacated: Users,
+    admin_alert: AlertTriangle,
     payment: CreditCard,
     rent: DollarSign,
     tenant: Users,
     property: Building2,
+    maintenance: Wrench,
+    subscription: Crown,
     warning: AlertTriangle,
     success: CheckCircle,
     info: Info,
@@ -54,6 +78,225 @@ const NotificationIcon = ({ type, className = "w-5 h-5" }) => {
   
   const IconComponent = icons[type] || icons.default;
   return <IconComponent className={className} />;
+};
+
+const NotificationPreferences = () => {
+  const [preferences, setPreferences] = useState({
+    rent_reminder_sms: false,
+    payment_confirmation_sms: true,
+    payment_received_sms: true,
+    subscription_payment_sms: true,
+    subscription_expiry_sms: true,
+    maintenance_request_sms: true,
+    maintenance_response_sms: true,
+    urgent_maintenance_sms: true,
+    tenant_assignment_sms: true,
+    email_notifications: true,
+    push_notifications: true
+  });
+  const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  useEffect(() => {
+    loadPreferences();
+  }, []);
+
+  const loadPreferences = async () => {
+    try {
+      setLoading(true);
+      const response = await NotificationService.getNotificationPreferences();
+      setPreferences(prev => ({
+        ...prev,
+        ...response
+      }));
+    } catch (error) {
+      customToast.error("Failed to Load Preferences", {
+        description: "Could not load your notification preferences"
+      });
+    } finally {
+      setLoading(false);
+      setInitialLoad(false);
+    }
+  };
+
+  const updatePreference = async (key, value) => {
+    const newPreferences = { ...preferences, [key]: value };
+    setPreferences(newPreferences);
+
+    try {
+      await NotificationService.updateNotificationPreferences(newPreferences);
+      customToast.success("Preferences Updated", {
+        description: "Your notification preferences have been saved"
+      });
+    } catch (error) {
+      // Revert on error
+      setPreferences(preferences);
+      customToast.error("Update Failed", {
+        description: "Could not update your preferences. Please try again."
+      });
+    }
+  };
+
+  const preferenceGroups = [
+    {
+      title: "Payment Notifications",
+      icon: CreditCard,
+      preferences: [
+        {
+          key: "payment_confirmation_sms",
+          label: "Payment Confirmations",
+          description: "Get SMS when tenants record payments for confirmation"
+        },
+        {
+          key: "payment_received_sms", 
+          label: "Payment Received",
+          description: "Get SMS when system payments are received"
+        },
+        {
+          key: "rent_reminder_sms",
+          label: "Rent Reminders", 
+          description: "Get SMS reminders for overdue rent payments"
+        }
+      ]
+    },
+    {
+      title: "Subscription Notifications",
+      icon: Crown,
+      preferences: [
+        {
+          key: "subscription_payment_sms",
+          label: "Subscription Payments",
+          description: "Get SMS for subscription payment confirmations"
+        },
+        {
+          key: "subscription_expiry_sms",
+          label: "Subscription Expiry",
+          description: "Get SMS when your subscription is expiring"
+        }
+      ]
+    },
+    {
+      title: "Maintenance Notifications", 
+      icon: Wrench,
+      preferences: [
+        {
+          key: "maintenance_request_sms",
+          label: "Maintenance Requests",
+          description: "Get SMS when tenants submit maintenance requests"
+        },
+        {
+          key: "maintenance_response_sms",
+          label: "Maintenance Updates",
+          description: "Get SMS for maintenance status updates"
+        },
+        {
+          key: "urgent_maintenance_sms",
+          label: "Urgent Maintenance",
+          description: "Always get SMS for urgent maintenance issues"
+        }
+      ]
+    },
+    {
+      title: "Tenant Management",
+      icon: Users,
+      preferences: [
+        {
+          key: "tenant_assignment_sms",
+          label: "Tenant Changes",
+          description: "Get SMS when tenants are assigned or vacate units"
+        }
+      ]
+    },
+    {
+      title: "General Settings",
+      icon: Settings,
+      preferences: [
+        {
+          key: "email_notifications",
+          label: "Email Notifications",
+          description: "Receive notifications via email"
+        },
+        {
+          key: "push_notifications",
+          label: "Push Notifications", 
+          description: "Receive push notifications in the app"
+        }
+      ]
+    }
+  ];
+
+  if (initialLoad && loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            Notification Preferences
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[1,2,3].map(i => (
+            <div key={i} className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+              <Skeleton className="h-6 w-11" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Settings className="w-5 h-5" />
+          Notification Preferences
+        </CardTitle>
+        <p className="text-sm text-gray-600">
+          Choose how you want to receive notifications
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {preferenceGroups.map((group, groupIndex) => (
+          <div key={group.title}>
+            <div className="flex items-center gap-2 mb-4">
+              <group.icon className="w-4 h-4 text-gray-600" />
+              <h3 className="font-medium text-gray-900">{group.title}</h3>
+            </div>
+            
+            <div className="space-y-4 ml-6">
+              {group.preferences.map((pref) => (
+                <div key={pref.key} className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor={pref.key} className="text-sm font-medium">
+                      {pref.label}
+                    </Label>
+                    <p className="text-xs text-gray-500">
+                      {pref.description}
+                    </p>
+                  </div>
+                  <Switch
+                    id={pref.key}
+                    checked={preferences[pref.key] || false}
+                    onCheckedChange={(checked) => updatePreference(pref.key, checked)}
+                    disabled={loading}
+                  />
+                </div>
+              ))}
+            </div>
+            
+            {groupIndex < preferenceGroups.length - 1 && (
+              <Separator className="mt-6" />
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
 };
 
 const NotificationCard = ({ notification, onMarkAsRead, onDelete, isSelected, onSelect }) => {
@@ -82,7 +325,6 @@ const NotificationCard = ({ notification, onMarkAsRead, onDelete, isSelected, on
     } ${colorClass.split(' ')[2]} ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
-          {/* Selection Checkbox */}
           <div className="flex items-center pt-1">
             <input
               type="checkbox"
@@ -92,12 +334,10 @@ const NotificationCard = ({ notification, onMarkAsRead, onDelete, isSelected, on
             />
           </div>
           
-          {/* Notification Icon */}
           <div className={`p-2 rounded-full flex-shrink-0 ${colorClass}`}>
             <NotificationIcon type={notification.type} className="w-4 h-4" />
           </div>
           
-          {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -121,7 +361,9 @@ const NotificationCard = ({ notification, onMarkAsRead, onDelete, isSelected, on
             </div>
             
             <p className={`text-sm mb-3 line-clamp-2 ${
-              notification.isRead ? 'text-gray-500 dark:text-gray-400' : 'text-gray-700 dark:text-gray-300'
+              notification.isRead 
+                ? 'text-gray-500 dark:text-gray-400' 
+                : 'text-gray-700 dark:text-gray-300'
             }`}>
               {notification.message}
             </p>
@@ -192,25 +434,15 @@ export default function NotificationsPage() {
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedNotifications, setSelectedNotifications] = useState(new Set());
-  const [currentTab, setCurrentTab] = useState("all");
+  const [currentTab, setCurrentTab] = useState("notifications");
 
-  // Filter notifications based on current filters
   const filteredNotifications = useMemo(() => {
     let filtered = notifications;
 
-    // Tab filtering
-    if (currentTab === "unread") {
-      filtered = filtered.filter(n => !n.isRead);
-    } else if (currentTab === "read") {
-      filtered = filtered.filter(n => n.isRead);
-    }
-
-    // Type filtering
     if (filterType !== "all") {
       filtered = filtered.filter(n => n.type === filterType);
     }
 
-    // Status filtering
     if (filterStatus !== "all") {
       if (filterStatus === "unread") {
         filtered = filtered.filter(n => !n.isRead);
@@ -219,7 +451,6 @@ export default function NotificationsPage() {
       }
     }
 
-    // Search filtering
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(n => 
@@ -229,9 +460,8 @@ export default function NotificationsPage() {
     }
 
     return filtered;
-  }, [notifications, currentTab, filterType, filterStatus, searchQuery]);
+  }, [notifications, filterType, filterStatus, searchQuery]);
 
-  // Handle bulk actions
   const handleSelectAll = () => {
     if (selectedNotifications.size === filteredNotifications.length) {
       setSelectedNotifications(new Set());
@@ -269,25 +499,22 @@ export default function NotificationsPage() {
     setSelectedNotifications(new Set());
   };
 
-  // Get notification types for filter
   const notificationTypes = useMemo(() => {
     const types = [...new Set(notifications.map(n => n.type))];
     return types.sort();
   }, [notifications]);
 
   const unreadNotifications = notifications.filter(n => !n.isRead);
-  const readNotifications = notifications.filter(n => n.isRead);
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Notifications
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage your notifications and stay updated with important alerts
+            Manage your notifications and preferences
           </p>
         </div>
         
@@ -304,230 +531,166 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <Button onClick={markAllAsRead}>
               <CheckCheck className="w-4 h-4 mr-2" />
-              Mark all read
+              Mark all read ({unreadCount})
             </Button>
           )}
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <Bell className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {notifications.length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="w-4 h-4" />
+            Notifications
+            {unreadCount > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {unreadCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="preferences" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Preferences
+          </TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Unread</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {unreadCount}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Read</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {readNotifications.length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center flex-1">
-              <div className="relative min-w-0 flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search notifications..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+        <TabsContent value="notifications" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder="Search notifications..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Filter by type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All types</SelectItem>
+                      {notificationTypes.map(type => (
+                        <SelectItem key={type} value={type}>
+                          {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="unread">Unread</SelectItem>
+                      <SelectItem value="read">Read</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
-              <div className="flex gap-2">
-                <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {notificationTypes.map(type => (
-                      <SelectItem key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="unread">Unread</SelectItem>
-                    <SelectItem value="read">Read</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            {selectedNotifications.size > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {selectedNotifications.size} selected
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkMarkAsRead}
-                >
-                  <Check className="w-4 h-4 mr-1" />
-                  Mark read
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkDelete}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notifications List */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5" />
-              Notifications
-            </CardTitle>
-            
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={selectedNotifications.size === filteredNotifications.length && filteredNotifications.length > 0}
-                onChange={handleSelectAll}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label className="text-sm text-gray-600 dark:text-gray-400">
-                Select all
-              </label>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="p-6 pt-0">
-          <Tabs value={currentTab} onValueChange={setCurrentTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="all">
-                All ({notifications.length})
-              </TabsTrigger>
-              <TabsTrigger value="unread">
-                Unread ({unreadCount})
-              </TabsTrigger>
-              <TabsTrigger value="read">
-                Read ({readNotifications.length})
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value={currentTab}>
-              {loading ? (
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex gap-4 p-4">
-                      <Skeleton className="w-4 h-4 rounded" />
-                      <Skeleton className="w-10 h-10 rounded-full" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : error ? (
-                <div className="text-center py-12">
-                  <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    Error loading notifications
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {error}
-                  </p>
-                  <Button onClick={refreshNotifications}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Try again
-                  </Button>
-                </div>
-              ) : filteredNotifications.length === 0 ? (
-                <div className="text-center py-12">
-                  <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    No notifications found
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    {searchQuery || filterType !== "all" || filterStatus !== "all"
-                      ? "Try adjusting your filters or search query"
-                      : "You're all caught up! No new notifications."
-                    }
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredNotifications.map((notification) => (
-                    <NotificationCard
-                      key={notification.id}
-                      notification={notification}
-                      onMarkAsRead={markAsRead}
-                      onDelete={deleteNotification}
-                      isSelected={selectedNotifications.has(notification.id)}
-                      onSelect={handleSelectNotification}
-                    />
-                  ))}
+              {selectedNotifications.size > 0 && (
+                <div className="flex items-center justify-between mt-4 p-3 bg-blue-50 rounded-lg">
+                  <span className="text-sm text-blue-700">
+                    {selectedNotifications.size} notification(s) selected
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBulkMarkAsRead}
+                    >
+                      <Check className="w-3 h-3 mr-1" />
+                      Mark read
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBulkDelete}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </CardHeader>
+          </Card>
+
+          {loading && filteredNotifications.length === 0 ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      <Skeleton className="w-4 h-4 rounded" />
+                      <Skeleton className="w-8 h-8 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : filteredNotifications.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No notifications found
+                </h3>
+                <p className="text-gray-500">
+                  {searchQuery || filterType !== 'all' || filterStatus !== 'all'
+                    ? 'Try adjusting your filters to see more notifications.'
+                    : 'You are all caught up! New notifications will appear here.'}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <input
+                  type="checkbox"
+                  checked={selectedNotifications.size === filteredNotifications.length}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label className="text-sm text-gray-600">
+                  Select all ({filteredNotifications.length})
+                </label>
+              </div>
+
+              {filteredNotifications.map((notification) => (
+                <NotificationCard
+                  key={notification.id}
+                  notification={notification}
+                  onMarkAsRead={markAsRead}
+                  onDelete={deleteNotification}
+                  isSelected={selectedNotifications.has(notification.id)}
+                  onSelect={handleSelectNotification}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="preferences">
+          <NotificationPreferences />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -1,7 +1,56 @@
-// services/landlord/notification.js
+// services/landlord/notification.js - Enhanced with Error Handling (ORIGINAL ENDPOINTS RESTORED)
+
 import api from '@/lib/api/api-client';
+import { ErrorHandler, handleApiError, createErrorResponse } from '@/lib/utils/errorHandler';
+import { customToast } from '@/components/ui/custom-toast';
+
+const NOTIFICATION_TYPES = {
+  // Payment notifications
+  PAYMENT_RECEIVED: 'payment_received',
+  PAYMENT_CONFIRMED: 'payment_confirmed',
+  PAYMENT_REJECTED: 'payment_rejected',
+  PAYMENT_RECORDED: 'payment_recorded',
+  PAYMENT_COMPLETED: 'payment_completed',
+  PAYMENT_FAILED: 'payment_failed',
+  PAYMENT_AUTO_CONFIRMED: 'payment_auto_confirmed',
+  
+  // System payment notifications
+  SYSTEM_PAYMENT_RECEIVED: 'system_payment_received',
+  SYSTEM_PAYMENT_COMPLETED: 'system_payment_completed',
+  SYSTEM_PAYMENT_FAILED: 'system_payment_failed',
+  
+  // Subscription notifications
+  SUBSCRIPTION_PAYMENT_INITIATED: 'subscription_payment_initiated',
+  SUBSCRIPTION_PAYMENT_COMPLETED: 'subscription_payment_completed',
+  SUBSCRIPTION_PAYMENT_FAILED: 'subscription_payment_failed',
+  SUBSCRIPTION_EXPIRED: 'subscription_expired',
+  SUBSCRIPTION_EXPIRING_SOON: 'subscription_expiring_soon',
+  SUBSCRIPTION_CANCELLED: 'subscription_cancelled',
+  SUBSCRIPTION_RENEWED: 'subscription_renewed',
+  
+  // Rent notifications
+  RENT_OVERDUE: 'rent_overdue',
+  NEXT_RENT_DUE: 'next_rent_due',
+  NEXT_PAYMENT_DUE: 'next_payment_due',
+  
+  // Maintenance notifications
+  MAINTENANCE_REQUEST: 'maintenance_request',
+  MAINTENANCE_RESPONSE: 'maintenance_response',
+  MAINTENANCE_UPDATE: 'maintenance_update',
+  
+  // Tenant management
+  TENANT_ASSIGNED: 'tenant_assigned',
+  TENANT_VACATED: 'tenant_vacated',
+  
+  // System
+  ADMIN_ALERT: 'admin_alert',
+  SYSTEM_UPDATE: 'system_update',
+  WELCOME: 'welcome'
+};
 
 const NotificationService = {
+  
+  // ORIGINAL WORKING ENDPOINTS - RESTORED
   getNotifications: async (unreadOnly = false, limit = 50) => {
     try {
       const params = new URLSearchParams();
@@ -41,7 +90,7 @@ const NotificationService = {
         throw new Error("Notification ID is required");
       }
       
-      const response = await api.put(`/api/v1/notifications/${notificationId}/mark-read/`, {});
+      const response = await api.put(`/api/v1/notifications/${notificationId}/`);
       return response;
     } catch (error) {
       console.error(`Error marking notification ${notificationId} as read:`, error);
@@ -93,17 +142,37 @@ const NotificationService = {
     }
   },
 
+  // ORIGINAL WORKING PREFERENCES ENDPOINTS - RESTORED
   getNotificationPreferences: async () => {
     try {
       const response = await api.get('/api/v1/notifications/preferences/');
-      return response;
+      return response || {
+        rent_reminder_sms: false,
+        payment_confirmation_sms: true,
+        payment_received_sms: true,
+        subscription_payment_sms: true,
+        subscription_expiry_sms: true,
+        maintenance_request_sms: true,
+        maintenance_response_sms: true,
+        urgent_maintenance_sms: true,
+        tenant_assignment_sms: true,
+        email_notifications: true,
+        push_notifications: true
+      };
     } catch (error) {
       console.error("Error fetching notification preferences:", error);
       return {
         rent_reminder_sms: false,
         payment_confirmation_sms: true,
-        overdue_notifications_sms: true,
-        wallet_notifications_sms: false
+        payment_received_sms: true,
+        subscription_payment_sms: true,
+        subscription_expiry_sms: true,
+        maintenance_request_sms: true,
+        maintenance_response_sms: true,
+        urgent_maintenance_sms: true,
+        tenant_assignment_sms: true,
+        email_notifications: true,
+        push_notifications: true
       };
     }
   },
@@ -118,6 +187,7 @@ const NotificationService = {
     }
   },
 
+  // ENHANCED FORMATTING WITH ORIGINAL STRUCTURE
   formatNotificationForDisplay: (notification) => {
     return {
       id: notification.id,
@@ -136,6 +206,31 @@ const NotificationService = {
 
   getNotificationIcon: (type) => {
     const icons = {
+      // Enhanced mapping for new notification types
+      payment_received: 'CreditCard',
+      payment_confirmed: 'CheckCircle',
+      payment_rejected: 'XCircle',
+      payment_completed: 'CheckCircle',
+      payment_failed: 'AlertCircle',
+      system_payment_received: 'Smartphone',
+      system_payment_completed: 'CheckCircle',
+      subscription_payment_completed: 'Crown',
+      subscription_expired: 'AlertTriangle',
+      subscription_cancelled: 'XCircle',
+      subscription_renewed: 'RefreshCw',
+      rent_overdue: 'AlertTriangle',
+      next_rent_due: 'Calendar',
+      next_payment_due: 'Clock',
+      maintenance_request: 'Wrench',
+      maintenance_response: 'MessageSquare',
+      maintenance_update: 'Settings',
+      tenant_assigned: 'UserPlus',
+      tenant_vacated: 'UserX',
+      admin_alert: 'AlertTriangle',
+      system_update: 'Settings',
+      welcome: 'Heart',
+      
+      // Original mappings - PRESERVED
       payment: 'CreditCard',
       rent: 'DollarSign',
       tenant: 'Users',
@@ -157,6 +252,31 @@ const NotificationService = {
     if (priority === 'medium') return 'text-orange-600 bg-orange-50 border-orange-200';
     
     const colors = {
+      // Enhanced color mapping for new notification types
+      payment_received: 'text-green-600 bg-green-50 border-green-200',
+      payment_confirmed: 'text-green-600 bg-green-50 border-green-200',
+      payment_rejected: 'text-red-600 bg-red-50 border-red-200',
+      payment_completed: 'text-green-600 bg-green-50 border-green-200',
+      payment_failed: 'text-red-600 bg-red-50 border-red-200',
+      system_payment_received: 'text-blue-600 bg-blue-50 border-blue-200',
+      system_payment_completed: 'text-green-600 bg-green-50 border-green-200',
+      subscription_payment_completed: 'text-purple-600 bg-purple-50 border-purple-200',
+      subscription_expired: 'text-red-600 bg-red-50 border-red-200',
+      subscription_cancelled: 'text-gray-600 bg-gray-50 border-gray-200',
+      subscription_renewed: 'text-green-600 bg-green-50 border-green-200',
+      rent_overdue: 'text-red-600 bg-red-50 border-red-200',
+      next_rent_due: 'text-blue-600 bg-blue-50 border-blue-200',
+      next_payment_due: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+      maintenance_request: 'text-orange-600 bg-orange-50 border-orange-200',
+      maintenance_response: 'text-blue-600 bg-blue-50 border-blue-200',
+      maintenance_update: 'text-purple-600 bg-purple-50 border-purple-200',
+      tenant_assigned: 'text-green-600 bg-green-50 border-green-200',
+      tenant_vacated: 'text-orange-600 bg-orange-50 border-orange-200',
+      admin_alert: 'text-red-600 bg-red-50 border-red-200',
+      system_update: 'text-gray-600 bg-gray-50 border-gray-200',
+      welcome: 'text-pink-600 bg-pink-50 border-pink-200',
+      
+      // Original color mappings - PRESERVED
       payment: 'text-green-600 bg-green-50 border-green-200',
       rent: 'text-blue-600 bg-blue-50 border-blue-200',
       tenant: 'text-purple-600 bg-purple-50 border-purple-200',
@@ -183,7 +303,9 @@ const NotificationService = {
     if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
     
     return date.toLocaleDateString();
-  }
+  },
+
+  NOTIFICATION_TYPES
 };
 
 export default NotificationService;
