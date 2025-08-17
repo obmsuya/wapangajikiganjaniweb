@@ -216,66 +216,6 @@ export default function PropertyPaymentsTab({ property }) {
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <CloudflareCard>
-          <CloudflareCardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Banknote className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Collected</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.totalAmount)}</p>
-              </div>
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-
-        <CloudflareCard>
-          <CloudflareCardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.pendingCount}</p>
-              </div>
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-
-        <CloudflareCard>
-          <CloudflareCardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <AlertCircle className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Overdue</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.overdueCount}</p>
-              </div>
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-
-        <CloudflareCard>
-          <CloudflareCardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">View All Payments</p>
-                <p className="text-sm text-gray-500">Detailed payment page</p>
-              </div>
-              <Link href="/landlord/payments">
-                <Button size="sm" variant="outline">
-                  <ArrowUpRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-      </div>
 
       {/* Pending Payments Alert */}
       {pendingPayments.length > 0 && (

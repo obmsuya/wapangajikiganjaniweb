@@ -76,35 +76,36 @@ export const usePaymentTabStore = create((set, get) => ({
     }
   },
 
-  fetchPaymentSummary: async (propertyId) => {
-    if (!propertyId) return;
+fetchPaymentSummary: async (propertyId) => {
+  if (!propertyId) return;
+  
+  try {
+    const { filters } = get();
+    const params = new URLSearchParams();
+    params.append('property_id', propertyId);
     
-    try {
-      const { filters } = get();
-      const params = new URLSearchParams();
-      
-      if (filters.startDate) params.append('start_date', filters.startDate);
-      if (filters.endDate) params.append('end_date', filters.endDate);
+    if (filters.startDate) params.append('start_date', filters.startDate);
+    if (filters.endDate) params.append('end_date', filters.endDate);
 
-      const response = await axios.get(`${API_BASE}/rent/summary/?${params}`, {
-        headers: getAuthHeaders()
+    const response = await axios.get(`${API_BASE}/rent/summary/?${params}`, {
+      headers: getAuthHeaders()
+    });
+
+    if (response.data.success) {
+      const summary = response.data.summary;
+      set({ 
+        summary: {
+          totalAmount: summary.total_amount || 0,
+          paidCount: summary.payment_count || 0,
+          pendingCount: summary.pending_count || 0,
+          overdueCount: summary.overdue_count || 0
+        }
       });
-
-      if (response.data.success) {
-        const summary = response.data.summary;
-        set({ 
-          summary: {
-            totalAmount: summary.total_amount || 0,
-            paidCount: summary.payment_count || 0,
-            pendingCount: summary.pending_count || 0,
-            overdueCount: summary.overdue_count || 0
-          }
-        });
-      }
-    } catch (error) {
-      set({ error: 'Failed to load summary' });
     }
-  },
+  } catch (error) {
+    set({ error: 'Failed to load summary' });
+  }
+},
 
   fetchUnitBreakdown: async (propertyId) => {
     if (!propertyId) return;

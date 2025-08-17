@@ -52,7 +52,7 @@ export default function PropertiesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
         <CloudflarePageHeader
           title="Properties"
@@ -64,8 +64,6 @@ export default function PropertiesPage() {
             </Button>
           }
         />
-
-
 
         {/* Search Bar */}
         <div className="mb-6">
