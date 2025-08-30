@@ -155,40 +155,40 @@ export default function PropertyPaymentsTab({ property }) {
         </div>
       )
     },
-    {
-      accessorKey: 'actions',
-      header: 'Actions',
-      cell: (row) => (
-        <div className="flex items-center gap-2">
-          {row.status === 'pending' && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleConfirmPayment(row, 'accept')}
-                className="text-green-600 hover:text-green-700"
-              >
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleConfirmPayment(row, 'reject')}
-                className="text-red-600 hover:text-red-700"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-          <Button
-            size="sm"
-            variant="outline"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-        </div>
-      )
-    }
+    // {
+    //   accessorKey: 'actions',
+    //   header: 'Actions',
+    //   cell: (row) => (
+    //     <div className="flex items-center gap-2">
+    //       {row.status === 'pending' && (
+    //         <>
+    //           <Button
+    //             size="sm"
+    //             variant="outline"
+    //             onClick={() => handleConfirmPayment(row, 'accept')}
+    //             className="text-green-600 hover:text-green-700"
+    //           >
+    //             <Check className="h-4 w-4" />
+    //           </Button>
+    //           <Button
+    //             size="sm"
+    //             variant="outline"
+    //             onClick={() => handleConfirmPayment(row, 'reject')}
+    //             className="text-red-600 hover:text-red-700"
+    //           >
+    //             <X className="h-4 w-4" />
+    //           </Button>
+    //         </>
+    //       )}
+    //       <Button
+    //         size="sm"
+    //         variant="outline"
+    //       >
+    //         <Eye className="h-4 w-4" />
+    //       </Button>
+    //     </div>
+    //   )
+    // }
   ];
 
   if (loading) {

@@ -1,4 +1,4 @@
-// hooks/landlord/useTenantAssignment.js - SIMPLIFIED MVP VERSION
+// hooks/landlord/useTenantAssignment.js 
 "use client";
 
 import { useState, useCallback } from 'react';

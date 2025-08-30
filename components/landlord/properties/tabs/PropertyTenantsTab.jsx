@@ -1,4 +1,4 @@
-// components/landlord/properties/PropertyTenantsTab.jsx - SIMPLIFIED MVP
+// components/landlord/properties/tabs/PropertyTenantsTab.jsx 
 "use client";
 
 import { useState } from "react";
@@ -23,20 +23,15 @@ import { useTenantManagement } from "@/hooks/landlord/useTenantAssignment";
 import TenantAssignmentDialog from "../TenantAssignmentDialog";
 import customToast from "@/components/ui/custom-toast";
 
-/**
- * Simplified Property Tenants Tab
- * Clean English UI showing essential tenant information
- */
+
 export default function PropertyTenantsTab({ property }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  
-  // Hooks for tenant data and operations
+
   const { tenants, loading, error, refreshTenants } = usePropertyTenants(property);
   const { sendReminder, vacateTenant, loading: actionLoading } = useTenantManagement();
 
-  // Filter tenants based on search
   const filteredTenants = tenants.filter(tenant => 
     tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     tenant.unit_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
