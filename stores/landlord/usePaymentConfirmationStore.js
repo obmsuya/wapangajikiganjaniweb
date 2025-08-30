@@ -22,7 +22,6 @@ export const usePaymentConfirmationStore = create((set, get) => ({
   rejectionReason: '',
   processingConfirmation: false,
 
-  // Actions
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
@@ -36,7 +35,6 @@ export const usePaymentConfirmationStore = create((set, get) => ({
   setConfirmAction: (action) => set({ confirmAction: action }),
   setRejectionReason: (reason) => set({ rejectionReason: reason }),
 
-  // Fetch pending payments
   fetchPendingPayments: async () => {
     try {
       set({ loading: true, error: null });
@@ -85,7 +83,6 @@ export const usePaymentConfirmationStore = create((set, get) => ({
     }
   },
 
-  // Confirm or reject payment
   confirmPayment: async (paymentId, action, rejectionReason = '') => {
     try {
       set({ processingConfirmation: true, error: null });
@@ -170,7 +167,6 @@ export const usePaymentConfirmationStore = create((set, get) => ({
       );
     }
 
-    // Apply date range filter
     if (filters.dateRange !== 'all') {
       const now = new Date();
       const filterDate = new Date();
