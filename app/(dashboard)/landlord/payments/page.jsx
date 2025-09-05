@@ -164,15 +164,15 @@ export default function PaymentsPage() {
         </div>
       )
     },
-    {
-      header: 'Actions',
-      accessor: 'actions',
-      cell: (row) => (
-        <Button size="sm" variant="outline">
-          <Eye className="h-4 w-4" />
-        </Button>
-      )
-    }
+    // {
+    //   header: 'Actions',
+    //   accessor: 'actions',
+    //   cell: (row) => (
+    //     <Button size="sm" variant="outline">
+    //       <Eye className="h-4 w-4" />
+    //     </Button>
+    //   )
+    // }
   ];
 
   const breadcrumbItems = [
