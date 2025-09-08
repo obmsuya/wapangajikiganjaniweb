@@ -181,7 +181,7 @@ const PaymentDialog = ({ isOpen, onClose, selectedPlan, onProcessPayment }) => {
   const [paymentMethod, setPaymentMethod] = useState("mno");
   const [paymentData, setPaymentData] = useState({
     accountNumber: "",
-    provider: "vodacom",
+    provider: "Mpesa",
     bankName: ""
   });
   const [isProcessing, setIsProcessing] = useState(false);
@@ -246,7 +246,7 @@ const PaymentDialog = ({ isOpen, onClose, selectedPlan, onProcessPayment }) => {
                       <SelectValue placeholder="Select provider" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="vodacom">Vodacom M-Pesa</SelectItem>
+                      <SelectItem value="Mpesa">Vodacom M-Pesa</SelectItem>
                       <SelectItem value="airtel">Airtel Money</SelectItem>
                       <SelectItem value="tigo">Tigo Pesa</SelectItem>
                       <SelectItem value="halopesa">HaloPesa</SelectItem>

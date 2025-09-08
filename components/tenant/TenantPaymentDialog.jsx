@@ -32,7 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTenantPaymentStore } from "@/stores/tenant/useTenantPaymentStore";
 
 const MOBILE_PROVIDERS = [
-  { value: 'Vodacom', label: 'Vodacom M-Pesa', icon: '📱' },
+  { value: 'Mpesa', label: 'Vodacom M-Pesa', icon: '📱' },
   { value: 'Airtel', label: 'Airtel Money', icon: '📱' },
   { value: 'Tigo', label: 'Tigo Pesa', icon: '📱' },
   { value: 'Halopesa', label: 'Halo Pesa', icon: '📱' },
@@ -74,7 +74,7 @@ export default function TenantPaymentDialog() {
     amount: '',
     notes: '',
     paymentType: 'mno',
-    provider: 'Vodacom',
+    provider: 'Mpesa',
     accountNumber: '',
     selectedUnitId: ''
   });
@@ -108,7 +108,7 @@ export default function TenantPaymentDialog() {
       amount: '',
       notes: '',
       paymentType: 'mno', 
-      provider: 'Vodacom',
+      provider: 'Mpesa',
       accountNumber: '',
       selectedUnitId: ''
     });
