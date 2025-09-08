@@ -100,21 +100,6 @@ export default function PropertyFloorsTab({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Floor Plans</h3>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {}}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Bulk Edit
-          </Button>
-          <Button
-            onClick={() => {}}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Floor
-          </Button>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

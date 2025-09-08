@@ -176,7 +176,7 @@ export default function PaymentsPage() {
   ];
 
   const breadcrumbItems = [
-    { label: "Dashboard", href: "/landlord/dashboard", icon: <Home className="h-4 w-4" /> },
+    { label: "Dashboard", href: "/landlord/properties", icon: <Home className="h-4 w-4" /> },
     { label: "Payments" }
   ];
 

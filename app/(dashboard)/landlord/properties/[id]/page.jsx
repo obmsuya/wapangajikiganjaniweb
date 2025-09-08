@@ -257,7 +257,7 @@ export default function PropertyDetailsPage({ params }) {
   }, [processedProperty, floorData]);
 
   const breadcrumbItems = [
-    { label: 'Dashboard', href: '/landlord/dashboard' },
+    { label: 'Dashboard', href: '/landlord/properties' },
     { label: 'Properties', href: '/landlord/properties' },
     { label: processedProperty?.name || 'Property Details' }
   ];
@@ -271,14 +271,6 @@ export default function PropertyDetailsPage({ params }) {
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back to Properties
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleEditProperty}
-      >
-        <Edit className="w-4 h-4 mr-2" />
-        Edit Property
       </Button>
     </div>
   );

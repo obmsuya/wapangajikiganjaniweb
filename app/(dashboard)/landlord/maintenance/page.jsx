@@ -78,7 +78,7 @@ export default function LandlordMaintenancePage() {
   }, [fetchMaintenanceSummary]);
 
   const breadcrumbItems = [
-    { label: "Dashboard", href: "/landlord" },
+    { label: "Dashboard", href: "/landlord/properties/" },
     { label: "Maintenance" }
   ];
 

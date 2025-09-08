@@ -1,8 +1,5 @@
-// services/landlord/notification.js - Enhanced with Error Handling (ORIGINAL ENDPOINTS RESTORED)
-
+// services/landlord/notification.js 
 import api from '@/lib/api/api-client';
-import { ErrorHandler, handleApiError, createErrorResponse } from '@/lib/utils/errorHandler';
-import { customToast } from '@/components/ui/custom-toast';
 
 const NOTIFICATION_TYPES = {
   // Payment notifications
@@ -49,8 +46,6 @@ const NOTIFICATION_TYPES = {
 };
 
 const NotificationService = {
-  
-  // ORIGINAL WORKING ENDPOINTS - RESTORED
   getNotifications: async (unreadOnly = false, limit = 50) => {
     try {
       const params = new URLSearchParams();
@@ -142,7 +137,6 @@ const NotificationService = {
     }
   },
 
-  // ORIGINAL WORKING PREFERENCES ENDPOINTS - RESTORED
   getNotificationPreferences: async () => {
     try {
       const response = await api.get('/api/v1/notifications/preferences/');
@@ -187,7 +181,6 @@ const NotificationService = {
     }
   },
 
-  // ENHANCED FORMATTING WITH ORIGINAL STRUCTURE
   formatNotificationForDisplay: (notification) => {
     return {
       id: notification.id,
@@ -206,7 +199,6 @@ const NotificationService = {
 
   getNotificationIcon: (type) => {
     const icons = {
-      // Enhanced mapping for new notification types
       payment_received: 'CreditCard',
       payment_confirmed: 'CheckCircle',
       payment_rejected: 'XCircle',
@@ -229,8 +221,6 @@ const NotificationService = {
       admin_alert: 'AlertTriangle',
       system_update: 'Settings',
       welcome: 'Heart',
-      
-      // Original mappings - PRESERVED
       payment: 'CreditCard',
       rent: 'DollarSign',
       tenant: 'Users',
@@ -252,7 +242,6 @@ const NotificationService = {
     if (priority === 'medium') return 'text-orange-600 bg-orange-50 border-orange-200';
     
     const colors = {
-      // Enhanced color mapping for new notification types
       payment_received: 'text-green-600 bg-green-50 border-green-200',
       payment_confirmed: 'text-green-600 bg-green-50 border-green-200',
       payment_rejected: 'text-red-600 bg-red-50 border-red-200',
@@ -276,7 +265,6 @@ const NotificationService = {
       system_update: 'text-gray-600 bg-gray-50 border-gray-200',
       welcome: 'text-pink-600 bg-pink-50 border-pink-200',
       
-      // Original color mappings - PRESERVED
       payment: 'text-green-600 bg-green-50 border-green-200',
       rent: 'text-blue-600 bg-blue-50 border-blue-200',
       tenant: 'text-purple-600 bg-purple-50 border-purple-200',
