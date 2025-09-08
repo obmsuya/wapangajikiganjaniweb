@@ -176,7 +176,7 @@ export default function PropertyTenantsTab({ property }) {
               : 'Add tenants to start managing your property'
             }
           </p>
-          {!searchTerm && (
+          {/* {!searchTerm && (
             <Button
               onClick={() => setShowAssignDialog(true)}
               className="bg-blue-600 hover:bg-blue-700"
@@ -184,7 +184,7 @@ export default function PropertyTenantsTab({ property }) {
               <UserPlus className="w-4 h-4 mr-2" />
               Add First Tenant
             </Button>
-          )}
+          )} */}
         </div>
       ) : (
         <div className="grid gap-4">

@@ -142,7 +142,6 @@ export default function PropertyTenantsTable() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold tracking-tight">Tenants</h2>
-        <Button>Add Tenant</Button>
       </div>
 
       {/* Application of filters */}
