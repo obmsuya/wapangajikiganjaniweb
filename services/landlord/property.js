@@ -52,8 +52,6 @@ const PropertyService = {
       }
       
       const response = await api.get(`/api/v1/svg_properties/property/${propertyId}/`);
-      
-      // FIXED: Properly extract units WITH tenant data
       const units = [];
       if (response.property_floor && Array.isArray(response.property_floor)) {
         response.property_floor.forEach(floor => {
@@ -66,24 +64,17 @@ const PropertyService = {
                   id: floor.id
                 },
                 floor: floor.floor_no,
-                // FIXED: Keep the actual current_tenant data from the API
                 current_tenant: unit.current_tenant || null
               });
             });
           }
         });
-
-        // FIXED: Also preserve tenant data in the floor structure
         response.property_floor = response.property_floor.map(floor => ({
           ...floor,
-          // Preserve units_floor with tenant data
           units_floor: floor.units_floor ? floor.units_floor.map(unit => ({
             ...unit,
-            // Ensure current_tenant is preserved
             current_tenant: unit.current_tenant || null
           })) : [],
-          
-          // Add grid configuration
           grid_configuration: floor.grid_configuration || (
             floor.layout_data ? {
               grid_size: 8,
