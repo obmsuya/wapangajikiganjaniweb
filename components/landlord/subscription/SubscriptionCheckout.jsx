@@ -172,21 +172,17 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
       if (result.success) {
         setTransactionId(result.transactionId);
         setProcessingState(PROCESSING_STATES.WAITING_CALLBACK);
-        
-        customToast.success("Payment Initiated", {
-          description: "Complete the payment on your phone. You will be notified once processed."
-        });
-
-        setTimeout(() => {
-          if (onSuccess) {
-            onSuccess(result);
-          }
-        }, 2000);
-
+        if (result.success) {
+          router.push('/landlord/properties'); // Navigate only after polling confirms
+        } else {
+          setProcessingState(PROCESSING_STATES.FAILED);
+          customToast.error("Payment Failed", {
+            description: formatUserFriendlyError(result.message)
+          });
+        }
       } else {
         const userError = formatUserFriendlyError(result.error);
         setProcessingState(PROCESSING_STATES.FAILED);
-        
         customToast.error("Payment Failed", {
           description: userError
         });

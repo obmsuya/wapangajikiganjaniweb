@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Building2, AlertCircle, Crown, Users, Home, TrendingUp } from "lucide-react";
+import { Plus, Search, Building2, AlertCircle, Crown, Users, Home, TrendingUp, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,7 +28,8 @@ export default function PropertiesPage() {
   const { 
     canAddProperties, 
     initializeTokenData, 
-    extractTokenSubscriptionData 
+    extractTokenSubscriptionData,
+    processingPayment: isSubscriptionSyncing // Reuse for background sync
   } = useSubscriptionStore();
   
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,6 +52,13 @@ export default function PropertiesPage() {
 
     return () => clearTimeout(debounceTimer);
   }, [searchTerm, searchProperties, fetchDashboardData]);
+
+  // Re-fetch data after subscription sync completes
+  useEffect(() => {
+    if (!isSubscriptionSyncing && !loading) {
+      fetchDashboardData(); // Refresh properties, stats, visibility
+    }
+  }, [isSubscriptionSyncing, fetchDashboardData]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -85,7 +93,14 @@ export default function PropertiesPage() {
   const invisibleProperties = properties.filter(property => property.is_visible === false);
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-6 relative">
+      {isSubscriptionSyncing && (
+        <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-50">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
+          <p className="text-lg font-medium text-gray-800">Updating your subscription...</p>
+          <p className="text-sm text-gray-600 mt-2">Please wait while we activate your plan and refresh your properties.</p>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
         <CloudflarePageHeader
@@ -179,17 +194,15 @@ export default function PropertiesPage() {
             ))}
           </div>
         ) : error ? (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-                <div>
-                  <h3 className="font-medium text-red-800">Error loading properties</h3>
-                  <p className="text-red-600">{error.message || 'Failed to load properties'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12">
+            <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-red-900 mb-2">Error Loading Properties</h3>
+            <p className="text-red-600 mb-6">{error.message || 'Failed to load properties. Please try again.'}</p>
+            <Button onClick={fetchDashboardData} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </div>
         ) : properties.length > 0 ? (
           <div className="space-y-8">
             {/* Visible Properties */}
@@ -233,21 +246,18 @@ export default function PropertiesPage() {
             )}
           </div>
         ) : (
-          // Empty State
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Yet</h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Get started by adding your first property. You can manage tenants, 
-                collect rent, and track everything in one place.
-              </p>
-              <Button onClick={handleNavigateToSetup} size="lg">
-                <Plus className="w-5 h-5 mr-2" />
-                Add Your First Property
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12">
+            <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Yet</h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              Get started by adding your first property. You can manage tenants, 
+              collect rent, and track everything in one place.
+            </p>
+            <Button onClick={handleNavigateToSetup} size="lg">
+              <Plus className="w-5 h-5 mr-2" />
+              Add Your First Property
+            </Button>
+          </div>
         )}
 
         {/* Upgrade Modal */}

@@ -45,6 +45,7 @@ import { Progress } from '@/components/ui/progress';
 import { CloudflareTable } from '@/components/cloudflare/Table';
 import { useSubscriptionStore } from '@/stores/landlord/useSubscriptionStore';
 import { toast } from 'sonner';
+import customToast from '@/components/ui/custom-toast';
 
 export default function SubscriptionPage() {
   const [activeTab, setActiveTab] = useState('plans');
@@ -116,7 +117,7 @@ export default function SubscriptionPage() {
 
   const handlePayment = async () => {
     if (!selectedPlan || !paymentData.method) {
-      toast.error('Please complete all required fields');
+      customToast.error('Please complete all required fields');
       return;
     }
 

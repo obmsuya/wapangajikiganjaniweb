@@ -11,9 +11,9 @@ import api from '@/lib/api/api-client';
 const GRID_SIZE = 8;
 const CELL_SIZE = 40;
 
-export default function PropertyOverviewTab({ 
-  property, 
-  floorData, 
+export default function PropertyOverviewTab({
+  property,
+  floorData,
 }) {
   const [tenantsData, setTenantsData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,15 +23,15 @@ export default function PropertyOverviewTab({
   useEffect(() => {
     const fetchPropertyData = async () => {
       if (!property?.id) return;
-      
+
       try {
         setLoading(true);
         const tenantsResponse = await api.get(`/api/v1/tenants/property/${property.id}/tenants/`);
-        
+
         if (tenantsResponse.tenants) {
           setTenantsData(tenantsResponse.tenants);
         }
-        
+
       } catch (error) {
         console.error('Error fetching property data:', error);
       } finally {
@@ -43,8 +43,8 @@ export default function PropertyOverviewTab({
   }, [property?.id]);
 
   const getUnitPaymentStatus = (unit) => {
-    const tenant = tenantsData.find(t => 
-      t.unit_id === unit.id || 
+    const tenant = tenantsData.find(t =>
+      t.unit_id === unit.id ||
       (t.unit_name === unit.unit_name && t.floor_number === parseInt(floorNum))
     );
 
@@ -60,54 +60,52 @@ export default function PropertyOverviewTab({
 
 
 
-    return Object.entries(floorData)
-      .map(([floorNum, floor]) => {
-        if (!floor || !floor.units || floor.units.length === 0) return null;
+    return Object.entries(floorData).map(([floorNum, floor]) => {
+      if (!floor || !floor.units || floor.units.length === 0) return null;
 
-        const gridCells = floor.units
-          .map(unit => {
-            const paymentStatus = getUnitPaymentStatus(unit);
-            
-            const tenant = tenantsData.find(t => 
-              t.unit_id === unit.id || 
-              (t.unit_name === unit.unit_name && t.floor_number === parseInt(floorNum))
-            );
-            
-            return {
-              cellIndex: unit.svg_id,
-              unitName: unit.unit_name,
-              tenant: tenant?.tenant || unit.current_tenant,
-              status: unit.status,
-              rentAmount: tenant?.rent_amount || unit.rent_amount,
-              paymentStatus: paymentStatus,
-              isOccupied: !!tenant?.tenant
-            };
-          })
-          .filter(unit => unit.cellIndex !== undefined && unit.cellIndex !== null)
-          .sort((a, b) => a.cellIndex - b.cellIndex);
+      const gridCells = floor.units.map(unit => {
+        const paymentStatus = getUnitPaymentStatus(unit);
 
-        const occupiedCount = gridCells.filter(unit => unit.isOccupied).length;
-        const occupancyRate = gridCells.length > 0 ? Math.round((occupiedCount / gridCells.length) * 100) : 0;
+        const tenant = tenantsData.find(t =>
+          t.unit_id === unit.id ||
+          (t.unit_name === unit.unit_name && t.floor_number === parseInt(floorNum))
+        );
 
         return {
-          floorNumber: parseInt(floorNum),
-          floorNo: floor.floor_no,
-          units: gridCells,
-          totalUnits: floor.units_total || gridCells.length,
-          occupiedUnits: occupiedCount,
-          occupancyRate: occupancyRate,
-          configured: gridCells.length > 0
+          cellIndex: unit.svg_id,
+          unitName: unit.unit_name,
+          tenant: tenant?.tenant || unit.current_tenant,
+          status: unit.status,
+          rentAmount: tenant?.rent_amount || unit.rent_amount,
+          paymentStatus: paymentStatus,
+          isOccupied: !!tenant?.tenant
         };
       })
+        .filter(unit => unit.cellIndex !== undefined && unit.cellIndex !== null)
+        .sort((a, b) => a.cellIndex - b.cellIndex);
+
+      const occupiedCount = gridCells.filter(unit => unit.isOccupied).length;
+      const occupancyRate = gridCells.length > 0 ? Math.round((occupiedCount / gridCells.length) * 100) : 0;
+
+      return {
+        floorNumber: parseInt(floorNum),
+        floorNo: floor.floor_no,
+        units: gridCells,
+        totalUnits: floor.units_total || gridCells.length,
+        occupiedUnits: occupiedCount,
+        occupancyRate: occupancyRate,
+        configured: gridCells.length > 0
+      };
+    })
       .filter(floor => floor !== null)
       .sort((a, b) => a.floorNumber - b.floorNumber);
   }, [floorData, tenantsData]);
 
   const generateFloorGrid = (floor) => {
     const cells = [];
-    
+
     if (floor.units.length === 0) return cells;
-    
+
     const unitPositions = floor.units.map(unit => ({
       ...unit,
       x: unit.cellIndex % GRID_SIZE,
@@ -122,9 +120,9 @@ export default function PropertyOverviewTab({
     floor.units.forEach((unit, index) => {
       const x = (unit.cellIndex % GRID_SIZE - minX) * CELL_SIZE;
       const y = (Math.floor(unit.cellIndex / GRID_SIZE) - minY) * CELL_SIZE;
-      
+
       let cellColor, borderColor, textColor, statusText;
-      
+
       switch (unit.paymentStatus) {
         case 'paid':
           cellColor = '#10b981';
@@ -166,9 +164,8 @@ export default function PropertyOverviewTab({
             borderColor: borderColor,
             color: textColor
           }}
-          title={`${unit.unitName} - ${statusText}${
-            unit.tenant ? ` (${unit.tenant.full_name})` : ''
-          }${unit.rentAmount ? ` - ${unit.rentAmount} TZS` : ''}`}
+          title={`${unit.unitName} - ${statusText}${unit.tenant ? ` (${unit.tenant.full_name})` : ''
+            }${unit.rentAmount ? ` - ${unit.rentAmount} TZS` : ''}`}
           onClick={() => handleUnitClick(unit, floor.floorNumber)}
         >
           {index + 1}
@@ -230,14 +227,14 @@ export default function PropertyOverviewTab({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {processedFloors.map((floor) => (
           <CloudflareCard key={floor.floorNumber}>
-            <CloudflareCardHeader 
-              title={`Floor ${floor.floorNumber}`} 
+            <CloudflareCardHeader
+              title={`Floor ${floor.floorNumber}`}
               subtitle={`${floor.totalUnits} units • ${floor.occupancyRate}% occupied`}
             />
             <CloudflareCardContent>
               <div className="space-y-4">
                 <div className="flex justify-center">
-                  <div 
+                  <div
                     className="relative bg-white rounded-lg p-4 border border-gray-200"
                     style={{
                       width: floor.layoutWidth + 20 || GRID_SIZE * CELL_SIZE,
@@ -302,20 +299,19 @@ export default function PropertyOverviewTab({
               {selectedUnit?.unitName || 'Unit Details'}
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedUnit ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <span className="text-sm font-medium">Floor {selectedUnit.floorNumber}</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  selectedUnit.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                  selectedUnit.paymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
-                  selectedUnit.paymentStatus === 'due' ? 'bg-orange-100 text-orange-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${selectedUnit.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                    selectedUnit.paymentStatus === 'overdue' ? 'bg-red-100 text-red-800' :
+                      selectedUnit.paymentStatus === 'due' ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-100 text-gray-800'
+                  }`}>
                   {selectedUnit.paymentStatus === 'paid' ? 'Rent Paid' :
-                   selectedUnit.paymentStatus === 'overdue' ? 'Rent Overdue' :
-                   selectedUnit.paymentStatus === 'due' ? 'Rent Due' : 'Vacant'}
+                    selectedUnit.paymentStatus === 'overdue' ? 'Rent Overdue' :
+                      selectedUnit.paymentStatus === 'due' ? 'Rent Due' : 'Vacant'}
                 </span>
               </div>
 

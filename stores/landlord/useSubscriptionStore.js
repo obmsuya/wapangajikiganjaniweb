@@ -125,6 +125,36 @@ export const useSubscriptionStore = create((set, get) => ({
     }
   },
 
+  refreshToken: async () => {
+    try {
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken) {
+        throw new Error('No refresh token found');
+      }
+      
+      const response = await api.post('/api/v1/auth/token/refresh/', {
+        refresh: refreshToken,
+      });
+
+      if (response && response.access) {
+        localStorage.setItem('access_token', response.access);
+        get().initializeTokenData(); 
+        get().fetchCurrentSubscription();
+        get().fetchPropertyVisibility();
+        customToast.success("Account Updated", {
+          description: "Your subscription has been successfully upgraded!"
+        });
+        return { success: true };
+      }
+    } catch (error) {
+      console.error("Failed to refresh token:", error);
+      customToast.error("Update Failed", {
+        description: "Could not update your session. Please log out and log back in."
+      });
+      return { success: false };
+    }
+  },
+
   fetchCurrentSubscription: async () => {
     try {
       set({ loading: true, error: null });
@@ -313,27 +343,72 @@ export const useSubscriptionStore = create((set, get) => ({
     }
   },
 
+  pollTransactionStatus: (transactionId) => {
+    return new Promise((resolve, reject) => {
+      set({ processingPayment: true }); // Start loading
+      const interval = setInterval(async () => {
+        try {
+          const response = await api.get(`/api/v1/payments/subscription/transaction-status/${transactionId}/`);
+          
+          if (response && response.status === 'completed') {
+            clearInterval(interval);
+            set({ processingPayment: false });
+            await get().refreshToken(); // Refresh token to update plan
+            customToast.success("Payment Successful", {
+              description: "Your subscription has been activated!"
+            });
+            resolve({ success: true });
+          } else if (response && response.status === 'failed') {
+            clearInterval(interval);
+            set({ processingPayment: false });
+            customToast.error("Payment Failed", {
+              description: "Your payment could not be processed."
+            });
+            resolve({ success: false, error: "Payment failed" });
+          }
+        } catch (error) {
+          clearInterval(interval);
+          set({ processingPayment: false });
+          customToast.error("Polling Error", {
+            description: "Failed to check payment status. Please refresh."
+          });
+          reject(error);
+        }
+      }, 10000); // Poll every 10 seconds
+
+      setTimeout(() => {
+        clearInterval(interval);
+        set({ processingPayment: false });
+        customToast.info("Payment Processing", {
+          description: "Your payment is still processing. We will update your account once confirmed."
+        });
+        resolve({ success: false, error: "Payment timeout" });
+      }, 300000); // 5 minutes
+    });
+  },
+  
+  // Update processMNOPayment
   processMNOPayment: async (planId, accountNumber, provider) => {
     try {
       set({ processingPayment: true, error: null });
       
       const response = await api.post('/api/v1/payments/subscription/mno/checkout/', {
         plan_id: planId,
-        accountNumber: accountNumber,
-        provider: provider
+        accountNumber,
+        provider
       });
       
-      if (response && response.success !== false) {
-        set({ 
-          processingPayment: false,
-          lastTransactionId: response.transaction_id 
+      if (response && response.transaction_id) {
+        customToast.info("Processing Payment", {
+          description: "Please complete the payment on your phone. Waiting for confirmation...",
+          duration: Infinity // Keep toast until polling resolves
         });
-        
+        const pollResult = await get().pollTransactionStatus(response.transaction_id);
         return {
-          success: true,
+          success: pollResult.success,
           transactionId: response.transaction_id,
           externalId: response.external_id,
-          message: response.message || "Payment initiated successfully"
+          message: pollResult.success ? "Payment completed" : pollResult.error
         };
       } else {
         throw new Error(response?.error || 'Payment initiation failed');
@@ -344,7 +419,9 @@ export const useSubscriptionStore = create((set, get) => ({
         error: classified.message,
         processingPayment: false
       });
-      
+      customToast.error("Payment Error", {
+        description: classified.message
+      });
       return { 
         success: false, 
         error: classified.message,
@@ -352,28 +429,29 @@ export const useSubscriptionStore = create((set, get) => ({
       };
     }
   },
-
+  
+  // Update processBankPayment (similar)
   processBankPayment: async (planId, accountNumber, bankName) => {
     try {
       set({ processingPayment: true, error: null });
       
       const response = await api.post('/api/v1/payments/subscription/bank/checkout/', {
         plan_id: planId,
-        accountNumber: accountNumber,
-        bankName: bankName
+        accountNumber,
+        bankName
       });
       
-      if (response && response.success !== false) {
-        set({ 
-          processingPayment: false,
-          lastTransactionId: response.transaction_id 
+      if (response && response.transaction_id) {
+        customToast.info("Processing Payment", {
+          description: "Please complete the bank transfer. Waiting for confirmation...",
+          duration: Infinity // Keep toast until polling resolves
         });
-        
+        const pollResult = await get().pollTransactionStatus(response.transaction_id);
         return {
-          success: true,
+          success: pollResult.success,
           transactionId: response.transaction_id,
           externalId: response.external_id,
-          message: response.message || "Payment initiated successfully"
+          message: pollResult.success ? "Payment completed" : pollResult.error
         };
       } else {
         throw new Error(response?.error || 'Payment initiation failed');
@@ -384,7 +462,9 @@ export const useSubscriptionStore = create((set, get) => ({
         error: classified.message,
         processingPayment: false
       });
-      
+      customToast.error("Payment Error", {
+        description: classified.message
+      });
       return { 
         success: false, 
         error: classified.message,
