@@ -88,7 +88,7 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
   const propertyCategory = property.category || property.property_type || 'Property';
 
   const handleCardClick = () => {
-    if (!isVisible) {
+    if (!isVisible || (subscriptionContext?.isFreePlan && !property.is_primary)) {  // Extra check for free plan primary
       setShowUpgradeModal(true);
       return;
     }
@@ -194,14 +194,6 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
             )}
           </div>
 
-          {/* Occupancy Badge - Only show for visible properties with units */}
-          {isVisible && occupancyData.totalUnits > 0 && (
-            <div className="absolute top-3 right-3">
-              <Badge className="bg-white/90 text-gray-700 border-0">
-                {occupancyData.occupancyRate}% Occupied
-              </Badge>
-            </div>
-          )}
         </div>
 
         {/* Property Content */}

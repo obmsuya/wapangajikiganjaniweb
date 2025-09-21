@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Building2, AlertCircle, Crown, Users, Home, TrendingUp, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,11 +29,12 @@ export default function PropertiesPage() {
     canAddProperties, 
     initializeTokenData, 
     extractTokenSubscriptionData,
-    processingPayment: isSubscriptionSyncing // Reuse for background sync
+    processingPayment: isSubscriptionSyncing
   } = useSubscriptionStore();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [pollingInterval, setPollingInterval] = useState(null);
 
   // Initialize subscription data from token on mount
   useEffect(() => {
@@ -46,26 +47,50 @@ export default function PropertiesPage() {
       if (searchTerm) {
         searchProperties(searchTerm);
       } else {
-        fetchDashboardData(); // Refresh all data when search is cleared
+        fetchDashboardData();
       }
     }, 300);
 
     return () => clearTimeout(debounceTimer);
   }, [searchTerm, searchProperties, fetchDashboardData]);
 
-  // Re-fetch data after subscription sync completes
+  // Refresh on sync complete
   useEffect(() => {
     if (!isSubscriptionSyncing && !loading) {
-      fetchDashboardData(); // Refresh properties, stats, visibility
+      fetchDashboardData();
+      initializeTokenData();  // Re-init store from updated token
     }
-  }, [isSubscriptionSyncing, fetchDashboardData]);
+  }, [isSubscriptionSyncing, fetchDashboardData, initializeTokenData]);
+
+  // Polling: When syncing (post-upgrade), poll every 5s until success or timeout (e.g., 1 min)
+  useEffect(() => {
+    if (isSubscriptionSyncing) {
+      const interval = setInterval(() => {
+        fetchDashboardData();
+        initializeTokenData();
+      }, 5000);  // Poll every 5 seconds
+      setPollingInterval(interval);
+
+      // Timeout after 60s
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+      }, 60000);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    } else if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  }, [isSubscriptionSyncing, fetchDashboardData, initializeTokenData]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
 
   const handleNavigateToSetup = () => {
-    // Check if user can add properties from token or subscription context
     const canAdd = canAddProperties();
     
     if (!canAdd) {
@@ -76,7 +101,17 @@ export default function PropertiesPage() {
     router.push("/landlord/setup");
   };
 
-  // Get subscription data for display
+  // Handle modal close: If upgraded, trigger sync/polling
+  const handleModalClose = (wasUpgraded = false) => {
+    setShowUpgradeModal(false);
+    if (wasUpgraded) {
+      // Assume modal sets isSubscriptionSyncing=true on payment start
+      // Here, refetch immediately
+      fetchDashboardData();
+      initializeTokenData();
+    }
+  };
+
   const tokenData = extractTokenSubscriptionData();
   const subscriptionData = subscriptionContext || tokenData;
 
@@ -88,9 +123,37 @@ export default function PropertiesPage() {
     occupancyRate: 0
   };
 
-  // Separate visible and invisible properties
-  const visibleProperties = properties.filter(property => property.is_visible !== false);
-  const invisibleProperties = properties.filter(property => property.is_visible === false);
+  // Hybrid Visibility Filter
+  const [visibleProperties, invisibleProperties] = useMemo(() => {
+    if (!subscriptionData || !properties.length) return [[], []];
+
+    // Sort by created_at (assuming properties have created_at; add if missing in API)
+    const sortedProperties = [...properties].sort((a, b) => 
+      new Date(a.created_at) - new Date(b.created_at)  // Oldest first
+    );
+
+    const visible = [];
+    const invisible = [];
+
+    sortedProperties.forEach((property) => {
+      // Trust server first
+      let shouldShow = property.is_visible !== false;
+
+      // Hybrid client check for free plan
+      if (subscriptionData.isFreePlan) {
+        const visibleCount = visible.length;
+        shouldShow = shouldShow && visibleCount < subscriptionData.propertyLimit;
+      }
+
+      if (shouldShow) {
+        visible.push(property);
+      } else {
+        invisible.push(property);
+      }
+    });
+
+    return [visible, invisible];
+  }, [properties, subscriptionData]);
 
   return (
     <div className="min-h-screen p-6 relative">
@@ -108,7 +171,6 @@ export default function PropertiesPage() {
           description="Manage your properties and tenants"
           actions={
             <div className="flex items-center gap-3">
-              {/* Subscription Status Badge */}
               {subscriptionData && (
                 <Badge 
                   variant="outline" 
@@ -260,10 +322,10 @@ export default function PropertiesPage() {
           </div>
         )}
 
-        {/* Upgrade Modal */}
+        {/* Upgrade Modal - Pass callback for close */}
         <UpgradeModal 
           isOpen={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
+          onClose={(wasUpgraded) => handleModalClose(wasUpgraded)}
           subscriptionData={subscriptionData}
         />
       </div>

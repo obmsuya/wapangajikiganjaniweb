@@ -10,7 +10,6 @@ export function useNotifications() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Simple fetch functions without dependencies causing re-renders
   const fetchNotifications = useCallback(async (unreadOnly = false, limit = 50) => {
     try {
       setLoading(true);
@@ -28,7 +27,7 @@ export function useNotifications() {
     } finally {
       setLoading(false);
     }
-  }, []); // No dependencies - function is stable
+  }, []); 
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -37,7 +36,7 @@ export function useNotifications() {
     } catch (err) {
       console.error('Error fetching unread count:', err);
     }
-  }, []); // No dependencies - function is stable
+  }, []); 
 
   const markAsRead = useCallback(async (notificationId) => {
     try {
@@ -85,7 +84,6 @@ export function useNotifications() {
         prev.filter(notification => notification.id !== notificationId)
       );
       
-      // Update unread count if the deleted notification was unread
       const deletedNotification = notifications.find(n => n.id === notificationId);
       if (deletedNotification && !deletedNotification.isRead) {
         setUnreadCount(prev => Math.max(0, prev - 1));
@@ -106,26 +104,23 @@ export function useNotifications() {
     return notifications.filter(notification => notification.type === type);
   }, [notifications]);
 
-  // Simple refresh function with no dependencies
   const refreshNotifications = useCallback(() => {
     fetchNotifications();
     fetchUnreadCount();
-  }, []); // No dependencies - prevents infinite loops
+  }, []); 
 
-  // Auto-refresh every 30 seconds - ONLY the count, not full notifications
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchUnreadCount(); // Only fetch count, not full list
-    }, 30000);
+      fetchUnreadCount();
+    }, 3600000);
 
     return () => clearInterval(interval);
-  }, []); // Empty dependency array - interval won't restart
+  }, []); 
 
-  // Initial load ONLY runs once
   useEffect(() => {
     fetchNotifications();
     fetchUnreadCount();
-  }, []); // Empty dependency array - runs only on mount
+  }, []); 
 
   return {
     notifications,
