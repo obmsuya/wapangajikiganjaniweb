@@ -457,7 +457,7 @@ export default function LandingPage() {
         
         const { default: SubscriptionService } = await import('../services/landlord/subscription');
         const response = await SubscriptionService.getSubscriptionPlans();
-        // ... rest of your code
+        setSubscriptionPlans(response.data);
       } catch (error) {
         setSubscriptionPlans(t.pricing.fallbackPlans);
       } finally {
