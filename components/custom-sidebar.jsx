@@ -185,11 +185,6 @@ export function CustomSidebar({ role = "admin", user }) {
             label: "All Users",
             href: "/admin/users",
             active: pathname === "/admin/users",
-          },
-          {
-            label: "Landlords",
-            href: "/admin/users/landlords",
-            active: pathname === "/admin/users/landlords",
           }
         ]
       },
