@@ -248,3 +248,19 @@ export function usePropertyDetails(propertyId) {
     refreshProperty,
   };
 }
+
+/**
+ * Thin helper that invalidates the list on success.
+ * Usage: const { remove } = useDeleteProperty();
+ * await remove(id);   // will auto-refresh table
+ */
+export function useDeleteProperty() {
+  const { refreshProperties } = usePropertiesList(); // same hook you already import
+
+  const remove = async (propertyId) => {
+    await AdminTenantService.deleteProperty(propertyId);
+    refreshProperties(); // re-fetch full list (client will re-page)
+  };
+
+  return { remove };
+}

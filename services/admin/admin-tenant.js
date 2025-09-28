@@ -57,6 +57,15 @@ const AdminTenantService = {
     }
   },
 
+    /**
+   * Hard-delete a property (admin only)
+   * @param {number} propertyId
+   * @returns {Promise<void>}  204 = success
+   */
+    deleteProperty: async (propertyId) => {
+      return api.delete(`/api/v1/svg_properties/admin/properties/${propertyId}/`);
+    },
+
   // Get detailed property information
   getPropertyDetails: async (propertyId) => {
     try {
