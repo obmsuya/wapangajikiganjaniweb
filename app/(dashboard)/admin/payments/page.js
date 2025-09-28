@@ -105,9 +105,8 @@ export default function AdminPaymentPage() {
             <TabsContent value="overview" className="space-y-6 mt-0">
               {isClient && (
                 <>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6"> 
                     <RevenueOverview />
-                    <SubscriptionSummary />
                   </div>
                 </>
               )}
