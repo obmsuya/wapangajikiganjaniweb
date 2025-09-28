@@ -268,7 +268,7 @@ export default function RevenueAnalyticsChart() {
           </Select>
           
           {isClient && (
-            <Popover>
+            <Popover className="bg-amber-50 dark:bg-amber-900">
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm">
                   <CalendarIcon className="h-4 w-4 mr-2" />

@@ -155,9 +155,6 @@ export default function AdminPaymentPage() {
                     <RevenueAnalyticsChart />
                   </TabsContent>
                   
-                  <TabsContent value="subscriptions" className="mt-6">
-                    <SubscriptionStatisticsCharts />
-                  </TabsContent>
                 </Tabs>
               )}
             </TabsContent>
