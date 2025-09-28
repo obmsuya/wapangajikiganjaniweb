@@ -1,129 +1,120 @@
-// app/(dashboard)/admin/dashboard/page.js
 "use client";
 
-import React, { useState } from 'react';
-import { Plus, Download, BarChart3, PieChart } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Download, Users, Activity, ShieldAlert, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  CloudflarePageHeader, 
-} from '@/components/cloudflare/Breadcrumbs';
-import { CloudflareDashboardStats } from '@/components/cloudflare/DashboardStats';
+import { CloudflarePageHeader } from '@/components/cloudflare/Breadcrumbs';
 import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from '@/components/cloudflare/Card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAdminStore } from '@/stores/admin/adminStore';
+import { Bar } from 'react-chartjs-2'; 
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 
-// Remove ApolloProvider import and client import since it's handled in the layout
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState('overview');
-  
-  // Breadcrumb items for this page
+  /* ---------- store ---------- */
+  const { loading, error, dashboard, fetchDashboard } = useAdminStore();
+
+  /* ---------- lifecycle ---------- */
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  /* ---------- derived data ---------- */
+  const totalUsers = dashboard?.total_users ?? 0;
+  const activeUsers = dashboard?.active_users ?? 0;
+  const pendingUsers = dashboard?.pending_users ?? 0;
+  const last7Days = dashboard?.last_7_days_signups ?? [0, 0, 0, 0, 0, 0, 0];
+
+  /* ---------- chart ---------- */
+  const chartData = {
+    labels: ['Day -6', '-5', '-4', '-3', '-2', 'Yesterday', 'Today'],
+    datasets: [
+      {
+        label: 'New sign-ups',
+        data: last7Days,
+        backgroundColor: '#0ea5e9', // sky-500
+      },
+    ],
+  };
+
+  /* ---------- ui helpers ---------- */
   const breadcrumbItems = [
     { label: 'Admin', href: '/admin' },
-    { label: 'Dashboard' }
+    { label: 'Dashboard' },
   ];
 
-  // Action buttons for the page header
   const pageActions = (
     <>
       <Button variant="outline" size="sm" className="flex items-center">
         <Download className="h-4 w-4 mr-2" />
         Export
       </Button>
-      <Button size="sm" className="flex items-center">
-        <Plus className="h-4 w-4 mr-2" />
-        New Report
-      </Button>
     </>
   );
 
+  /* ---------- render ---------- */
   return (
-    // Remove the ApolloProvider wrapper since it's in the layout
     <div className="max-w-screen-2xl mx-auto pb-16">
-      {/* Page header with breadcrumbs */}
       <CloudflarePageHeader
         title="Admin Dashboard"
-        description="Overview of user statistics and system metrics"
+        description="Live overview of user metrics"
         breadcrumbs={breadcrumbItems}
         actions={pageActions}
       />
-      
-      {/* Rest of your component remains the same */}
-      <Tabs defaultValue="overview" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="overview" className="flex items-center">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center">
-            <PieChart className="h-4 w-4 mr-2" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="space-y-6">
-          {/* Overview tab content */}
-          <CloudflareDashboardStats />
-          
-          {/* Additional overview cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <CloudflareCard>
-              <CloudflareCardHeader title="Recent User Activity" />
-              <CloudflareCardContent>
-                <p className="text-gray-500">
-                  This section will display recent user activity logs.
-                </p>
-              </CloudflareCardContent>
-            </CloudflareCard>
-            
-            <CloudflareCard>
-              <CloudflareCardHeader title="System Status" />
-              <CloudflareCardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">System Health</h3>
-                    <p className="text-green-600 flex items-center">
-                      <span className="inline-block w-2 h-2 rounded-full bg-green-600 mr-2"></span>
-                      All systems operational
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Last Updated</h3>
-                    <p className="text-gray-600">
-                      {new Date().toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </CloudflareCardContent>
-            </CloudflareCard>
+
+      {error && (
+        <CloudflareCard className="mb-6 border-red-200 bg-red-50">
+          <CloudflareCardContent>
+            <div className="flex items-center gap-2 text-red-700">
+              <ShieldAlert className="h-5 w-5" />
+              <span>{error}</span>
+            </div>
+          </CloudflareCardContent>
+        </CloudflareCard>
+      )}
+
+      {/* ---------- summary cards ---------- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <MetricCard icon={<Users />} label="Total users" value={totalUsers} loading={loading} />
+        <MetricCard icon={<Activity />} label="Active users" value={activeUsers} loading={loading} />
+        <MetricCard icon={<TrendingUp />} label="Pending invites" value={pendingUsers} loading={loading} />
+        <MetricCard icon={<Activity />} label="Sign-ups (7d)" value={last7Days.reduce((a, b) => a + b, 0)} loading={loading} />
+      </div>
+
+      {/* ---------- mini chart ---------- */}
+      <CloudflareCard>
+        <CloudflareCardHeader title="Sign-ups last 7 days" />
+        <CloudflareCardContent>
+          <div className="h-64">
+            <Bar data={chartData} options={{ maintainAspectRatio: false }} />
           </div>
-        </TabsContent>
-        
-        <TabsContent value="analytics" className="space-y-6">
-          {/* Analytics tab content */}
-          <CloudflareCard>
-            <CloudflareCardHeader title="User Growth" />
-            <CloudflareCardContent className="h-80 flex items-center justify-center">
-              <p className="text-gray-500">User growth chart will be displayed here.</p>
-            </CloudflareCardContent>
-          </CloudflareCard>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CloudflareCard>
-              <CloudflareCardHeader title="User Types Distribution" />
-              <CloudflareCardContent className="h-60 flex items-center justify-center">
-                <p className="text-gray-500">User types pie chart will be displayed here.</p>
-              </CloudflareCardContent>
-            </CloudflareCard>
-            
-            <CloudflareCard>
-              <CloudflareCardHeader title="Login Activity" />
-              <CloudflareCardContent className="h-60 flex items-center justify-center">
-                <p className="text-gray-500">Login activity chart will be displayed here.</p>
-              </CloudflareCardContent>
-            </CloudflareCard>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </CloudflareCardContent>
+      </CloudflareCard>
     </div>
+  );
+}
+
+/* ---------- tiny reusable card ---------- */
+function MetricCard({ icon, label, value, loading }) {
+  return (
+    <CloudflareCard>
+      <CloudflareCardContent>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-500">{label}</p>
+            <p className="text-2xl font-semibold mt-1">{loading ? '…' : value}</p>
+          </div>
+          <div className="text-blue-600">{icon}</div>
+        </div>
+      </CloudflareCardContent>
+    </CloudflareCard>
   );
 }
