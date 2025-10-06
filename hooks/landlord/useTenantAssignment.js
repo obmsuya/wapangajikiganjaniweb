@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from 'react';
 import TenantService from '@/services/landlord/tenant';
+import customToast from '@/components/ui/custom-toast';
 
 
 export function useTenantAssignment() {
@@ -33,11 +34,14 @@ export function useTenantAssignment() {
       console.log('Assigning tenant with simplified data:', formattedData);
       
       const result = await TenantService.assignTenantToUnit(formattedData);
-      
+      customToast.success('Tenant added successfully', {
+        description: `${assignmentData.full_name} has been assigned and an SMS was sent.`,
+      });
       return result;
     } catch (err) {
       console.error('Assignment error:', err);
       setError(err.message || 'Failed to assign tenant');
+      customToast.error("Failed to assign tenant", {description: err.message});
       throw err;
     } finally {
       setLoading(false);

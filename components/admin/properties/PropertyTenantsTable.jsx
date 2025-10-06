@@ -11,6 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { toast } from 'sonner';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Trash2 } from 'lucide-react';
+import { useDeleteTenant } from '@/hooks/admin/useAdminProperties';
 import { 
   User, 
   Phone, 
@@ -22,14 +26,9 @@ import {
   MapPin
 } from 'lucide-react';
 
-/**
- * PropertyTenantsTable Component
- * Displays a table of all tenants across properties with filtering options
- */
 export default function PropertyTenantsTable() {
   const [selectedFilters, setSelectedFilters] = useState({});
-  
-  // Fetch tenants data using the hook
+  const {remove} = useDeleteTenant();
   const { 
     tenants, 
     limit, 
@@ -38,7 +37,15 @@ export default function PropertyTenantsTable() {
     updateFilters, 
   } = useTenantsList();
 
-  // Define table columns
+  const handleDelete = async(tenantId, tenantName) => {
+    try {
+      await remove(tenantId);
+      toast.success(`Tenant ${tenantName} deleted successfully`);
+    } catch (error) {
+      toast.error(`Failed to delete tenant ${tenantName}`);
+    }
+  };
+
   const columns = [
     {
       header: 'Tenant Name',
@@ -134,6 +141,37 @@ export default function PropertyTenantsTable() {
           <CalendarIcon className="h-4 w-4 mr-2 text-gray-400" />
           <span>{new Date(row.created_at).toLocaleDateString()}</span>
         </div>
+      ),
+    },
+    {
+      header: 'Actions',
+      accessor: 'id',
+      cell: (row) => (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-red-600">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete {row.full_name} and every related record
+                (payments, schedules, occupancies, user account). The phone number
+                will be available again immediately.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleDelete(row.id, row.full_name)}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       ),
     },
   ];

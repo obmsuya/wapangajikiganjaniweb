@@ -52,7 +52,21 @@ const AdminTenantService = {
         
       return await api.get(endpoint);
     } catch (error) {
-      console.error("Error fetching tenants list:", error);
+      console.error("Error fetching tenants list:", error.message);
+      throw error;
+    }
+  },
+
+  /**
+   * Hard-delete a tenant (admin only)
+   * @param {number} tenantId
+   * @returns {Promise<void>}  204 = success
+   */
+  deleteTenant: async (tenantId) => {
+    try {
+      return await api.delete(`/api/v1/tenants/admin/${tenantId}/`);
+    } catch (error) {
+      console.error(`Error deleting tenant ${tenantId}:`, error.message);
       throw error;
     }
   },

@@ -264,3 +264,19 @@ export function useDeleteProperty() {
 
   return { remove };
 }
+
+/**
+ * Thin helper that invalidates the list on success.
+ * Usage: const { remove } = useDeleteTenant();
+ * await remove(id);   // will auto-refresh table
+ */
+export function useDeleteTenant() {
+  const { refreshTenants } = useTenantsList();
+
+  const remove = async (tenantId) => {
+    await AdminTenantService.deleteTenant(tenantId);
+    refreshTenants(); 
+  };
+
+  return { remove };
+}
