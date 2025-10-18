@@ -872,7 +872,7 @@ export default function LandingPage() {
               </div>
             ) : (
               <div className="grid md:grid-cols-3 gap-6">
-                {(subscriptionPlans.length > 0 ? subscriptionPlans : t.pricing?.fallbackPlans).map((plan, index) => (
+                {(subscriptionPlans.length > 0 ? subscriptionPlans : (t.pricing?.fallbackPlans || [])).map((plan, index) => (
                   <div 
                     key={index} 
                     className={`bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md border ${plan.popular ? (isDarkMode ? 'border-blue-500' : 'border-blue-500') : (isDarkMode ? 'border-gray-700' : 'border-gray-200')}`}
