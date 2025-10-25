@@ -28,12 +28,6 @@ export const usePartnerStore = create((set, get) => ({
       
       if (response && !response.error) {
         const formattedData = {
-          partnerInfo: {
-            fullName: response.partner_info?.full_name || '',
-            referralCode: response.partner_info?.referral_code || '',
-            isActive: response.partner_info?.is_active || false,
-            createdAt: response.partner_info?.created_at || null
-          },
           walletSummary: {
             currentBalance: parseFloat(response.wallet_summary?.current_balance || 0),
             totalEarned: parseFloat(response.wallet_summary?.total_earned || 0),
@@ -73,6 +67,39 @@ export const usePartnerStore = create((set, get) => ({
       });
       
       toast.error("Dashboard Error", {
+        description: errorMessage
+      });
+    }
+  },
+
+  fetchPartnerInfo: async () => {
+    try {
+      set({ loading: true, error: null });
+      
+      const response = await api.get('/api/v1/payments/partner/profile/');
+      
+      if (response && !response.error) {
+        const formattedPartnerInfo = {
+          fullName: response.partner_info?.full_name || '',
+          referralCode: response.partner_info?.referral_code || '',
+          isActive: response.partner_info?.is_active || false,
+          createdAt: response.partner_info?.created_at || null
+        };
+        set({
+          partnerInfo: formattedPartnerInfo,
+          loading: false
+        });
+      } else {
+        throw new Error(response?.error || 'Failed to load partner info');
+      }
+    } catch (error) {
+      const errorMessage = error.message || 'Failed to load partner info';
+      set({
+        error: errorMessage,
+        loading: false
+      });
+      
+      toast.error("Partner Info Error", {
         description: errorMessage
       });
     }

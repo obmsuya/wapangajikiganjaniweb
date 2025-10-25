@@ -13,7 +13,8 @@ export default function PartnerOverview({ onRequestPayout }) {
     dashboardData, 
     loading, 
     error, 
-    fetchDashboard, 
+    fetchDashboard,
+    fetchPartnerInfo,
     formatCurrency, 
     getBalanceStatus, 
     getDashboardStats,
@@ -22,7 +23,8 @@ export default function PartnerOverview({ onRequestPayout }) {
 
   useEffect(() => {
     fetchDashboard();
-  }, [fetchDashboard]);
+    fetchPartnerInfo();
+  }, [fetchDashboard, fetchPartnerInfo]);
 
   const handleRequestPayout = () => {
     if (onRequestPayout) {
@@ -157,27 +159,27 @@ export default function PartnerOverview({ onRequestPayout }) {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">Full Name</span>
-                <span className="font-medium">{dashboardData.partnerInfo.fullName}</span>
+                <span className="font-medium">{partnerInfo.fullName}</span>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">Referral Code</span>
                 <Badge className="bg-blue-100 text-blue-800 font-mono">
-                  {dashboardData.partnerInfo.referralCode}
+                  {partnerInfo.referralCode}
                 </Badge>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">Status</span>
-                <Badge className={dashboardData.partnerInfo.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                  {dashboardData.partnerInfo.isActive ? 'Active' : 'Suspended'}
+                <Badge className={partnerInfo.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                  {partnerInfo.isActive ? 'Active' : 'Suspended'}
                 </Badge>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">Member Since</span>
                 <span className="font-medium">
-                  {dashboardData.partnerInfo.createdAt ? 
+                  {partnerInfo.createdAt ? 
                     new Date(dashboardData.partnerInfo.createdAt).toLocaleDateString() : 
                     '—'
                   }
