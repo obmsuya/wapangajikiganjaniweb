@@ -9,6 +9,7 @@ export const usePartnerStore = create((set, get) => ({
   dashboardData: null,
   referralStats: null,
   earningsData: null,
+  partnerInfo: null,
   payoutHistory: [],
   activeTab: "overview",
   showPayoutDialog: false,

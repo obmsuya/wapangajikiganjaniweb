@@ -12,6 +12,7 @@ export default function PartnerOverview({ onRequestPayout }) {
   const { 
     dashboardData, 
     loading, 
+    partnerInfo,
     error, 
     fetchDashboard,
     fetchPartnerInfo,
