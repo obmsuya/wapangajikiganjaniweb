@@ -96,7 +96,7 @@ export const usePartnerStore = create((set, get) => ({
       if (response && !response.error && response.partner_info) {
         const formattedPartnerInfo = {
           fullName: response.partner_info.full_name || "",
-          referralCode: response.partner_info.referral_code || "",
+          referralCode: response.partner_info.referral_code || "N/A",
           isActive: response.partner_info.is_active || false,
           createdAt: response.partner_info.created_at || null,
         };

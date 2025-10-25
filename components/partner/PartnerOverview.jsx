@@ -180,7 +180,7 @@ export default function PartnerOverview({ onRequestPayout }) {
                 <span className="text-sm text-gray-500">Member Since</span>
                 <span className="font-medium">
                   {partnerInfo.createdAt ? 
-                    new Date(dashboardData.partnerInfo.createdAt).toLocaleDateString() : 
+                    new Date(partnerInfo.createdAt).toLocaleDateString() : 
                     '—'
                   }
                 </span>
