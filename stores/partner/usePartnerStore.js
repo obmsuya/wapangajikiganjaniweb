@@ -11,7 +11,6 @@ export const usePartnerStore = create((set, get) => ({
   earningsData: null,
   payoutHistory: [],
   activeTab: "overview",
-  partnerInfo: null,
   showPayoutDialog: false,
   payoutEligibility: null,
 
