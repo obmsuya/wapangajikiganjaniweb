@@ -448,7 +448,7 @@ export default function TenantPaymentDialog() {
                         value={formData.amount} 
                         onChange={(e) => handleInputChange('amount', e.target.value)}
                         required 
-                        disabled={isProcessing}
+                        disabled
                         className={`text-lg font-semibold mt-1 ${formErrors.amount ? 'border-red-300' : ''}`}
                         placeholder="Enter amount"
                       />
@@ -468,7 +468,7 @@ export default function TenantPaymentDialog() {
                           onChange={(e) => handleInputChange('notes', e.target.value)}
                           placeholder="Describe how you made the payment (e.g., Bank transfer to account XYZ, Cash payment to landlord, Mobile money to +255...)"
                           rows={3}
-                          disabled={isProcessing}
+                          disabled
                           className={`mt-1 ${formErrors.notes ? 'border-red-300' : ''}`}
                           required
                         />
@@ -501,11 +501,11 @@ export default function TenantPaymentDialog() {
                                   <span>Mobile Money</span>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                  Pay with M-Pesa, Airtel Money, Tigo Pesa, etc.
+                                  Pay with Azampesa, Airtel Money & Tigopesa
                                 </p>
                               </Label>
                             </div>
-                            <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+                            {/* <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
                               <RadioGroupItem value="bank" id="bank" />
                               <Label htmlFor="bank" className="flex-1 cursor-pointer">
                                 <div className="flex items-center gap-2">
@@ -516,34 +516,44 @@ export default function TenantPaymentDialog() {
                                   Pay using your bank account
                                 </p>
                               </Label>
-                            </div>
+                            </div> */}
                           </RadioGroup>
                         </div>
 
                         <div>
-                          <Label htmlFor="provider" className="text-sm font-medium">
+                          <Label htmlFor="provider" className="text-sm font-medium space-y-2">
                             {formData.paymentType === 'mno' ? 'Mobile Money Provider' : 'Bank'} *
                           </Label>
-                          <Select 
-                            value={formData.provider} 
-                            onValueChange={(value) => handleInputChange('provider', value)}
-                            disabled={isProcessing}
-                          >
-                            <SelectTrigger className={`mt-1 ${formErrors.provider ? 'border-red-300' : ''}`}>
-                              <SelectValue placeholder={`Select ${formData.paymentType === 'mno' ? 'provider' : 'bank'}`} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(formData.paymentType === 'mno' ? MOBILE_PROVIDERS : [
-                                { value: 'CRDB', label: 'CRDB Bank' },
-                                { value: 'NMB', label: 'NMB Bank' },
-                                { value: 'NBC', label: 'NBC Bank' }
-                              ]).map((provider) => (
-                                <SelectItem key={provider.value} value={provider.value}>
-                                  {provider.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            <div>
+
+                              <div className="flex flex-wrap gap-3">
+                                {[
+                                  { id: "AIRTEL", name: "Airtel Money", logo: "/images/airtel-logo.png" },
+                                  { id: "TIGO", name: "Tigo Pesa", logo: "/images/tigo-logo.png" },
+                                  { id: "AZAMPESA", name: "AzamPesa", logo: "/images/azam-pesa-logo.png" },
+                                ].map((p) => (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => setProvider(p.id)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition
+                                      ${formData.provider === p.id
+                                        ? "border-primary bg-primary/10 text-primary"
+                                        : "border-muted hover:bg-muted/50"}`}
+                                    aria-pressed={formData.provider === p.id}
+                                  >
+                                    <img src={p.logo} alt={p.name} className="w-6 h-6 object-contain" />
+                                    <span className="text-sm">{p.name}</span>
+                                  </button>
+                                ))}
+                              </div>
+
+                              {!formData.provider && (
+                                <p className="text-xs text-muted-foreground">
+                                  Select a provider to continue.
+                                </p>
+                              )}
+                            </div>
                           {formErrors.provider && (
                             <p className="text-sm text-red-600 mt-1">{formErrors.provider}</p>
                           )}
