@@ -468,7 +468,7 @@ export default function TenantPaymentDialog() {
                           onChange={(e) => handleInputChange('notes', e.target.value)}
                           placeholder="Describe how you made the payment (e.g., Bank transfer to account XYZ, Cash payment to landlord, Mobile money to +255...)"
                           rows={3}
-                          disabled
+                          disabled={isProcessing}
                           className={`mt-1 ${formErrors.notes ? 'border-red-300' : ''}`}
                           required
                         />
