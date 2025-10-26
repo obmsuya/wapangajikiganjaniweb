@@ -148,7 +148,7 @@ export function useTransactionHistory(initialFilters = {}) {
 
       const response = await api.get(endpoint);
 
-      setTransactions(response);
+      setTransactions({ results: response, total: response.length });
       setError(null);
     } catch (err) {
       console.error("Error fetching transaction history:", err);
