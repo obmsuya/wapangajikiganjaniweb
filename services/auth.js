@@ -40,6 +40,25 @@ const AuthService = {
     }
   },
 
+  // Partner login
+  partnerLogin: async (credentials) => {
+    try {
+      const response = await api.post('/api/v1/auth/partner/login/', credentials);
+      const { user, tokens } = response;
+      
+      // Store tokens
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('access_token', tokens.access);
+        localStorage.setItem('refresh_token', tokens.refresh);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Partner login error:', error);
+      throw error;
+    }
+  },
+
   // Validate referral code
   validateReferralCode: async (referralCode) => {
     try {
