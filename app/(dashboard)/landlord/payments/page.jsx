@@ -41,7 +41,10 @@ import customToast from "@/components/ui/custom-toast";
 export default function PaymentsPage() {
   const [showWithdrawalDialog, setShowWithdrawalDialog] = useState(false);
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
-  const [withdrawalMethod, setWithdrawalMethod] = useState('mobile_money');
+  const [withdrawalMethod, setWithdrawalMethod] = useState('airtel');
+  const [withdrawalPhone, setWithdrawalPhone] = useState('');
+  const [withdrawalError, setWithdrawalError] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const {
     loading,
@@ -63,34 +66,73 @@ export default function PaymentsPage() {
     initializePage();
   }, [initializePage]);
 
-  const handleWithdrawal = async () => {
+const handleWithdrawal = async () => {
+    setWithdrawalError('');
+    setIsProcessing(true);
+
     const amount = parseFloat(withdrawalAmount);
-    
+
+    // Client-side validation
     if (!amount || amount <= 0) {
-      customToast.error("Invalid Amount", {
-        description: "Please enter a valid withdrawal amount"
-      });
+      setWithdrawalError("Please enter a valid amount");
+      setIsProcessing(false);
       return;
     }
 
     if (amount > wallet.balance) {
-      customToast.error("Insufficient Balance", {
-        description: "Withdrawal amount exceeds available balance"
-      });
+      setWithdrawalError("Amount exceeds available balance");
+      setIsProcessing(false);
       return;
     }
 
-    const success = await requestWithdrawal(amount, withdrawalMethod);
+    if (!withdrawalPhone) {
+      setWithdrawalError("Enter a valid phone number");
+      setIsProcessing(false);
+      return;
+    }
+
+    // Phone number validation
+    const phoneRegex = withdrawalMethod === 'azampesa'
+      ? /^1[0-9]{9}$/
+      : /^(\+255|0)[6-7][0-9]{8}$/;
     
+    if (!phoneRegex.test(withdrawalPhone)) {
+      setWithdrawalError(
+        withdrawalMethod === 'azampesa'
+          ? "AzamPesa number must be 10 digits starting with 1 (e.g., 1712433664)"
+          : "Tigo/Airtel number must be 9 digits starting with 6 or 7, or +255 format"
+      );
+      setIsProcessing(false);
+      return;
+    }
+
+    // Normalize phone number
+    const normalizedPhone = withdrawalMethod === 'azampesa'
+      ? withdrawalPhone
+      : withdrawalPhone.startsWith('+255') ? withdrawalPhone : `+255${withdrawalPhone.replace(/^0/, '')}`;
+
+    const success = await requestWithdrawal(amount, 'mobile_money', {
+      recipient_phone: normalizedPhone,
+      provider: withdrawalMethod
+    });
+
     if (success) {
       customToast.success("Withdrawal Requested", {
-        description: "Your withdrawal request has been submitted"
+        description: `TZS ${amount.toLocaleString()} sent to ${normalizedPhone} via ${withdrawalMethod.toUpperCase()}`
       });
       setShowWithdrawalDialog(false);
       setWithdrawalAmount('');
+      setWithdrawalPhone('');
+      setWithdrawalMethod('airtel');
+    } else {
+      customToast.error("Withdrawal Failed", {
+        description: error || "Please try again later"
+      });
     }
+    
+    setIsProcessing(false);
   };
-
+  
   const filteredPayments = getFilteredPayments();
 
   const paymentColumns = [
@@ -352,58 +394,127 @@ export default function PaymentsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={showWithdrawalDialog} onOpenChange={setShowWithdrawalDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5" />
-              Request Withdrawal
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-4 space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Available Balance:</strong> {formatCurrency(wallet.balance)}
-              </p>
-            </div>
+      {/* WITHDRAWAL DIALOG - UPDATED */}
+<Dialog open={showWithdrawalDialog} onOpenChange={setShowWithdrawalDialog}>
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <Send className="h-5 w-5" />
+          Request Withdrawal
+        </DialogTitle>
+      </DialogHeader>
 
-            <div>
-              <Label htmlFor="amount">Amount to Withdraw</Label>
-              <Input
-                id="amount"
-                type="number"
-                placeholder="Enter amount"
-                value={withdrawalAmount}
-                onChange={(e) => setWithdrawalAmount(e.target.value)}
-                className="mt-2"
-              />
-            </div>
+      <div className="py-4 space-y-5">
+        {/* Available Balance */}
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>Available Balance:</strong> {formatCurrency(wallet.balance)}
+          </p>
+        </div>
 
-            <div>
-              <Label htmlFor="method">Withdrawal Method</Label>
-              <Select value={withdrawalMethod} onValueChange={setWithdrawalMethod}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Amount */}
+        <div>
+          <Label htmlFor="amount">Amount to Withdraw (TZS)</Label>
+          <Input
+            id="amount"
+            type="number"
+            min="1000"
+            step="1000"
+            placeholder="e.g. 50,000"
+            value={withdrawalAmount}
+            onChange={(e) => setWithdrawalAmount(e.target.value)}
+            className="mt-2"
+            disabled={isProcessing}
+          />
+        </div>
+
+        {/* Provider Selection */}
+        <div>
+          <Label>Choose Provider</Label>
+          <div className="grid grid-cols-3 gap-3 mt-2">
+            {[
+              { value: 'airtel', label: 'Airtel', logo: '/images/airtel-logo.png' },
+              { value: 'azampesa', label: 'AzamPesa', logo: '/images/azam-pesa-logo.png' },
+              { value: 'tigo', label: 'Tigo', logo: '/images/tigo-logo.png' }
+            ].map((provider) => (
+              <button
+                key={provider.value}
+                onClick={() => setWithdrawalMethod(provider.value)}
+                className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-2
+                  ${withdrawalMethod === provider.value 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                disabled={isProcessing}
+              >
+                <img 
+                  src={provider.logo} 
+                  alt={provider.label}
+                  className="h-10 w-10 object-contain"
+                />
+                <span className="text-xs font-medium">{provider.label}</span>
+              </button>
+            ))}
           </div>
+        </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowWithdrawalDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleWithdrawal}>
-              Request Withdrawal
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* Phone Number Input */}
+        <div>
+          <Label htmlFor="phone">Recipient Phone Number</Label>
+          <Input
+            id="phone"
+            type="tel"
+            placeholder={withdrawalMethod === 'azampesa' ? "e.g. 1712433664" : "e.g. 0712345678"}
+            value={withdrawalPhone}
+            onChange={(e) => setWithdrawalPhone(e.target.value)}
+            className="mt-2"
+            maxLength={withdrawalMethod === 'azampesa' ? 10 : 12}
+            disabled={isProcessing}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            {withdrawalMethod === 'azampesa'
+              ? "Use AzamPesa format: 10 digits starting with 1"
+              : "Use Tigo/Airtel format: 9 digits or +255"}
+          </p>
+        </div>
+
+        {/* Validation Error */}
+        {withdrawalError && (
+          <p className="text-red-500 text-sm">{withdrawalError}</p>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button 
+          variant="outline" 
+          onClick={() => {
+            setShowWithdrawalDialog(false);
+            setWithdrawalAmount('');
+            setWithdrawalPhone('');
+            setWithdrawalMethod('airtel');
+            setWithdrawalError('');
+            setIsProcessing(false);
+          }}
+          disabled={isProcessing}
+        >
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleWithdrawal} 
+          disabled={isProcessing || !withdrawalPhone || !withdrawalAmount}
+        >
+          {isProcessing ? (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            'Request Withdrawal'
+          )}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
     </div>
   );
 }
