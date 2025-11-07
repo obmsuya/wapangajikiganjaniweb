@@ -17,14 +17,6 @@ export default function PropertyBasicInfo({
   const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
 
- const SERVER_BODY_CAP_BYTES = 15 * 1024 * 1024; 
- const BASE64_OVERHEAD = 4 / 3; 
- const JSON_OVERHEAD_SAFETY = 0.9; 
- const EFFECTIVE_RAW_FILE_LIMIT = Math.floor(
-   (SERVER_BODY_CAP_BYTES / BASE64_OVERHEAD) * JSON_OVERHEAD_SAFETY
- );
- const MAX_DIMENSION = 1200;    
-
   // Initialize image preview from existing data
   useEffect(() => {
     if (propertyData.prop_image?.uri) {
@@ -55,107 +47,43 @@ export default function PropertyBasicInfo({
     return isValid;
   }, [propertyData, onValidationChange]);
 
-  // useEffect(() => {
-  //   validateForm();
-  // }, [validateForm]);
+  useEffect(() => {
+    validateForm();
+  }, [validateForm]);
 
   const handleInputChange = (field, value) => {
     updatePropertyData({ [field]: value });
   };
 
-  const downscaleAndCompress = (file) =>
-  new Promise((resolve, reject) => {
-    const imgEl = new Image();
-    const url = URL.createObjectURL(file);
+  const handleImageUpload = (file) => {
+    if (!file) return;
 
-    imgEl.onload = async () => {
-      try {
-        let { width, height } = imgEl;
-        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-          const scale = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(imgEl, 0, 0, width, height);
-
-        let quality = 0.85;
-        const asBlob = () => new Promise(res => canvas.toBlob(res, "image/jpeg", quality));
-        let blob = await asBlob();
-
-        while (blob && blob.size > EFFECTIVE_RAW_FILE_LIMIT && quality > 0.4) {
-          quality -= 0.05;
-          blob = await asBlob();
-        }
-
-        URL.revokeObjectURL(url);
-        if (!blob) return reject(new Error("Unable to process image."));
-        resolve({ blob, mime: "image/jpeg" });
-      } catch (e) {
-        URL.revokeObjectURL(url);
-        reject(e);
-      }
-    };
-
-    imgEl.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Invalid image file.")); };
-    imgEl.src = url;
-  });
-
-const fileTooLargeMessage = (bytes) => {
-  const allowed = (EFFECTIVE_RAW_FILE_LIMIT / (1024 * 1024)).toFixed(2);
-  const actual = (bytes / (1024 * 1024)).toFixed(2);
-  const srvMb = (SERVER_BODY_CAP_BYTES / (1024 * 1024)).toFixed(2);
-  return `Image is too large after compression (${actual} MB). Max ~${allowed} MB to fit the server's ${srvMb} MB body limit when sending base64.`;
-};
-
-
-const handleImageUpload = async (file) => {
-  if (!file) return;
-
-  if (!file.type.startsWith("image/")) {
-    setErrors((prev) => ({
-      ...prev,
-      image: "Please select a valid image file",
-    }));
-    return;
-  }
-
-  try {
-    const { blob, mime } = await downscaleAndCompress(file);
-
-    if (blob.size > EFFECTIVE_RAW_FILE_LIMIT) {
-      setErrors((prev) => ({ ...prev, image: fileTooLargeMessage(blob.size) }));
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, image: 'Please select a valid image file' }));
       return;
     }
 
-    const previewUrl = URL.createObjectURL(blob);
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, image: 'Image size must be less than 5MB' }));
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
-      updatePropertyData({
-        prop_image: {
-          uri: previewUrl,
-          base64: e.target.result, // data:image/jpeg;base64,....
-          mime,
-          size_bytes: blob.size,
-          server_limit_hint_bytes: EFFECTIVE_RAW_FILE_LIMIT,
-        },
-      });
-      setImagePreview(previewUrl);
-      setErrors((prev) => ({ ...prev, image: null }));
+      const base64 = e.target.result;
+      const imageData = {
+        uri: URL.createObjectURL(file),
+        base64: base64
+      };
+      
+      updatePropertyData({ prop_image: imageData });
+      setImagePreview(imageData.uri);
+      setErrors(prev => ({ ...prev, image: null }));
     };
-    reader.readAsDataURL(blob);
-  } catch {
-    setErrors((prev) => ({
-      ...prev,
-      image: "Failed to process image. Try a smaller photo.",
-    }));
-  }
-};
-
+    reader.readAsDataURL(file);
+  };
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -313,7 +241,7 @@ const handleImageUpload = async (file) => {
               </p>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Upload className="w-4 h-4" />
-                <span>Supports: JPG, PNG (Max {(EFFECTIVE_RAW_FILE_LIMIT / (1024 * 1024)).toFixed(1)} MB)</span>
+                <span>Supports: JPG, PNG (Max 5MB)</span>
               </div>
               
               <input
