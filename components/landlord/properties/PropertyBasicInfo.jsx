@@ -24,6 +24,13 @@ export default function PropertyBasicInfo({
     }
   }, [propertyData.prop_image]);
 
+  // Auto-set address to "Tanzania" on mount and keep it in sync
+  useEffect(() => {
+    if (!propertyData.address) {
+      updatePropertyData({ address: "Tanzania" });
+    }
+  }, [propertyData.address, updatePropertyData]);
+
   const validateForm = useCallback(() => {
     const newErrors = {};
     
@@ -37,9 +44,7 @@ export default function PropertyBasicInfo({
       newErrors.location = 'Location is required';
     }
 
-    if (!propertyData.address?.trim()) {
-      newErrors.address = 'Address is required';
-    }
+    // Address is hardcoded — no need to validate
 
     setErrors(newErrors);
     const isValid = Object.keys(newErrors).length === 0;
@@ -47,9 +52,10 @@ export default function PropertyBasicInfo({
     return isValid;
   }, [propertyData, onValidationChange]);
 
+  // Validate only when relevant fields change
   useEffect(() => {
     validateForm();
-  }, [validateForm]);
+  }, [propertyData.name, propertyData.location, validateForm]);
 
   const handleInputChange = (field, value) => {
     updatePropertyData({ [field]: value });
@@ -64,9 +70,9 @@ export default function PropertyBasicInfo({
       return;
     }
 
-    // Validate file size (5MB max)
+    // Validate file size: 5MB = 5 * 1024 * 1024 bytes
     if (file.size > 5 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, image: 'Image size must be less than 5MB' }));
+      setErrors(prev => ({ ...prev, image: 'Image must be less than 5MB' }));
       return;
     }
 
@@ -118,7 +124,7 @@ export default function PropertyBasicInfo({
       <div>
         <h2 className="text-2xl font-bold text-foreground mb-2">Property Information</h2>
         <p className="text-muted-foreground">
-          Let's start with the basic details about your property
+          Enter the name and location of your property
         </p>
       </div>
 
@@ -170,26 +176,8 @@ export default function PropertyBasicInfo({
             )}
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Label htmlFor="address" className="text-base font-medium">
-              Full Address *
-            </Label>
-            <Input
-              id="address"
-              placeholder="e.g., Plot 123, Mwalimu Nyerere Road"
-              value={propertyData.address || ''}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              className={`mt-1 h-12 ${errors.address ? 'border-red-500' : ''}`}
-              maxLength={200}
-            />
-            {errors.address && (
-              <p className="text-red-500 text-sm mt-1">{errors.address}</p>
-            )}
-          </motion.div>
+          {/* Address is hidden & hardcoded to "Tanzania" */}
+          <input type="hidden" value="Tanzania" />
         </div>
 
         {/* Right Column - Image Upload */}
@@ -199,7 +187,7 @@ export default function PropertyBasicInfo({
           transition={{ delay: 0.4 }}
         >
           <Label className="text-base font-medium mb-3 block">
-            Property Image
+            Property Image (Optional)
           </Label>
           
           {imagePreview ? (
@@ -216,7 +204,7 @@ export default function PropertyBasicInfo({
                 <X className="w-4 h-4" />
               </button>
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
-                <p className="text-white text-sm">Click the × to remove image</p>
+                <p className="text-white text-sm">Click × to remove</p>
               </div>
             </Card>
           ) : (
@@ -237,11 +225,11 @@ export default function PropertyBasicInfo({
                 Upload Property Image
               </p>
               <p className="text-sm text-muted-foreground mb-4">
-                Drag and drop an image here, or click to browse
+                Drag & drop or click to browse
               </p>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Upload className="w-4 h-4" />
-                <span>Supports: JPG, PNG (Max 5MB)</span>
+                <span>JPG, PNG • Max 5MB</span>
               </div>
               
               <input
@@ -258,7 +246,7 @@ export default function PropertyBasicInfo({
             <p className="text-red-500 text-sm mt-2">{errors.image}</p>
           )}
           <p className="text-xs text-muted-foreground mt-2">
-            Optional: Add a photo to help identify your property
+            Helps tenants recognize your property
           </p>
         </motion.div>
       </div>
