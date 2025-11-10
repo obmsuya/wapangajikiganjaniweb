@@ -154,33 +154,38 @@ export const usePaymentPageStore = create((set, get) => ({
     }
   },
 
-  requestWithdrawal: async (amount, method, details = {}) => {
-    try {
-      set({ loading: true, error: null });
+requestWithdrawal: async (amount, method, details = {}) => {
+  try {
+    set({ loading: true, error: null });
 
-      const response = await axios.post(`${API_BASE}/rent/wallet/withdrawal/`, {
-        amount: parseFloat(amount),
-        withdrawal_method: method,
-        ...details
-      }, {
-        headers: getAuthHeaders()
-      });
+    // ──────────────────────── FIX HERE ────────────────────────
+    const payload = {
+      amount: parseFloat(amount),
+      withdrawal_method: method,
+      recipient_phone: details.recipient_phone,
+      provider: details.provider
+    };
+    // ──────────────────────────────────────────────────────────
 
-      if (response.data.success) {
-        await get().fetchWalletData();
-        set({ loading: false });
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      set({ 
-        error: error.response?.data?.message || 'Failed to request withdrawal',
-        loading: false 
-      });
-      return false;
+    const response = await axios.post(`${API_BASE}/rent/wallet/withdrawal/`, payload, {
+      headers: getAuthHeaders()
+    });
+
+    if (response.data.success) {
+      await get().fetchWalletData();
+      set({ loading: false });
+      return true;
     }
-  },
+    
+    return false;
+  } catch (error) {
+    set({ 
+      error: error.response?.data?.message || 'Failed to request withdrawal',
+      loading: false 
+    });
+    return false;
+  }
+},
 
   getFilteredPayments: () => {
     const { allPayments, filters } = get();

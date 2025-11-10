@@ -67,71 +67,35 @@ export default function PaymentsPage() {
   }, [initializePage]);
 
 const handleWithdrawal = async () => {
-    setWithdrawalError('');
-    setIsProcessing(true);
+  setWithdrawalError('');
+  setIsProcessing(true);
 
-    const amount = parseFloat(withdrawalAmount);
-
-    // Client-side validation
-    if (!amount || amount <= 0) {
-      setWithdrawalError("Please enter a valid amount");
-      setIsProcessing(false);
-      return;
-    }
-
-    if (amount > wallet.balance) {
-      setWithdrawalError("Amount exceeds available balance");
-      setIsProcessing(false);
-      return;
-    }
-
-    if (!withdrawalPhone) {
-      setWithdrawalError("Enter a valid phone number");
-      setIsProcessing(false);
-      return;
-    }
-
-    // Phone number validation
-    const phoneRegex = withdrawalMethod === 'azampesa'
-      ? /^1[0-9]{9}$/
-      : /^(\+255|0)[6-7][0-9]{8}$/;
-    
-    if (!phoneRegex.test(withdrawalPhone)) {
-      setWithdrawalError(
-        withdrawalMethod === 'azampesa'
-          ? "AzamPesa number must be 10 digits starting with 1 (e.g., 1712433664)"
-          : "Tigo/Airtel number must be 9 digits starting with 6 or 7, or +255 format"
-      );
-      setIsProcessing(false);
-      return;
-    }
-
-    // Normalize phone number
-    const normalizedPhone = withdrawalMethod === 'azampesa'
-      ? withdrawalPhone
-      : withdrawalPhone.startsWith('+255') ? withdrawalPhone : `+255${withdrawalPhone.replace(/^0/, '')}`;
-
-    const success = await requestWithdrawal(amount, 'mobile_money', {
-      recipient_phone: normalizedPhone,
-      provider: withdrawalMethod
-    });
-
-    if (success) {
-      customToast.success("Withdrawal Requested", {
-        description: `TZS ${amount.toLocaleString()} sent to ${normalizedPhone} via ${withdrawalMethod.toUpperCase()}`
-      });
-      setShowWithdrawalDialog(false);
-      setWithdrawalAmount('');
-      setWithdrawalPhone('');
-      setWithdrawalMethod('airtel');
-    } else {
-      customToast.error("Withdrawal Failed", {
-        description: error || "Please try again later"
-      });
-    }
-    
+  const amount = parseFloat(withdrawalAmount);
+  if (!amount || amount <= 0 || amount > wallet.balance || !withdrawalPhone) {
     setIsProcessing(false);
-  };
+    return;
+  }
+
+  const success = await requestWithdrawal(amount, 'mobile_money', {
+    recipient_phone: withdrawalPhone,   // send raw input
+    provider: withdrawalMethod
+  });
+
+  if (success) {
+    customToast.success("Withdrawal Requested", {
+      description: `TZS ${amount.toLocaleString()} → ${withdrawalPhone} (${withdrawalMethod.toUpperCase()})`,
+    });
+    setShowWithdrawalDialog(false);
+    setWithdrawalAmount('');
+    setWithdrawalPhone('');
+    setWithdrawalMethod('airtel');
+  } else {
+    customToast.error("Withdrawal Failed", {
+      description: error || "Please try again",
+    });
+  }
+  setIsProcessing(false);
+};
   
   const filteredPayments = getFilteredPayments();
 
