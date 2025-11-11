@@ -395,11 +395,13 @@ const handleWithdrawal = async () => {
         {/* Provider Selection */}
         <div>
           <Label>Choose Provider</Label>
-          <div className="grid grid-cols-3 gap-3 mt-2">
+          <div className="grid grid-cols-5 gap-3 mt-2">
             {[
-              { value: 'airtel', label: 'Airtel', logo: '/images/airtel-logo.png' },
-              { value: 'azampesa', label: 'AzamPesa', logo: '/images/azam-pesa-logo.png' },
-              { value: 'tigo', label: 'Tigo', logo: '/images/tigo-logo.png' }
+              { value: 'Airtel', label: 'Airtel', logo: '/images/airtel-logo.png' },
+              { value: 'AzamPesa', label: 'AzamPesa', logo: '/images/azam-pesa-logo.png' },
+              { value: 'Yas', label: 'Tigo', logo: '/images/tigo-logo.png' },
+              { value: 'Halotel', label: 'Halotel', logo: '/images/halopesa-logo.png' },
+              { value: 'Vodacom', label: 'Vodacom', logo: '/images/vodacom-logo.png' },
             ].map((provider) => (
               <button
                 key={provider.value}
@@ -455,7 +457,7 @@ const handleWithdrawal = async () => {
             setShowWithdrawalDialog(false);
             setWithdrawalAmount('');
             setWithdrawalPhone('');
-            setWithdrawalMethod('airtel');
+            setWithdrawalMethod('Airtel');
             setWithdrawalError('');
             setIsProcessing(false);
           }}
