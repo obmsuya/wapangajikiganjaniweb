@@ -399,7 +399,7 @@ const propertyImages = [
     units: "24 units"
   },
   {
-    src: "/images/residential-houses.jpg", 
+    src: "/images/modern-condo.jpg", 
     alt: "Row of residential rental houses",
     title: "Family Houses - Mbezi Beach",
     income: "TSh 28M/month", 
