@@ -1048,8 +1048,8 @@ export default function LandingPage() {
           <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-between items-center text-sm">
             <p className="text-gray-400 mb-2 md:mb-0">© 2025 {t.brand}. All rights reserved.</p>
             <div className="flex space-x-4">
-              <a href="/app/(dashboard)/privacy/page.jsx" className="text-gray-400 hover:text-white">Privacy Policy</a>
-              <a href="#" className="text-gray-400 hover:text-white">Terms of Service</a>
+              <a href="/privacy" className="text-gray-400 hover:text-white">Privacy Policy</a>
+              <a href="/data-safety" className="text-gray-400 hover:text-white">Data Deletion</a>
               <a href="#" className="text-gray-400 hover:text-white">Cookie Policy</a>
             </div>
           </div>
