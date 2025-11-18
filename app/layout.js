@@ -1,7 +1,9 @@
 // app/layout.jsx
+"use client";
 import { Quicksand } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
+import { usePathname } from "next/navigation";
 
 const comicNeue = Quicksand({
   variable: "--font-quicksand",
@@ -9,23 +11,30 @@ const comicNeue = Quicksand({
   subsets: ["latin"],
 });
 
-export const metadata = {
-  title: "Wapangaji Kiganjani",
-  description: "Property management system for landlords",
-};
+// export const metadata = {
+//   title: "Wapangaji Kiganjani",
+//   description: "Property management system for landlords",
+// };
 
 export default function RootLayout({ children }) {
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={comicNeue.className}>
-        <ThemeProvider 
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        {isHome ? (
+          children
+        ) : (
+          <ThemeProvider 
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        )}
       </body>
     </html>
   );
