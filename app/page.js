@@ -70,8 +70,8 @@ export default function WapangajiLanding() {
       },
       footer: {
         copyright: "© 2025 Wapangaji. All rights reserved.",
-        phone: "+255 123 456 789",
-        email: "support@wapangaji.com"
+        phone: "+255 653 397 942",
+        email: "faltasiinnovations@gmail.com"
       }
     },
     sw: {
@@ -178,39 +178,88 @@ export default function WapangajiLanding() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-b from-blue-50 to-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              {t.hero.title}
-            </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              {t.hero.subtitle}
-            </p>
-            
-            {/* Property Image */}
-            <div className="mb-8">
-              <img 
-                src="/images/modern-apartment-complex.jpg" 
-                alt="Modern apartment complex"
-                className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
+      <section className="relative min-h-[70vh] flex items-center py-16 md:py-24 overflow-hidden">
+        {/* Background image */}
+        <div className="absolute inset-0 -z-10">
+          <img
+            src="/images/property-hero-bg.jpg"
+            alt="Property hero background"
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+          {/* Gradient overlay for readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/75 to-white/40 dark:from-gray-900/85 dark:via-gray-900/70 dark:to-gray-900/40" />
+        </div>
+
+        {/* Content */}
+        <div className="relative container mx-auto px-4">
+          <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
+            {/* Left: Text and CTAs */}
+            <div>
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">
+                {t.hero.title}
+              </h1>
+              <p className="mt-5 text-lg md:text-xl text-gray-700 dark:text-gray-300">
+                {t.hero.subtitle}
+              </p>
+
+              <div className="mt-8 flex flex-wrap gap-4">
+                <Button size="lg" asChild>
+                  <a href="/login?type=landlord">{t.hero.landlordLogin}</a>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <a href="/login?type=tenant">{t.hero.tenantLogin}</a>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <a href="/login?type=agent">{t.hero.agentLogin}</a>
+                </Button>
+                <Button size="lg" variant="ghost" asChild>
+                  <a href="#features">Explore Features</a>
+                </Button>
+              </div>
+
+              {/* Payment providers strip */}
+              <div className="mt-10 flex items-center gap-6">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Supports
+                </span>
+                <img
+                  src="/images/vodacom-logo.png"
+                  alt="M-Pesa"
+                  className="h-6 w-auto"
+                  onError={(e) => (e.target.style.display = 'none')}
+                />
+                <img
+                  src="/images/tigo-logo.png"
+                  alt="Tigo Pesa"
+                  className="h-6 w-auto"
+                  onError={(e) => (e.target.style.display = 'none')}
+                />
+                <img
+                  src="/images/airtel-logo.png"
+                  alt="Airtel Money"
+                  className="h-6 w-auto"
+                  onError={(e) => (e.target.style.display = 'none')}
+                />
+              </div>
             </div>
-            
-            {/* Login Buttons */}
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Button size="lg" asChild>
-                <a href="/login?type=landlord">{t.hero.landlordLogin}</a>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <a href="/login?type=tenant">{t.hero.tenantLogin}</a>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <a href="/login?type=agent">{t.hero.agentLogin}</a>
-              </Button>
+
+            {/* Right: Feature image */}
+            <div className="hidden md:block">
+              <div className="relative">
+                <img
+                  src="/images/modern-apartment-complex.jpg"
+                  alt="Modern apartment complex"
+                  className="w-full max-w-lg rounded-xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-800"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+                {/* Decorative glow */}
+                <div className="absolute -inset-6 rounded-3xl bg-gradient-to-r from-blue-200/40 to-purple-200/40 blur-2xl dark:from-blue-900/20 dark:to-purple-900/20" />
+              </div>
             </div>
           </div>
         </div>
@@ -272,7 +321,7 @@ export default function WapangajiLanding() {
               }}
             />
             <img 
-              src="/images/commercial-building.jpg" 
+              src="/images/commercial-buildings.jpg" 
               alt="Commercial building"
               className="w-full h-48 object-cover rounded-lg shadow"
               onError={(e) => {
@@ -280,7 +329,7 @@ export default function WapangajiLanding() {
               }}
             />
             <img 
-              src="/images/residential-houses.jpg" 
+              src="/images/residential-buildings.jpg" 
               alt="Residential houses"
               className="w-full h-48 object-cover rounded-lg shadow"
               onError={(e) => {
