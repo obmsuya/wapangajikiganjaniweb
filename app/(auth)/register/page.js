@@ -43,7 +43,7 @@ export default function RegisterPage() {
     referral_code: ""
   });
   const [errors, setErrors] = useState({});
-  const referralCodeDigitsRef = useRef(Array(6).fill(""));
+  const referralCodeDigitsRef = useRef(Array(8).fill(""));
   const referralInputsRef = useRef([]);
 
   const setReferralDigits = (nextDigits) => {
@@ -75,14 +75,14 @@ export default function RegisterPage() {
   };
 
   const handleReferralPaste = (e) => {
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 8);
     if (!pasted) return;
-    const nextDigits = Array(6).fill("");
+    const nextDigits = Array(8).fill("");
     for (let i = 0; i < pasted.length; i++) {
       nextDigits[i] = pasted[i];
     }
     setReferralDigits(nextDigits);
-    referralInputsRef.current[Math.min(pasted.length, 5)]?.focus();
+    referralInputsRef.current[Math.min(pasted.length, 7)]?.focus();
   };
 
   const handleChange = (e) => {
@@ -348,7 +348,7 @@ export default function RegisterPage() {
                       className="flex items-center gap-3"
                       onPaste={handleReferralPaste}
                     >
-                      {Array.from({ length: 6 }).map((_, i) => (
+                      {Array.from({ length: 8 }).map((_, i) => (
                         <Input
                           key={i}
                           inputMode="numeric"
