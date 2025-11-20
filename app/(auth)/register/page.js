@@ -34,7 +34,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showReferralCode, setShowReferralCode] = useState(false);
+  // const [showReferralCode, setShowReferralCode] = useState(false);
   const [formData, setFormData] = useState({
     full_name: "",
     phone_number: "",
