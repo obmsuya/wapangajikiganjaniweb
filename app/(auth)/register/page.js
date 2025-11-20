@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { z } from "zod";
-import { Eye, EyeOff, Building2, Users, TrendingUp, CheckCircle2, Loader2, Handshake } from "lucide-react";
+import { Eye, EyeOff, Building2, Users, TrendingUp, CheckCircle2, Loader2, Handshake, Sun, Moon } from "lucide-react";
 import customToast from "@/components/ui/custom-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import AuthService from "@/services/auth";
+import { useTheme } from "@/components/theme-provider";
 
 const registerSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters"),
@@ -29,6 +30,7 @@ const registerSchema = z.object({
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -157,6 +159,16 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-background to-secondary-50">
+      {/* Floating Theme Toggle */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label="Toggle theme"
+        className="fixed bottom-6 right-6 z-50 rounded-full p-3 bg-white text-gray-900 shadow-lg ring-1 ring-gray-200 hover:scale-105 transition dark:bg-gray-800 dark:text-gray-100 dark:ring-gray-700"
+      >
+        {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </button>
+
       <div className="flex min-h-screen">
         {/* Left Side - Benefits */}
         <div className="hidden lg:flex lg:flex-1 lg:flex-col lg:justify-center lg:px-8">
@@ -332,7 +344,7 @@ export default function RegisterPage() {
                     <label className="block text-sm font-medium text-foreground mb-2">
                       Referral Code (optional)
                     </label>
-                    <div 
+                    <div
                       className="flex items-center gap-3"
                       onPaste={handleReferralPaste}
                     >
@@ -346,7 +358,7 @@ export default function RegisterPage() {
                           onChange={(e) => handleReferralChange(i, e.target.value)}
                           onKeyDown={(e) => handleReferralKeyDown(i, e)}
                           ref={(el) => (referralInputsRef.current[i] = el)}
-                          className="h-12 w-12 text-center text-lg font-semibold tracking-widest"
+                          className="h-12 w-12 text-center text-lg font-semibold tracking-widest bg-white text-gray-900 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-600 focus:border-primary-600 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700"
                         />
                       ))}
                     </div>
