@@ -1,7 +1,7 @@
 // app/(auth)/register/page.jsx - Simplified & Fixed
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
 import AuthService from "@/services/auth";
 
 const registerSchema = z.object({
@@ -42,6 +41,47 @@ export default function RegisterPage() {
     referral_code: ""
   });
   const [errors, setErrors] = useState({});
+  const referralCodeDigitsRef = useRef(Array(6).fill(""));
+  const referralInputsRef = useRef([]);
+
+  const setReferralDigits = (nextDigits) => {
+    referralCodeDigitsRef.current = nextDigits;
+    const joined = nextDigits.join("");
+    setFormData(prev => ({ ...prev, referral_code: joined }));
+  };
+
+  const handleReferralChange = (index, value) => {
+    const digit = value.replace(/\D/g, "").slice(0, 1);
+    const nextDigits = [...referralCodeDigitsRef.current];
+    nextDigits[index] = digit;
+    setReferralDigits(nextDigits);
+    if (digit && index < referralInputsRef.current.length - 1) {
+      referralInputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handleReferralKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !referralCodeDigitsRef.current[index] && index > 0) {
+      referralInputsRef.current[index - 1]?.focus();
+    }
+    if (e.key === "ArrowLeft" && index > 0) {
+      referralInputsRef.current[index - 1]?.focus();
+    }
+    if (e.key === "ArrowRight" && index < referralInputsRef.current.length - 1) {
+      referralInputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handleReferralPaste = (e) => {
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    const nextDigits = Array(6).fill("");
+    for (let i = 0; i < pasted.length; i++) {
+      nextDigits[i] = pasted[i];
+    }
+    setReferralDigits(nextDigits);
+    referralInputsRef.current[Math.min(pasted.length, 5)]?.focus();
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -74,12 +114,12 @@ export default function RegisterPage() {
     
     setIsLoading(true);
     try {
-      const { confirm_password, ...registrationData } = formData;
+      const { confirm_password, referral_code, ...registrationData } = formData;
+      const joinedReferral = referralCodeDigitsRef.current.join("").trim();
       const userData = { 
         ...registrationData, 
         user_type: 'landlord',
-        // Only include referral_code if provided
-        ...(formData.referral_code?.trim() ? { referral_code: formData.referral_code.trim() } : {})
+        ...(joinedReferral ? { referral_code: joinedReferral } : {})
       };
       
       const user = await AuthService.register(userData);
@@ -287,27 +327,33 @@ export default function RegisterPage() {
                     )}
                   </div>
 
-                  {/* Referral Code */}
+                  {/* Referral Code (optional) */}
                   <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Checkbox
-                        id="has_referral"
-                        checked={showReferralCode}
-                        onCheckedChange={setShowReferralCode}
-                      />
-                      <label htmlFor="has_referral" className="text-sm text-muted-foreground cursor-pointer">
-                        I have a referral code
-                      </label>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Referral Code (optional)
+                    </label>
+                    <div 
+                      className="flex items-center gap-3"
+                      onPaste={handleReferralPaste}
+                    >
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <Input
+                          key={i}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={1}
+                          value={referralCodeDigitsRef.current[i]}
+                          onChange={(e) => handleReferralChange(i, e.target.value)}
+                          onKeyDown={(e) => handleReferralKeyDown(i, e)}
+                          ref={(el) => (referralInputsRef.current[i] = el)}
+                          className="h-12 w-12 text-center text-lg font-semibold tracking-widest"
+                        />
+                      ))}
                     </div>
-                    
-                    {showReferralCode && (
-                      <Input
-                        name="referral_code"
-                        placeholder="Enter referral code (optional)"
-                        value={formData.referral_code}
-                        onChange={handleChange}
-                        className="h-12"
-                      />
+                    {formData.referral_code && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Code: {formData.referral_code}
+                      </p>
                     )}
                   </div>
 
