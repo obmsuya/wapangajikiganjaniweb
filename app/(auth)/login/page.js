@@ -7,7 +7,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
 import { Eye, EyeOff, Moon, Sun, Building2, Shield, Zap } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import customToast from "@/components/ui/custom-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ const loginSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -114,7 +114,7 @@ export default function LoginPage() {
     <div className="min-h-screen relative overflow-hidden">
       {/* Theme Toggle */}
       <motion.button
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        onClick={toggleTheme}
         className="fixed top-6 right-6 z-50 p-3 rounded-full bg-card border border-card-border shadow-lg hover:shadow-xl transition-all duration-300"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
