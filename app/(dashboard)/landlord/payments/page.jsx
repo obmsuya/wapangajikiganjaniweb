@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label";
 import { CloudflareTable } from "@/components/cloudflare/Table";
 import { CloudflareBreadcrumbs, CloudflarePageHeader } from "@/components/cloudflare/Breadcrumbs";
 import { usePaymentPageStore } from "@/stores/landlord/usePaymentsPageStore";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from 'sonner';
 
 export default function PaymentsPage() {
   const [showWithdrawalDialog, setShowWithdrawalDialog] = useState(false);
@@ -77,12 +77,12 @@ const handleWithdrawal = async () => {
   }
 
   const success = await requestWithdrawal(amount, 'mobile_money', {
-    recipient_phone: withdrawalPhone,   // send raw input
+    recipient_phone: withdrawalPhone,  
     provider: withdrawalMethod
   });
 
   if (success) {
-    customToast.success("Withdrawal Requested", {
+    toast.success("Withdrawal Requested", {
       description: `TZS ${amount.toLocaleString()} → ${withdrawalPhone} (${withdrawalMethod.toUpperCase()})`,
     });
     setShowWithdrawalDialog(false);
@@ -90,7 +90,7 @@ const handleWithdrawal = async () => {
     setWithdrawalPhone('');
     setWithdrawalMethod('airtel');
   } else {
-    customToast.error("Withdrawal Failed", {
+    toast.error("Withdrawal Failed", {
       description: error || "Please try again",
     });
   }
