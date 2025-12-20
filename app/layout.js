@@ -4,6 +4,7 @@ import { Quicksand } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { usePathname } from "next/navigation";
+import { Toaster } from "@/components/ui/sonner"
 
 const comicNeue = Quicksand({
   variable: "--font-quicksand",
@@ -33,6 +34,7 @@ export default function RootLayout({ children }) {
             disableTransitionOnChange
           >
             {children}
+            <Toaster />
           </ThemeProvider>
         )}
       </body>
