@@ -185,7 +185,7 @@ export default function PartnerReferrals() {
                   <strong>Your Referral Code:</strong> Share this code with potential landlords
                 </p>
                 <div className="mt-2 p-2 bg-white rounded border font-mono text-lg text-center">
-                  Loading...
+                  {referralStats?.referralCode || 'Loading...'}
                 </div>
               </div>
             </div>
