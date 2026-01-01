@@ -53,11 +53,11 @@ export default function RegisterPage() {
   };
 
   const handleReferralChange = (index, value) => {
-    const digit = value.replace(/\D/g, "").slice(0, 1);
+    const char = value.replace(/[^a-zA-Z]/g, "").slice(0, 1).toUpperCase();
     const nextDigits = [...referralCodeDigitsRef.current];
-    nextDigits[index] = digit;
+    nextDigits[index] = char;
     setReferralDigits(nextDigits);
-    if (digit && index < referralInputsRef.current.length - 1) {
+    if (char && index < referralInputsRef.current.length - 1) {
       referralInputsRef.current[index + 1]?.focus();
     }
   };
@@ -75,7 +75,7 @@ export default function RegisterPage() {
   };
 
   const handleReferralPaste = (e) => {
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 8);
+    const pasted = e.clipboardData.getData("text").replace(/[^a-zA-Z]/g, "").slice(0, 8).toUpperCase();
     if (!pasted) return;
     const nextDigits = Array(8).fill("");
     for (let i = 0; i < pasted.length; i++) {
@@ -351,14 +351,13 @@ export default function RegisterPage() {
                       {Array.from({ length: 8 }).map((_, i) => (
                         <Input
                           key={i}
-                          inputMode="numeric"
-                          pattern="[0-9]*"
+                          inputMode="text"
                           maxLength={1}
                           value={referralCodeDigitsRef.current[i]}
                           onChange={(e) => handleReferralChange(i, e.target.value)}
                           onKeyDown={(e) => handleReferralKeyDown(i, e)}
                           ref={(el) => (referralInputsRef.current[i] = el)}
-                          className="h-12 w-12 text-center text-lg font-semibold tracking-widest bg-white text-gray-900 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-600 focus:border-primary-600 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700"
+                          className="h-12 w-10 text-center text-lg font-semibold uppercase tracking-widest bg-white text-gray-900 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-600 focus:border-primary-600 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700"
                         />
                       ))}
                     </div>
