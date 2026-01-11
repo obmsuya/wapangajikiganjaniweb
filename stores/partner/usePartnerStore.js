@@ -30,151 +30,88 @@ export const usePartnerStore = create((set, get) => ({
       if (response && !response.error) {
         const formattedData = {
           walletSummary: {
-            currentBalance: parseFloat(
-              response.wallet_summary?.current_balance || 0
-            ),
-            totalEarned: parseFloat(response.wallet_summary?.total_earned || 0),
-            totalWithdrawn: parseFloat(
-              response.wallet_summary?.total_withdrawn || 0
-            ),
-            canWithdraw: response.wallet_summary?.can_withdraw || false,
-            minimumPayout: parseFloat(
-              response.wallet_summary?.minimum_payout || 5000
-            ),
+            currentBalance: parseFloat(response.wallet?.balance || 0),
+            totalEarned: parseFloat(response.wallet?.total_earned || 0),
+            totalWithdrawn: parseFloat(response.wallet?.total_withdrawn || 0),
+            canWithdraw: response.wallet?.can_withdraw || false,
+            minimumPayout: parseFloat(response.wallet?.minimum_payout || 0),
           },
           referralStats: {
-            totalReferrals: parseInt(
-              response.referral_stats?.total_referrals || 0
-            ),
-            payingReferrals: parseInt(
-              response.referral_stats?.paying_referrals || 0
-            ),
-            conversionRate: parseFloat(
-              response.referral_stats?.conversion_rate || 0
-            ),
-            thisMonthReferrals: parseInt(
-              response.referral_stats?.this_month_referrals || 0
-            ),
+            totalReferrals: parseInt(response.referral_stats?.total_referrals || 0),
+            activeReferrals: parseInt(response.referral_stats?.active_referrals || 0),
+            payingReferrals: parseInt(response.referral_stats?.paying_referrals || 0),
+            conversionRate: parseFloat(response.referral_stats?.conversion_rate || 0),
+            thisMonthReferrals: parseInt(response.referral_stats?.total_referrals || 0),
           },
-          recentActivity: (response.recent_activity || []).map((activity) => ({
-            id: activity.id,
-            transactionType: activity.transaction_type,
-            amount: parseFloat(activity.amount || 0),
-            description: activity.description || "",
-            landlordName: activity.landlord_name || "",
-            subscriptionPlan: activity.subscription_plan || "",
-            createdAt: activity.created_at,
+          recentActivity: (response.recent_transactions || []).map((txn) => ({
+            id: txn.id,
+            transactionType: txn.transaction_type,
+            amount: parseFloat(txn.amount || 0),
+            description: txn.description || "",
+            landlordName: txn.landlord_name || "",
+            subscriptionPlan: txn.subscription_plan || "",
+            createdAt: txn.created_at,
           })),
         };
 
-        set({
-          dashboardData: formattedData,
-          loading: false,
-        });
+        set({ dashboardData: formattedData, loading: false });
       } else {
         throw new Error(response?.error || "Failed to load dashboard");
       }
     } catch (error) {
-      const errorMessage = error.message || "Failed to load dashboard";
-      set({
-        error: errorMessage,
-        loading: false,
-      });
-
-      toast.error("Dashboard Error", {
-        description: errorMessage,
-      });
+      set({ error: error.message, loading: false });
+      toast.error("Dashboard Error", { description: error.message });
     }
   },
 
   fetchPartnerInfo: async () => {
     try {
       set({ loading: true, error: null });
-
       const response = await api.get("/api/v1/auth/partner/statistics/");
 
       if (response && !response.error && response.partner_info) {
-        const formattedPartnerInfo = {
-          fullName: response.partner_info.full_name || "",
-          referralCode: response.partner_info.referral_code || "N/A",
-          isActive: response.partner_info.is_active || false,
-          createdAt: response.partner_info.created_at || null,
-        };
-
         set({
-          partnerInfo: formattedPartnerInfo,
+          partnerInfo: {
+            fullName: response.partner_info.full_name || "",
+            referralCode: response.partner_info.referral_code || "N/A",
+            isActive: response.partner_info.is_active || false,
+            createdAt: response.partner_info.created_at || null,
+          },
           loading: false,
         });
-      } else {
-        throw new Error(response?.error || "Failed to load partner info");
       }
     } catch (error) {
-      const errorMessage = error.message || "Failed to load partner info";
-      set({
-        error: errorMessage,
-        loading: false,
-      });
-
-      toast.error("Partner Info Error", {
-        description: errorMessage,
-      });
+      set({ error: error.message, loading: false });
     }
   },
 
   fetchReferrals: async () => {
     try {
       set({ loading: true, error: null });
-
-      const response = await api.get(
-        "/api/v1/payments/partner/earnings/referrals/"
-      );
+      const response = await api.get("/api/v1/payments/partner/earnings/referrals/");
 
       if (response && !response.error) {
-        const formattedStats = {
-          stats: {
-            totalReferrals: parseInt(
-              response.referral_stats?.total_referrals || 0
-            ),
-            activeReferrals: parseInt(
-              response.referral_stats?.active_referrals || 0
-            ),
-            payingReferrals: parseInt(
-              response.referral_stats?.paying_referrals || 0
-            ),
-            conversionRate: parseFloat(
-              response.referral_stats?.conversion_rate || 0
-            ),
-            totalCommissionEarned: parseFloat(
-              response.referral_stats?.total_commission_earned || 0
-            ),
-          },
-          recentReferrals: (response.recent_referrals || []).map(
-            (referral) => ({
-              landlordName: referral.landlord_name,
-              landlordPhone: referral.landlord_phone,
-              referralDate: referral.referral_date,
-              isPaying: referral.is_paying || false,
-            })
-          ),
-        };
-
         set({
-          referralStats: formattedStats,
+          referralStats: {
+            stats: {
+              totalReferrals: parseInt(response.referral_stats?.total_referrals || 0),
+              activeReferrals: parseInt(response.referral_stats?.active_referrals || 0),
+              payingReferrals: parseInt(response.referral_stats?.paying_referrals || 0),
+              conversionRate: parseFloat(response.referral_stats?.conversion_rate || 0),
+              totalCommissionEarned: parseFloat(response.referral_stats?.total_commission_earned || 0),
+            },
+            recentReferrals: (response.recent_referrals || []).map((ref) => ({
+              landlordName: ref.landlord_name,
+              landlordPhone: ref.landlord_phone,
+              referralDate: ref.referral_date,
+              isPaying: ref.is_paying || false,
+            })),
+          },
           loading: false,
         });
-      } else {
-        throw new Error(response?.error || "Failed to load referrals");
       }
     } catch (error) {
-      const errorMessage = error.message || "Failed to load referrals";
-      set({
-        error: errorMessage,
-        loading: false,
-      });
-
-      toast.error("Referrals Error", {
-        description: errorMessage,
-      });
+      set({ error: error.message, loading: false });
     }
   },
 
@@ -186,67 +123,41 @@ export const usePartnerStore = create((set, get) => ({
       if (filters.startDate) params.append("start_date", filters.startDate);
       if (filters.endDate) params.append("end_date", filters.endDate);
 
-      const queryString = params.toString();
-      const url = queryString
-        ? `/api/v1/payments/partner/earnings/summary/?${queryString}`
+      const url = params.toString()
+        ? `/api/v1/payments/partner/earnings/summary/?${params.toString()}`
         : "/api/v1/payments/partner/earnings/summary/";
 
       const response = await api.get(url);
 
       if (response && !response.error) {
-        const formattedData = {
-          walletSummary: {
-            currentBalance: parseFloat(
-              response.wallet_summary?.current_balance || 0
-            ),
-            totalEarned: parseFloat(response.wallet_summary?.total_earned || 0),
-            totalWithdrawn: parseFloat(
-              response.wallet_summary?.total_withdrawn || 0
-            ),
-            canRequestPayout:
-              response.wallet_summary?.can_request_payout || false,
-          },
-          periodSummary: {
-            totalEarnings: parseFloat(
-              response.period_summary?.total_earnings || 0
-            ),
-            transactionCount: parseInt(
-              response.period_summary?.transaction_count || 0
-            ),
-            averageCommission: parseFloat(
-              response.period_summary?.average_commission || 0
-            ),
-          },
-          recentTransactions: (response.recent_transactions || []).map(
-            (transaction) => ({
-              id: transaction.id,
-              amount: parseFloat(transaction.amount || 0),
-              commissionRate: parseFloat(transaction.commission_rate || 0),
-              description: transaction.description || "",
-              landlordName: transaction.landlord_name || "",
-              subscriptionPlan: transaction.subscription_plan || "",
-              createdAt: transaction.created_at,
-            })
-          ),
-        };
-
         set({
-          earningsData: formattedData,
+          earningsData: {
+            walletSummary: {
+              currentBalance: parseFloat(response.wallet_summary?.current_balance || 0),
+              totalEarned: parseFloat(response.wallet_summary?.total_earned || 0),
+              totalWithdrawn: parseFloat(response.wallet_summary?.total_withdrawn || 0),
+              canRequestPayout: response.wallet_summary?.can_request_payout || false,
+            },
+            periodSummary: {
+              totalEarnings: parseFloat(response.period_summary?.total_earnings || 0),
+              transactionCount: parseInt(response.period_summary?.transaction_count || 0),
+              averageCommission: parseFloat(response.period_summary?.average_commission || 0),
+            },
+            recentTransactions: (response.recent_transactions || []).map((txn) => ({
+              id: txn.id,
+              amount: parseFloat(txn.amount || 0),
+              commissionRate: parseFloat(txn.commission_rate || 0),
+              description: txn.description || "",
+              landlordName: txn.landlord_name || "",
+              subscriptionPlan: txn.subscription_plan || "",
+              createdAt: txn.created_at,
+            })),
+          },
           loading: false,
         });
-      } else {
-        throw new Error(response?.error || "Failed to load earnings");
       }
     } catch (error) {
-      const errorMessage = error.message || "Failed to load earnings";
-      set({
-        error: errorMessage,
-        loading: false,
-      });
-
-      toast.error("Earnings Error", {
-        description: errorMessage,
-      });
+      set({ error: error.message, loading: false });
     }
   },
 
@@ -254,26 +165,17 @@ export const usePartnerStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
 
-      const response = await api.post(
-        "/api/v1/payments/partner/payout/request/",
-        {
-          amount: parseFloat(amount),
-          phone_number: phoneNumber,
-        }
-      );
+      const response = await api.post("/api/v1/payments/partner/payout/request/", {
+        amount: parseFloat(amount),
+        phone_number: phoneNumber,
+      });
 
       if (response && !response.error) {
         toast.success("Payout Requested", {
-          description: `Payout of ${get().formatCurrency(
-            amount
-          )} requested successfully`,
+          description: `Payout of ${get().formatCurrency(amount)} requested successfully`,
         });
 
-        set({
-          showPayoutDialog: false,
-          loading: false,
-        });
-
+        set({ showPayoutDialog: false, loading: false });
         await get().fetchPayoutHistory();
         await get().fetchDashboard();
 
@@ -282,17 +184,9 @@ export const usePartnerStore = create((set, get) => ({
         throw new Error(response?.error || "Failed to request payout");
       }
     } catch (error) {
-      const errorMessage = error.message || "Failed to request payout";
-      set({
-        error: errorMessage,
-        loading: false,
-      });
-
-      toast.error("Payout Failed", {
-        description: errorMessage,
-      });
-
-      return { success: false, error: errorMessage };
+      set({ error: error.message, loading: false });
+      toast.error("Payout Failed", { description: error.message });
+      return { success: false, error: error.message };
     }
   },
 
@@ -300,13 +194,11 @@ export const usePartnerStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
 
-      const response = await api.get(
-        `/api/v1/payments/partner/payout/history/?limit=${limit}`
-      );
+      const response = await api.get(`/api/v1/payments/partner/payout/history/?limit=${limit}`);
 
       if (response && !response.error) {
-        const formattedHistory = (response.disbursements || []).map(
-          (payout) => ({
+        set({
+          payoutHistory: (response.disbursements || []).map((payout) => ({
             id: payout.id,
             amount: parseFloat(payout.amount || 0),
             phoneNumber: payout.phone_number || "",
@@ -317,54 +209,34 @@ export const usePartnerStore = create((set, get) => ({
             requestedAt: payout.requested_at,
             processedAt: payout.processed_at,
             completedAt: payout.completed_at,
-          })
-        );
-
-        set({
-          payoutHistory: formattedHistory,
+          })),
           loading: false,
         });
-      } else {
-        throw new Error(response?.error || "Failed to load payout history");
       }
     } catch (error) {
-      const errorMessage = error.message || "Failed to load payout history";
-      set({
-        error: errorMessage,
-        loading: false,
-      });
-
-      toast.error("Payout History Error", {
-        description: errorMessage,
-      });
+      set({ error: error.message, loading: false });
     }
   },
 
   checkPayoutEligibility: async () => {
     try {
-      const response = await api.get(
-        "/api/v1/payments/partner/payout/eligibility/"
-      );
+      const response = await api.get("/api/v1/payments/partner/payout/eligibility/");
 
       if (response && !response.error) {
         const eligibility = {
           canPayout: response.can_payout || false,
           reason: response.reason || "",
           availableAmount: parseFloat(response.available_amount || 0),
-          minimumPayout: parseFloat(response.minimum_payout || 5000),
+          minimumPayout: parseFloat(response.minimum_payout || 0),
           currentBalance: parseFloat(response.current_balance || 0),
           shortfall: parseFloat(response.shortfall || 0),
         };
 
         set({ payoutEligibility: eligibility });
         return eligibility;
-      } else {
-        throw new Error(response?.error || "Failed to check eligibility");
       }
     } catch (error) {
-      const errorMessage =
-        error.message || "Failed to check payout eligibility";
-      set({ error: errorMessage });
+      set({ error: error.message });
       return null;
     }
   },
@@ -383,9 +255,7 @@ export const usePartnerStore = create((set, get) => ({
         await get().fetchPayoutHistory();
       }
     } catch (error) {
-      toast.error("Refresh Failed", {
-        description: "Failed to refresh data",
-      });
+      toast.error("Refresh Failed");
     } finally {
       set({ loading: false });
     }
@@ -443,15 +313,13 @@ export const usePartnerStore = create((set, get) => ({
     const { dashboardData } = get();
     if (!dashboardData) return null;
 
-    const { walletSummary, referralStats } = dashboardData;
-
     return {
-      balance: walletSummary.currentBalance,
-      totalEarned: walletSummary.totalEarned,
-      totalReferrals: referralStats.totalReferrals,
-      payingReferrals: referralStats.payingReferrals,
-      conversionRate: referralStats.conversionRate,
-      canWithdraw: walletSummary.canWithdraw,
+      balance: dashboardData.walletSummary.currentBalance,
+      totalEarned: dashboardData.walletSummary.totalEarned,
+      totalReferrals: dashboardData.referralStats.totalReferrals,
+      payingReferrals: dashboardData.referralStats.payingReferrals,
+      conversionRate: dashboardData.referralStats.conversionRate,
+      canWithdraw: dashboardData.walletSummary.canWithdraw,
     };
   },
 }));
