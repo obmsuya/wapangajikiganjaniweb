@@ -208,6 +208,7 @@ export default function PartnerOverview({ onRequestPayout }) {
                 <Wallet className="h-4 w-4 mr-2" />
                 Request Payout
               </Button>
+              {/* Opens payout dialog or navigates to partner earnings/payouts tab */}
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="text-center p-3 bg-gray-50 rounded-lg">

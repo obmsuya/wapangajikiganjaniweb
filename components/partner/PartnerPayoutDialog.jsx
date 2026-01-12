@@ -39,8 +39,8 @@ export default function PartnerPayoutDialog() {
       newErrors.amount = 'Amount is required';
     } else if (isNaN(amountValue) || amountValue <= 0) {
       newErrors.amount = 'Please enter a valid amount';
-    } else if (amountValue < 5000) {
-      newErrors.amount = 'Minimum payout is TZS 5,000';
+    } else if (amountValue < 1000) {
+      newErrors.amount = 'Minimum payout is TZS 1,000';
     } else if (payoutEligibility && amountValue > payoutEligibility.availableAmount) {
       newErrors.amount = 'Amount exceeds available balance';
     }
