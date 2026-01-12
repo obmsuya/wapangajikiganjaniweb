@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Wallet, Phone, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Wallet, Phone, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usePartnerStore } from '@/stores/partner/usePartnerStore';
 
@@ -32,9 +32,8 @@ export default function PartnerPayoutDialog() {
 
   const validateForm = () => {
     const newErrors = {};
-
-    // Validate amount
     const amountValue = parseFloat(amount);
+
     if (!amount) {
       newErrors.amount = 'Amount is required';
     } else if (isNaN(amountValue) || amountValue <= 0) {
@@ -45,7 +44,6 @@ export default function PartnerPayoutDialog() {
       newErrors.amount = 'Amount exceeds available balance';
     }
 
-    // Validate phone number
     if (!phoneNumber) {
       newErrors.phoneNumber = 'Phone number is required';
     } else if (!/^\+?[0-9]{10,15}$/.test(phoneNumber.replace(/\s/g, ''))) {
@@ -58,13 +56,9 @@ export default function PartnerPayoutDialog() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     const result = await requestPayout(amount, phoneNumber);
-    
     if (result.success) {
       setAmount('');
       setPhoneNumber('');
@@ -79,25 +73,6 @@ export default function PartnerPayoutDialog() {
     setErrors({});
   };
 
-  const handleAmountChange = (e) => {
-    const value = e.target.value;
-    // Allow only numbers and decimal point
-    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-      setAmount(value);
-      if (errors.amount) {
-        setErrors(prev => ({ ...prev, amount: '' }));
-      }
-    }
-  };
-
-  const handlePhoneChange = (e) => {
-    const value = e.target.value;
-    setPhoneNumber(value);
-    if (errors.phoneNumber) {
-      setErrors(prev => ({ ...prev, phoneNumber: '' }));
-    }
-  };
-
   const setMaxAmount = () => {
     if (payoutEligibility?.availableAmount) {
       setAmount(payoutEligibility.availableAmount.toString());
@@ -108,114 +83,96 @@ export default function PartnerPayoutDialog() {
     <Dialog open={showPayoutDialog} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            Request Payout
-          </DialogTitle>
+          <DialogTitle>Request Payout</DialogTitle>
+          <DialogDescription>
+            Withdraw your commission earnings to mobile money
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Balance Info */}
+        <div className="space-y-4">
+          {/* Balance Display */}
           {payoutEligibility && (
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                <span className="font-medium text-blue-800">Available Balance</span>
-              </div>
-              <p className="text-lg font-bold text-blue-900">
+            <div className="rounded-lg border p-4">
+              <div className="text-sm text-muted-foreground mb-1">Available Balance</div>
+              <div className="text-2xl font-bold">
                 {formatCurrency(payoutEligibility.availableAmount)}
-              </p>
-              <p className="text-xs text-blue-700">
-                Minimum payout: {formatCurrency(payoutEligibility.minimumPayout)}
-              </p>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Minimum payout: {formatCurrency(1000)}
+              </div>
             </div>
           )}
 
-          {/* Eligibility Check */}
+          {/* Eligibility Warning */}
           {payoutEligibility && !payoutEligibility.canPayout && (
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
                 {payoutEligibility.reason}
                 {payoutEligibility.shortfall > 0 && (
                   <span className="block mt-1">
-                    You need {formatCurrency(payoutEligibility.shortfall)} more to request a payout.
+                    You need {formatCurrency(payoutEligibility.shortfall)} more.
                   </span>
                 )}
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Payout Form */}
+          {/* Form */}
           {payoutEligibility?.canPayout && (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Amount Input */}
               <div className="space-y-2">
-                <Label htmlFor="amount" className="text-sm font-medium">
-                  Payout Amount (TZS)
-                </Label>
-                <div className="relative">
+                <Label htmlFor="amount">Amount (TZS)</Label>
+                <div className="flex gap-2">
                   <Input
                     id="amount"
                     type="text"
                     placeholder="Enter amount"
                     value={amount}
-                    onChange={handleAmountChange}
-                    className={errors.amount ? 'border-red-300 focus:border-red-500' : ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        setAmount(value);
+                        setErrors(prev => ({ ...prev, amount: '' }));
+                      }
+                    }}
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={setMaxAmount}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 px-2 text-xs"
-                  >
+                  <Button type="button" variant="outline" onClick={setMaxAmount}>
                     Max
                   </Button>
                 </div>
                 {errors.amount && (
-                  <p className="text-sm text-red-600">{errors.amount}</p>
+                  <p className="text-sm text-destructive">{errors.amount}</p>
                 )}
               </div>
 
-              {/* Phone Number Input */}
               <div className="space-y-2">
-                <Label htmlFor="phoneNumber" className="text-sm font-medium">
-                  Mobile Money Number
-                </Label>
+                <Label htmlFor="phoneNumber">Mobile Money Number</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="phoneNumber"
                     type="tel"
                     placeholder="+255712345678"
                     value={phoneNumber}
-                    onChange={handlePhoneChange}
-                    className={`pl-10 ${errors.phoneNumber ? 'border-red-300 focus:border-red-500' : ''}`}
+                    onChange={(e) => {
+                      setPhoneNumber(e.target.value);
+                      setErrors(prev => ({ ...prev, phoneNumber: '' }));
+                    }}
+                    className="pl-10"
                   />
                 </div>
                 {errors.phoneNumber && (
-                  <p className="text-sm text-red-600">{errors.phoneNumber}</p>
+                  <p className="text-sm text-destructive">{errors.phoneNumber}</p>
                 )}
-                <p className="text-xs text-gray-500">
-                  Enter the mobile money number where you want to receive the payout
-                </p>
               </div>
 
-              {/* Processing Info */}
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-600">
-                  <strong>Processing Information:</strong>
-                </p>
-                <ul className="text-xs text-gray-600 mt-1 space-y-1">
-                  <li>• Payouts are processed within 1-3 business days</li>
-                  <li>• You will receive SMS confirmation when processed</li>
-                  <li>• Processing fees may apply (if any)</li>
-                </ul>
+              <div className="rounded-lg border p-3 text-sm text-muted-foreground">
+                <p className="font-medium mb-1">Processing Time</p>
+                <p>Payouts are processed within 1-3 business days</p>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -225,11 +182,7 @@ export default function PartnerPayoutDialog() {
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  disabled={loading}
-                >
+                <Button type="submit" className="flex-1" disabled={loading}>
                   {loading ? 'Processing...' : 'Request Payout'}
                 </Button>
               </div>
