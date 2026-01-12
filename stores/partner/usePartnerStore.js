@@ -34,7 +34,7 @@ export const usePartnerStore = create((set, get) => ({
             totalEarned: parseFloat(response.wallet?.total_earned || 0),
             totalWithdrawn: parseFloat(response.wallet?.total_withdrawn || 0),
             canWithdraw: response.wallet?.can_withdraw || false,
-            minimumPayout: parseFloat(response.wallet?.minimum_payout || 0),
+            minimumPayout: 1000,
           },
           referralStats: {
             totalReferrals: parseInt(response.referral_stats?.total_referrals || 0),
@@ -227,7 +227,7 @@ export const usePartnerStore = create((set, get) => ({
           canPayout: response.can_payout || false,
           reason: response.reason || "",
           availableAmount: parseFloat(response.available_amount || 0),
-          minimumPayout: parseFloat(response.minimum_payout || 0),
+          minimumPayout: 1000,
           currentBalance: parseFloat(response.current_balance || 0),
           shortfall: parseFloat(response.shortfall || 0),
         };
