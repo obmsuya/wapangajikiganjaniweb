@@ -156,31 +156,31 @@ export default function PartnerOverview({ onRequestPayout }) {
               Partner Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+         <CardContent className="space-y-4">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">Full Name</span>
-                <span className="font-medium">{partnerInfo.fullName}</span>
+                <span className="font-medium">{partnerInfo?.fullName || '—'}</span>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">Referral Code</span>
                 <Badge className="bg-blue-100 text-blue-800 font-mono">
-                  {partnerInfo.referralCode}
+                  {partnerInfo?.referralCode || 'N/A'}
                 </Badge>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">Status</span>
-                <Badge className={partnerInfo.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                  {partnerInfo.isActive ? 'Active' : 'Suspended'}
+                <Badge className={partnerInfo?.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                  {partnerInfo?.isActive ? 'Active' : 'Suspended'}
                 </Badge>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">Member Since</span>
                 <span className="font-medium">
-                  {partnerInfo.createdAt ? 
+                  {partnerInfo?.createdAt ? 
                     new Date(partnerInfo.createdAt).toLocaleDateString() : 
                     '—'
                   }
