@@ -23,6 +23,7 @@ export default function PartnerPayoutDialog() {
   const [amount, setAmount] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (showPayoutDialog) {
@@ -56,13 +57,20 @@ export default function PartnerPayoutDialog() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return; // Prevent multiple submissions
     if (!validateForm()) return;
 
+    setIsSubmitting(true);
+    try{
     const result = await requestPayout(amount, phoneNumber);
     if (result.success) {
       setAmount('');
       setPhoneNumber('');
       setErrors({});
+    }
+    }
+    finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -178,12 +186,12 @@ export default function PartnerPayoutDialog() {
                   variant="outline"
                   onClick={handleClose}
                   className="flex-1"
-                  disabled={loading}
+                  disabled={loading || isSubmitting}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1" disabled={loading}>
-                  {loading ? 'Processing...' : 'Request Payout'}
+                <Button type="submit" className="flex-1" disabled={loading || isSubmitting}>
+                  {isSubmitting ? 'Processing...' : 'Request Payout'}
                 </Button>
               </div>
             </form>
