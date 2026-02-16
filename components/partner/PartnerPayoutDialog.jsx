@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Wallet, Phone, AlertCircle } from 'lucide-react';
+import { Wallet, Phone, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -133,20 +133,21 @@ export default function PartnerPayoutDialog() {
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount (TZS)</Label>
                 <div className="flex gap-2">
-                  <Input
-                    id="amount"
-                    type="text"
-                    placeholder="Enter amount"
-                    value={amount}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                        setAmount(value);
-                        setErrors(prev => ({ ...prev, amount: '' }));
-                      }
-                    }}
-                  />
-                  <Button type="button" variant="outline" onClick={setMaxAmount}>
+                    <Input
+                      id="amount"
+                      type="text"
+                      placeholder="Enter amount"
+                      value={amount}
+                      disabled={loading || isSubmitting}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                          setAmount(value);
+                          setErrors(prev => ({ ...prev, amount: '' }));
+                        }
+                      }}
+                    />
+                  <Button type="button" variant="outline" onClick={setMaxAmount} disabled={loading || isSubmitting}>
                     Max
                   </Button>
                 </div>
@@ -164,6 +165,7 @@ export default function PartnerPayoutDialog() {
                     type="tel"
                     placeholder="+255712345678"
                     value={phoneNumber}
+                    disabled={loading || isSubmitting}
                     onChange={(e) => {
                       setPhoneNumber(e.target.value);
                       setErrors(prev => ({ ...prev, phoneNumber: '' }));
@@ -192,7 +194,14 @@ export default function PartnerPayoutDialog() {
                   Cancel
                 </Button>
                 <Button type="submit" className="flex-1" disabled={loading || isSubmitting}>
-                  {isSubmitting ? 'Processing...' : 'Request Payout'}
+                  {isSubmitting || loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Request Payout'
+                  )}
                 </Button>
               </div>
             </form>

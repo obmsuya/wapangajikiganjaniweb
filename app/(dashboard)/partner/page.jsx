@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Home, Users, Wallet, User } from 'lucide-react';
+import { Home, Users, Wallet, User, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CloudflareBreadcrumbs, CloudflarePageHeader } from '@/components/cloudflare/Breadcrumbs';
 import PartnerOverview from '@/components/partner/PartnerOverview';
@@ -14,7 +14,7 @@ export default function PartnerDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isClient, setIsClient] = useState(false);
 
-  const { refreshData, setActiveTab: setStoreActiveTab } = usePartnerStore();
+  const { refreshData, setActiveTab: setStoreActiveTab, loading, dashboardData } = usePartnerStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -28,6 +28,14 @@ export default function PartnerDashboard() {
   const breadcrumbItems = [
     { label: 'Partner Dashboard', icon: <User className="h-4 w-4" /> }
   ];
+
+  if (loading && !dashboardData) {
+    return (
+      <div className="flex h-[50vh] w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
