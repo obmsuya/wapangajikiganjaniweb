@@ -71,6 +71,7 @@ export default function PartnerPayoutDialog() {
     }
     finally {
       setIsSubmitting(false);
+      setShowPayoutDialog(false);
     }
   };
 
