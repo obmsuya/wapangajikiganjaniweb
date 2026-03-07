@@ -575,7 +575,7 @@ const PropertyService = {
 
       console.log(`Updating unit ${unitId} with data:`, formattedData);
       
-      const response = await api.put(`/api/v1/svg_properties/units/${unitId}/`, formattedData);
+      const response = await api.patch(`/api/v1/svg_properties/units/${unitId}/`, formattedData);
       
       console.log('Unit updated successfully:', response);
       return response;
