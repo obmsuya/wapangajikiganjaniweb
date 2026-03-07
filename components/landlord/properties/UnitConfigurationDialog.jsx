@@ -31,11 +31,10 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
     if (unit) {
       setFormData({
         unit_name: unit.unit_name || "",
-        bedrooms: unit.bedrooms || unit.rooms || 1,
-        area_sqm: unit.area_sqm || 150,
+        rooms: unit.rooms || 1,                       
         rent_amount: unit.rent_amount || 0,
-        payment_freq: unit.payment_freq || "monthly",
-        status: unit.status || "vacant",
+        payment_freq: unit.payment_freq || "1",       
+        status: unit.status || "available",          
       });
     }
   }, [unit]);
@@ -65,7 +64,8 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
       
       if (isRealUnit) {
         // Update existing unit via API
-        const updatedUnit = await PropertyService.updateUnitDetails(unit.id, formData);
+        const { ...dataToSend } = formData;
+        const updatedUnit = await PropertyService.updateUnitDetails(unit.id, dataToSend);
         
         customToast.success("Unit Updated", {
           description: `Unit ${formData.unit_name} has been updated successfully.`,
@@ -142,39 +142,6 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="bedrooms">Bedrooms</Label>
-              <Select
-                value={formData.bedrooms?.toString()}
-                onValueChange={(value) => handleChange("bedrooms", parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select bedrooms" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <SelectItem key={num} value={num.toString()}>
-                      {num} Bedroom{num > 1 ? "s" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="area_sqm">Area (sq m)</Label>
-              <Input
-                id="area_sqm"
-                type="number"
-                min="1"
-                step="0.01"
-                value={formData.area_sqm}
-                onChange={(e) => handleChange("area_sqm", parseFloat(e.target.value) || 0)}
-              />
-            </div>
-          </div>
-
           <div>
             <Label htmlFor="payment_freq">Payment Frequency</Label>
             <Select
@@ -185,10 +152,11 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="quarterly">Quarterly</SelectItem>
-                <SelectItem value="biannual">Bi-Annual</SelectItem>
-                <SelectItem value="annual">Annual</SelectItem>
+                <SelectItem value="1">Monthly (1 month)</SelectItem>
+                <SelectItem value="2">2 Months</SelectItem>
+                <SelectItem value="3">Quarterly (3 months)</SelectItem>
+                <SelectItem value="6">Bi-Annual (6 months)</SelectItem>
+                <SelectItem value="12">Annual (12 months)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -203,7 +171,7 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="vacant">Vacant</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
                 <SelectItem value="occupied">Occupied</SelectItem>
                 <SelectItem value="maintenance">Under Maintenance</SelectItem>
                 <SelectItem value="reserved">Reserved</SelectItem>
