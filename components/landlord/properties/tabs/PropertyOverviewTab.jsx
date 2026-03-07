@@ -58,18 +58,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
   }, [property?.id]);
 
   const getUnitPaymentStatus = (unit, floorNumber) => {
-    const tenant = tenantsData.find(t => {
-        // Primary match: by unit ID (most reliable)
-        if (unit.id && t.unit_id) {
-            return t.unit_id === unit.id;
-        }
-        // Fallback: svg_id match (handle 0 explicitly with ===)
-        if (unit.svg_id !== undefined && unit.svg_id !== null && t.unit_svg_id !== undefined) {
-            return t.unit_svg_id === unit.svg_id;
-        }
-        return false;
-    });
-
+    const tenant = tenantsData.find(t => t.unit_id === unit.id);
     if (!tenant) return "vacant";
     return tenant.payment_status || tenant.full_unit_info?.payment_status || "due";
 };
@@ -88,15 +77,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
               parseInt(floorNum, 10)
             );
 
-            const tenant = tenantsData.find(t => {
-                // Primary: unit ID
-                if (unit.id && t.unit_id) return t.unit_id === unit.id;
-                // Fallback: svg_id (=== handles 0 correctly)
-                if (unit.svg_id !== undefined && t.unit_svg_id !== undefined) {
-                    return t.unit_svg_id === unit.svg_id;
-                }
-                return false;
-            });
+            const tenant = tenantsData.find(t => t.unit_id === unit.id);
 
             return {
               cellIndex: unit.svg_id,

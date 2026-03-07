@@ -521,6 +521,7 @@ const PropertyService = {
             svg_id: unit.svg_id,
             unit_name: unit.unit_name,
             area_sqm: unit.area_sqm,
+            id: unit.unit_id,
             rooms: unit.rooms,
             rent_amount: unit.rent_amount,
             status: unit.status,
