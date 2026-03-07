@@ -567,16 +567,15 @@ const PropertyService = {
 
       const formattedData = {
         unit_name: unitData.unit_name,
-        rooms: unitData.bedrooms || unitData.rooms,
-        area_sqm: parseFloat(unitData.area_sqm) || 0,
+        rooms: unitData.rooms || 1,           
         rent_amount: parseFloat(unitData.rent_amount) || 0,
-        payment_freq: unitData.payment_freq || 'monthly',
-        status: unitData.status || 'vacant'
+        payment_freq: unitData.payment_freq || '1',  
+        status: unitData.status || 'available'       
       };
 
       console.log(`Updating unit ${unitId} with data:`, formattedData);
       
-      const response = await api.put(`/api/v1/svg_properties/unit/${unitId}/`, formattedData);
+      const response = await api.put(`/api/v1/svg_properties/units/${unitId}/`, formattedData);
       
       console.log('Unit updated successfully:', response);
       return response;
@@ -592,7 +591,7 @@ const PropertyService = {
         throw new Error("Unit ID is required");
       }
       
-      const response = await api.get(`/api/v1/svg_properties/unit/${unitId}/`);
+      const response = await api.get(`/api/v1/svg_properties/units/${unitId}/`);
       return response;
     } catch (error) {
       console.error(`Error fetching unit details for ID ${unitId}:`, error);
@@ -606,7 +605,7 @@ const PropertyService = {
         throw new Error("Unit ID and status are required");
       }
       
-      const response = await api.patch(`/api/v1/svg_properties/unit/${unitId}/`, {
+      const response = await api.patch(`/api/v1/svg_properties/units/${unitId}/`, {
         status: status
       });
       
