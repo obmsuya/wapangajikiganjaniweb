@@ -11,41 +11,32 @@ import { useTenantDashboardStore } from '@/stores/tenant/useTenantDashboardStore
 import { useTenantPaymentStore } from '@/stores/tenant/useTenantPaymentStore';
 
 export default function TenantOverview({ onPayNow }) {
-  const { occupancies, loading, error, fetchOccupancies, getUpcomingRent, getOverdueRent, getTotalMonthlyRent, getOccupancyStats, formatCurrency } = useTenantDashboardStore();
+  const {
+    occupancies, loading, error,
+    fetchOccupancies, getUpcomingRent, getOverdueRent,
+    getOccupancyStats, formatCurrency,
+  } = useTenantDashboardStore();
   const { setSelectedUnit, setShowPaymentDialog } = useTenantPaymentStore();
 
-  useEffect(() => {
-    fetchOccupancies();
-  }, [fetchOccupancies]);
+  useEffect(() => { fetchOccupancies(); }, [fetchOccupancies]);
 
+  // Pass the FULL occupancy object — dialog reads unit_id, rent_amount,
+  // next_due_date, is_early_payment, payment_frequency directly from it.
   const handleQuickPay = (occupancy) => {
-    setSelectedUnit({
-      unit_id: occupancy.unit_id,
-      unit_name: occupancy.unit_name,
-      property_name: occupancy.property_name,
-      rent_amount: occupancy.rent_amount,
-      floor_number: occupancy.floor_number,
-      property_id: occupancy.property_id
-    });
-    
-    if (onPayNow) {
-      onPayNow();
-    } else {
-      setShowPaymentDialog(true);
-    }
+    setSelectedUnit(occupancy);           // ← pass whole object, nothing stripped
+    if (onPayNow) onPayNow(occupancy);    // ← page.jsx handlePayNow receives it too
+    else setShowPaymentDialog(true);
   };
 
   const upcomingRent = getUpcomingRent();
-  const overdueRent = getOverdueRent();
-  const stats = getOccupancyStats();
+  const overdueRent  = getOverdueRent();
+  const stats        = getOccupancyStats();
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+          <Skeleton className="h-32" /><Skeleton className="h-32" /><Skeleton className="h-32" />
         </div>
         <Skeleton className="h-48" />
       </div>
@@ -55,11 +46,9 @@ export default function TenantOverview({ onPayNow }) {
   if (error) {
     return (
       <Card className="border-red-200 bg-red-50">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-600" />
-            <p className="text-red-800">{error}</p>
-          </div>
+        <CardContent className="p-6 flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-600" />
+          <p className="text-red-800">{error}</p>
         </CardContent>
       </Card>
     );
@@ -67,38 +56,37 @@ export default function TenantOverview({ onPayNow }) {
 
   return (
     <div className="space-y-6">
+
+      {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-white border-gray-200">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Home className="h-4 w-4" />
-              Your Properties
+              <Home className="h-4 w-4" /> Your Properties
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalUnits}</div>
-            <p className="text-xs text-gray-500 mt-1">Active rentals</p>
+            <p className="text-xs text-muted-foreground mt-1">Active rentals</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-gray-200">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <DollarSign className="h-4 w-4" />
-              Monthly Rent
+              <DollarSign className="h-4 w-4" /> Monthly Rent
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(stats.totalMonthlyRent)}</div>
-            <p className="text-xs text-gray-500 mt-1">Total per month</p>
+            <p className="text-xs text-muted-foreground mt-1">Total per month</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-gray-200">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Calendar className="h-4 w-4" />
-              Payment Status
+              <Calendar className="h-4 w-4" /> Payment Status
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -124,17 +112,17 @@ export default function TenantOverview({ onPayNow }) {
         </Card>
       </div>
 
+      {/* Overdue */}
       {overdueRent.length > 0 && (
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-800">
-              <AlertTriangle className="h-5 w-5" />
-              Urgent: Overdue Payments
+              <AlertTriangle className="h-5 w-5" /> Urgent: Overdue Payments
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {overdueRent.slice(0, 3).map((rent) => (
-              <div key={rent.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200">
+              <div key={rent.unit_id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200">
                 <div>
                   <p className="font-medium text-red-900">{rent.unit_name}</p>
                   <p className="text-sm text-red-700">{rent.property_name}</p>
@@ -142,10 +130,10 @@ export default function TenantOverview({ onPayNow }) {
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-red-900">{formatCurrency(rent.rent_amount)}</p>
-                  <Button size="sm" variant="destructive" onClick={() => handleQuickPay({
-                    unit_id: rent.unit_id, unit_name: rent.unit_name, property_name: rent.property_name,
-                    rent_amount: rent.rent_amount, property_id: rent.property_id, floor_number: rent.floor_number
-                  })} className="mt-1">
+                  <Button
+                    size="sm" variant="destructive" className="mt-1"
+                    onClick={() => handleQuickPay(rent)}
+                  >
                     Pay Now
                   </Button>
                 </div>
@@ -155,28 +143,27 @@ export default function TenantOverview({ onPayNow }) {
         </Card>
       )}
 
+      {/* Due soon */}
       {upcomingRent.length > 0 && (
         <Card className="border-yellow-200 bg-yellow-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-yellow-800">
-              <Clock className="h-5 w-5" />
-              Due Soon
+              <Clock className="h-5 w-5" /> Due Soon
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {upcomingRent.slice(0, 3).map((rent) => (
-              <div key={rent.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-yellow-200">
+              <div key={rent.unit_id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-yellow-200">
                 <div>
                   <p className="font-medium text-yellow-900">{rent.unit_name}</p>
                   <p className="text-sm text-yellow-700">{rent.property_name}</p>
-                  <p className="text-xs text-yellow-600">Due: {new Date(rent.due_date).toLocaleDateString()}</p>
+                  <p className="text-xs text-yellow-600">
+                    Due: {new Date(rent.due_date || rent.next_due_date).toLocaleDateString()}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-yellow-900">{formatCurrency(rent.rent_amount)}</p>
-                  <Button size="sm" onClick={() => handleQuickPay({
-                    unit_id: rent.unit_id, unit_name: rent.unit_name, property_name: rent.property_name,
-                    rent_amount: rent.rent_amount, property_id: rent.property_id, floor_number: rent.floor_number
-                  })} className="mt-1">
+                  <Button size="sm" className="mt-1" onClick={() => handleQuickPay(rent)}>
                     Pay Now
                   </Button>
                 </div>
@@ -186,66 +173,74 @@ export default function TenantOverview({ onPayNow }) {
         </Card>
       )}
 
-      <Card className="bg-white border-gray-200">
+      {/* All units */}
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Home className="h-5 w-5" />
-            Your Rental Properties
+            <Home className="h-5 w-5" /> Your Rental Properties
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!stats.hasActiveRentals ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <Home className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p className="text-lg font-medium mb-2">No active rentals</p>
-              <p className="text-sm">Contact your landlord to get started with rent payments</p>
+              <p className="text-sm">Contact your landlord to get started</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {occupancies.map((occupancy) => (
-                <Card key={occupancy.unit_id} className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+                <Card key={occupancy.unit_id} className="hover:shadow-md transition-shadow">
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-medium">{occupancy.unit_name}</h3>
-                        <p className="text-sm text-gray-500">{occupancy.property_name}</p>
-                        <p className="text-xs text-gray-500">Floor {occupancy.floor_number}</p>
+                        <p className="text-sm text-muted-foreground">{occupancy.property_name}</p>
+                        {occupancy.floor_number && (
+                          <p className="text-xs text-muted-foreground">Floor {occupancy.floor_number}</p>
+                        )}
                       </div>
-                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                        Active
-                      </Badge>
+                      <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
                     </div>
                   </CardHeader>
-                  
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Rent Amount:</span>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Rent Amount</span>
                         <span className="font-medium">{formatCurrency(occupancy.rent_amount)}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Payment Schedule:</span>
-                        <span className="capitalize">{occupancy.payment_frequency}</span>
+                      <div className="flex justify-between">
+                        <span>Payment Schedule</span>
+                        <span className="capitalize">
+                          Every {occupancy.payment_frequency} month{parseInt(occupancy.payment_frequency) !== 1 ? 's' : ''}
+                        </span>
                       </div>
+                      {occupancy.next_due_date && (
+                        <div className="flex justify-between">
+                          <span>Next Due</span>
+                          <span className="font-medium">
+                            {new Date(occupancy.next_due_date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    <Button 
-                      size="sm" 
-                      className="w-full flex items-center gap-2"
+                    {/* Pass full occupancy — dialog gets every field it needs */}
+                    <Button
+                      size="sm" className="w-full gap-2"
                       onClick={() => handleQuickPay(occupancy)}
                     >
-                      <CreditCard className="h-4 w-4" />
-                      Make Payment
+                      <CreditCard className="h-4 w-4" /> Make Payment
                     </Button>
 
-                    {occupancy.recent_payments && occupancy.recent_payments.length > 0 && (
+                    {occupancy.recent_payments?.length > 0 && (
                       <div className="pt-3 border-t">
-                        <p className="text-xs text-gray-500 mb-2">Recent Payments:</p>
+                        <p className="text-xs text-muted-foreground mb-2">Recent Payments</p>
                         <div className="space-y-1">
-                          {occupancy.recent_payments.slice(0, 2).map((payment) => (
-                            <div key={payment.id} className="flex justify-between text-xs text-gray-500">
-                              <span>{new Date(payment.created_at).toLocaleDateString()}</span>
-                              <span>{formatCurrency(payment.amount)}</span>
+                          {occupancy.recent_payments.slice(0, 2).map((p) => (
+                            <div key={p.id} className="flex justify-between text-xs text-muted-foreground">
+                              <span>{new Date(p.created_at).toLocaleDateString()}</span>
+                              <span>{formatCurrency(p.amount)}</span>
                             </div>
                           ))}
                         </div>
@@ -258,6 +253,7 @@ export default function TenantOverview({ onPayNow }) {
           )}
         </CardContent>
       </Card>
+
     </div>
   );
 }
