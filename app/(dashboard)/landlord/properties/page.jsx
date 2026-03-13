@@ -281,6 +281,7 @@ export default function PropertiesPage() {
                       property={property}
                       subscriptionContext={subscriptionData}
                       isVisible={true}
+                      onDelete={removeProperty}
                     />
                   ))}
                 </div>
@@ -301,6 +302,7 @@ export default function PropertiesPage() {
                       property={property}
                       subscriptionContext={subscriptionData}
                       isVisible={false}
+                      onDelete={removeProperty}
                     />
                   ))}
                 </div>

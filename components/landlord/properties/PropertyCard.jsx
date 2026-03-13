@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Building2, 
-  MapPin, 
+import {
+  Building2,
+  MapPin,
   Home,
   Eye,
   Tag,
@@ -15,18 +15,32 @@ import {
   Lock,
   Users,
   TrendingUp,
-  AlertCircle
+  Trash2
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import PropertyService from "@/services/landlord/property";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import UpgradeModal from "@/components/landlord/subscription/UpgradeModal";
 
-export default function PropertyCard({ property, subscriptionContext, isVisible = true }) {
+export default function PropertyCard({ property, subscriptionContext, isVisible = true, onDelete }) {
   const router = useRouter();
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Calculate accurate occupancy from property floor data
   const occupancyData = useMemo(() => {
@@ -45,7 +59,7 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
             totalUnits++;
             const rentAmount = parseFloat(unit.rent_amount) || 0;
             totalRent += rentAmount;
-            
+
             // Check for actual occupancy using current_tenant field
             if (unit.current_tenant || unit.status === 'occupied') {
               occupiedUnits++;
@@ -56,7 +70,7 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
       });
     } else {
       totalUnits = property.total_units || 0;
-      
+
       if (property.stats) {
         occupiedUnits = property.stats.occupiedUnits || property.occupied_units || 0;
         totalRent = property.stats.totalRent || property.total_monthly_rent || 0;
@@ -145,12 +159,35 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
     }).format(amount);
   };
 
+  const handleDeleteClick = (e) => {
+    e.stopPropagation(); // prevent card navigation
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await PropertyService.deleteProperty(property.id);
+      toast.success("Property deleted", {
+        description: `"${propertyName}" and all associated data have been removed.`,
+      });
+      // Tell the parent list to remove this card
+      if (onDelete) onDelete(property.id);
+    } catch (error) {
+      toast.error("Delete failed", {
+        description: error?.response?.data?.error || "Something went wrong. Please try again.",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
     <>
-      <Card 
-        className={`cursor-pointer border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden ${
-          !isVisible ? 'opacity-75 hover:opacity-90' : 'hover:shadow-lg'
-        }`}
+      <Card
+        className={`cursor-pointer border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden ${!isVisible ? 'opacity-75 hover:opacity-90' : 'hover:shadow-lg'
+          }`}
         onClick={handleCardClick}
       >
         {/* Property Image */}
@@ -186,7 +223,7 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
             <Badge className={getCategoryColor(propertyCategory)}>
               {propertyCategory}
             </Badge>
-            
+
             {subscriptionContext?.isFreePlan && (
               <Badge className={isVisible ? 'bg-green-100 text-green-700 border-green-200' : 'bg-orange-100 text-orange-700 border-orange-200'}>
                 {isVisible ? 'Active' : 'Invisible'}
@@ -221,7 +258,7 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
                     <p className="text-gray-500">Total Units</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-green-500" />
                   <div className="text-sm">
@@ -241,11 +278,10 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
                     <span>{occupancyData.occupancyRate}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        occupancyData.occupancyRate >= 90 ? 'bg-green-500' :
+                    <div
+                      className={`h-2 rounded-full transition-all duration-300 ${occupancyData.occupancyRate >= 90 ? 'bg-green-500' :
                         occupancyData.occupancyRate >= 70 ? 'bg-yellow-500' : 'bg-orange-500'
-                      }`}
+                        }`}
                       style={{ width: `${occupancyData.occupancyRate}%` }}
                     />
                   </div>
@@ -289,25 +325,35 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
           <div className="flex gap-2">
             {isVisible ? (
               <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="flex-1"
                   onClick={handleViewDetails}
                 >
                   <Eye className="h-4 w-4 mr-1" />
                   View Details
                 </Button>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   className="px-3"
                   onClick={handleViewDetails}
                 >
                   <ArrowRight className="h-4 w-4" />
                 </Button>
+                {/* DELETE BUTTON */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="px-3 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                  onClick={handleDeleteClick}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </>
             ) : (
-              <Button 
+              <Button
                 className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
                 onClick={handleUpgradeClick}
               >
@@ -318,9 +364,31 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
           </div>
         </CardContent>
       </Card>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{propertyName}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the property along with all its floors, units,
+              and any tenants exclusively linked to it. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? "Deleting..." : "Yes, delete property"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Upgrade Modal */}
-      <UpgradeModal 
+      <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         propertyName={propertyName}
