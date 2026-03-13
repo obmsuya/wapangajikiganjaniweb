@@ -22,7 +22,8 @@ export default function PropertiesPage() {
     loading, 
     error, 
     searchProperties, 
-    fetchDashboardData
+    fetchDashboardData,
+    removeProperty
   } = useDashboard();
   
   const { 
