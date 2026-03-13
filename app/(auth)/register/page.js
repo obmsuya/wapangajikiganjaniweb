@@ -78,7 +78,7 @@ export default function RegisterPage() {
   };
 
   const handleReferralChange = (index, value) => {
-    const char = value.replace(/[^a-zA-Z]/g, "").slice(0, 1).toUpperCase();
+    const char = value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 1).toUpperCase();
     const next  = [...referralCodeDigitsRef.current];
     next[index] = char;
     setReferralDigits(next);
@@ -94,7 +94,7 @@ export default function RegisterPage() {
   };
 
   const handleReferralPaste = (e) => {
-    const pasted = e.clipboardData.getData("text").replace(/[^a-zA-Z]/g, "").slice(0, 8).toUpperCase();
+    const pasted = e.clipboardData.getData("text").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase();
     if (!pasted) return;
     const next = Array(8).fill("");
     for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
