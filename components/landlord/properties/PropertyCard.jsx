@@ -2,52 +2,59 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Building2, 
-  MapPin, 
+import {
+  Building2,
+  MapPin,
   Home,
   Eye,
-  Tag,
-  Star,
-  ArrowRight,
   ImageIcon,
   Crown,
   Lock,
   Users,
   TrendingUp,
-  AlertCircle
+  DoorOpen,
+  Banknote,
+  ChevronRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import UpgradeModal from "@/components/landlord/subscription/UpgradeModal";
+import { Card } from "@/components/ui/card";
 
-export default function PropertyCard({ property, subscriptionContext, isVisible = true }) {
+export default function PropertyCard({
+  property,
+  subscriptionContext,
+  isVisible = true,
+}) {
   const router = useRouter();
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Calculate accurate occupancy from property floor data
   const occupancyData = useMemo(() => {
-    if (!property) return { totalUnits: 0, occupiedUnits: 0, occupancyRate: 0 };
+    if (!property)
+      return {
+        totalUnits: 0,
+        occupiedUnits: 0,
+        occupancyRate: 0,
+        vacantUnits: 0,
+        totalRent: 0,
+        actualRent: 0,
+      };
 
     let totalUnits = 0;
     let occupiedUnits = 0;
     let totalRent = 0;
     let actualRent = 0;
 
-    // Check if property has floor data (detailed view)
     if (property.property_floor && Array.isArray(property.property_floor)) {
-      property.property_floor.forEach(floor => {
+      property.property_floor.forEach((floor) => {
         if (floor.units_floor && Array.isArray(floor.units_floor)) {
-          floor.units_floor.forEach(unit => {
+          floor.units_floor.forEach((unit) => {
             totalUnits++;
-            const rentAmount = parseFloat(unit.rent_amount) || 0;
+            const rentAmount = parseFloat(String(unit.rent_amount)) || 0;
             totalRent += rentAmount;
-            
-            // Check for actual occupancy using current_tenant field
-            if (unit.current_tenant || unit.status === 'occupied') {
+
+            if (unit.current_tenant || unit.status === "occupied") {
               occupiedUnits++;
               actualRent += rentAmount;
             }
@@ -56,19 +63,22 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
       });
     } else {
       totalUnits = property.total_units || 0;
-      
+
       if (property.stats) {
-        occupiedUnits = property.stats.occupiedUnits || property.occupied_units || 0;
-        totalRent = property.stats.totalRent || property.total_monthly_rent || 0;
+        occupiedUnits =
+          property.stats.occupiedUnits || property.occupied_units || 0;
+        totalRent =
+          property.stats.totalRent || property.total_monthly_rent || 0;
         actualRent = property.stats.actualRent || 0;
       } else {
         occupiedUnits = property.occupied_units || 0;
         totalRent = property.total_monthly_rent || 0;
-        actualRent = totalRent; // Assume all occupied units are paying (fallback)
+        actualRent = totalRent;
       }
     }
 
-    const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+    const occupancyRate =
+      totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
 
     return {
       totalUnits,
@@ -76,7 +86,7 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
       vacantUnits: totalUnits - occupiedUnits,
       occupancyRate,
       totalRent,
-      actualRent
+      actualRent,
     };
   }, [property]);
 
@@ -85,11 +95,14 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
   const propertyImage = property.images?.[0]?.image_url || property.prop_image;
   const propertyName = property.name || property.property_name;
   const propertyLocation = property.location || property.address;
-  const propertyCategory = property.category || property.property_type || 'Property';
+  const propertyCategory =
+    property.category || property.property_type || "Property";
 
   const handleCardClick = () => {
-    if (!isVisible || (subscriptionContext?.isFreePlan && !property.is_primary)) {  // Extra check for free plan primary
-      setShowUpgradeModal(true);
+    if (
+      !isVisible ||
+      (subscriptionContext?.isFreePlan && !property.is_primary)
+    ) {
       return;
     }
     router.push(`/landlord/properties/${property.id}`);
@@ -98,7 +111,6 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
   const handleViewDetails = (e) => {
     e.stopPropagation();
     if (!isVisible) {
-      setShowUpgradeModal(true);
       return;
     }
     router.push(`/landlord/properties/${property.id}`);
@@ -106,7 +118,6 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
 
   const handleUpgradeClick = (e) => {
     e.stopPropagation();
-    setShowUpgradeModal(true);
   };
 
   const handleImageError = () => {
@@ -118,214 +129,269 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
     setImageLoading(false);
   };
 
-  const getCategoryColor = (category) => {
-    const colors = {
-      'multi-floor': 'bg-blue-50 text-blue-700 border-blue-200',
-      'single floor': 'bg-green-50 text-green-700 border-green-200',
-      'apartment': 'bg-purple-50 text-purple-700 border-purple-200',
-      'house': 'bg-orange-50 text-orange-700 border-orange-200',
-      'commercial': 'bg-gray-50 text-gray-700 border-gray-200',
-      'default': 'bg-neutral-50 text-neutral-700 border-neutral-200'
+  const getCategoryStyle = (category) => {
+    const styles = {
+      "multi-floor": "bg-blue-500/10 text-blue-700 dark:text-blue-400",
+      "single floor":
+        "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      apartment: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
+      house: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+      commercial: "bg-slate-500/10 text-slate-700 dark:text-slate-400",
     };
-    return colors[category?.toLowerCase()] || colors.default;
+    return styles[category?.toLowerCase()] || "bg-muted text-muted-foreground";
   };
 
   const getOccupancyColor = (rate) => {
-    if (rate >= 90) return 'text-green-600';
-    if (rate >= 70) return 'text-yellow-600';
-    return 'text-red-600';
+    if (rate >= 90) return "bg-emerald-500";
+    if (rate >= 70) return "bg-amber-500";
+    return "bg-red-500";
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-TZ', {
-      style: 'currency',
-      currency: 'TZS',
+    if (amount >= 1000000) {
+      return `TZS ${(amount / 1000000).toFixed(1)}M`;
+    }
+    if (amount >= 1000) {
+      return `TZS ${(amount / 1000).toFixed(0)}K`;
+    }
+    return new Intl.NumberFormat("en-TZ", {
+      style: "currency",
+      currency: "TZS",
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
-  return (
-    <>
-      <Card 
-        className={`cursor-pointer border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden ${
-          !isVisible ? 'opacity-75 hover:opacity-90' : 'hover:shadow-lg'
-        }`}
+  // Locked state card
+  if (!isVisible) {
+    return (
+      <Card
+        className="group relative overflow-hidden border-border/50 bg-card transition-all duration-300 hover:border-border"
         onClick={handleCardClick}
       >
-        {/* Property Image */}
-        <div className="relative h-48 bg-gradient-to-br from-neutral-100 to-neutral-200">
-          {/* Invisible Property Overlay */}
-          {!isVisible && (
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/80 to-red-500/80 flex items-center justify-center z-20">
+        <div className="flex flex-col sm:flex-row">
+          {/* Image Section */}
+          <div className="relative h-48 sm:h-auto sm:w-40 md:w-48 flex-shrink-0 bg-muted">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/90 to-orange-600/90 flex items-center justify-center">
               <div className="text-center text-white p-4">
-                <Crown className="h-8 w-8 mx-auto mb-2" />
-                <p className="font-semibold text-lg">Upgrade Required</p>
-                <p className="text-sm opacity-90">Click to upgrade your plan</p>
+                <Crown className="h-8 w-8 mx-auto mb-2 drop-shadow-md" />
+                <p className="font-semibold text-sm">Upgrade Required</p>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Property Image */}
+          {/* Content Section */}
+          <div className="flex-1 p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-foreground/60 truncate text-base">
+                  {propertyName}
+                </h3>
+                <div className="flex items-center gap-1.5 text-muted-foreground mt-1">
+                  <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="truncate text-sm">{propertyLocation}</span>
+                </div>
+              </div>
+              <Badge
+                variant="secondary"
+                className="flex-shrink-0 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+              >
+                <Lock className="h-3 w-3 mr-1" />
+                Locked
+              </Badge>
+            </div>
+
+            <div className="p-3 bg-amber-50 dark:bg-amber-500/10 rounded-lg border border-amber-200 dark:border-amber-500/20 mb-4">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <Lock className="h-4 w-4 flex-shrink-0" />
+                <div className="text-sm">
+                  <span className="font-medium">
+                    Upgrade to access this property
+                  </span>
+                  {occupancyData.totalUnits > 0 && (
+                    <span className="block text-xs opacity-75 mt-0.5">
+                      {occupancyData.totalUnits} units available
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Button
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm"
+              onClick={handleUpgradeClick}
+            >
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Upgrade to Access
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card
+      className="group relative overflow-hidden border-border/50 bg-card transition-all duration-300 hover:border-border hover:shadow-lg cursor-pointer"
+      onClick={handleCardClick}
+    >
+      <div className="flex flex-col sm:flex-row">
+        {/* Image Section */}
+        <div className="relative h-36 sm:h-auto sm:w-40 md:w-64 flex-shrink-0 overflow-hidden rounded-3xl">
           {propertyImage && !imageError ? (
-            <img
-              src={propertyImage}
-              alt={propertyName}
-              className="w-full h-full object-cover"
-              onError={handleImageError}
-              onLoad={handleImageLoad}
-            />
+            <>
+              {imageLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                  <div className="h-8 w-8 rounded-full border-2 border-muted-foreground/20 border-t-foreground animate-spin" />
+                </div>
+              )}
+              <img
+                src={propertyImage}
+                alt={propertyName}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={handleImageError}
+                onLoad={handleImageLoad}
+              />
+            </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ImageIcon className="h-16 w-16 text-neutral-400" />
+            <div className="w-full h-full flex items-center justify-center bg-muted">
+              <Building2 className="h-12 w-12 text-muted-foreground/40" />
             </div>
           )}
 
-          {/* Status Badges */}
-          <div className="absolute top-3 left-3 flex gap-2">
-            <Badge className={getCategoryColor(propertyCategory)}>
+          {/* Category Badge - Positioned on image */}
+          <div className="absolute top-3 left-3">
+            <Badge
+              className={`${getCategoryStyle(propertyCategory)} border-0 font-medium shadow-sm`}
+            >
               {propertyCategory}
             </Badge>
-            
-            {subscriptionContext?.isFreePlan && (
-              <Badge className={isVisible ? 'bg-green-100 text-green-700 border-green-200' : 'bg-orange-100 text-orange-700 border-orange-200'}>
-                {isVisible ? 'Active' : 'Invisible'}
-              </Badge>
-            )}
           </div>
 
+          {/* Occupancy indicator on image - mobile only */}
+          <div className="absolute bottom-3 left-3 right-3 sm:hidden">
+            <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm">
+              <div
+                className={`h-2 w-2 rounded-full ${getOccupancyColor(occupancyData.occupancyRate)}`}
+              />
+              <span className="text-sm font-medium text-foreground">
+                {occupancyData.occupancyRate}% Occupied
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Property Content */}
-        <CardContent className="p-4">
-          {/* Property Name & Location */}
-          <div className="mb-3">
-            <h3 className={`text-lg font-semibold truncate mb-1 ${!isVisible ? 'text-gray-600' : 'text-gray-900'}`}>
-              {propertyName}
-            </h3>
-            <div className="flex items-center text-sm text-gray-500">
-              <MapPin className="h-4 w-4 mr-1" />
-              <span className="truncate">{propertyLocation}</span>
+        {/* Content Section */}
+        <div className="flex-1 py-4 sm:p-5 flex flex-col">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-foreground truncate text-base md:text-lg group-hover:text-primary transition-colors">
+                {propertyName}
+              </h3>
+              <div className="flex items-center gap-1.5 text-muted-foreground mt-1">
+                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate text-sm">{propertyLocation}</span>
+              </div>
+            </div>
+
+            {/* Desktop occupancy badge */}
+            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+              <div
+                className={`h-2.5 w-2.5 rounded-full ${getOccupancyColor(occupancyData.occupancyRate)}`}
+              />
+              <span className="text-sm font-medium text-foreground">
+                {occupancyData.occupancyRate}%
+              </span>
             </div>
           </div>
 
-          {/* Property Stats - Only for visible properties */}
-          {isVisible ? (
-            <div className="space-y-3 mb-4">
-              {/* Units Overview */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2">
-                  <Home className="h-4 w-4 text-blue-500" />
-                  <div className="text-sm">
-                    <p className="font-medium text-gray-900">{occupancyData.totalUnits}</p>
-                    <p className="text-gray-500">Total Units</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-green-500" />
-                  <div className="text-sm">
-                    <p className={`font-medium ${getOccupancyColor(occupancyData.occupancyRate)}`}>
-                      {occupancyData.occupiedUnits}/{occupancyData.totalUnits}
-                    </p>
-                    <p className="text-gray-500">Occupied</p>
-                  </div>
-                </div>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="flex flex-col items-center sm:items-start p-2.5 sm:p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                <Home className="h-3.5 w-3.5 max-xl:hidden" />
+                <span className="text-xs font-mediu m hidden sm:inline">
+                  Units
+                </span>
               </div>
-
-              {/* Occupancy Progress Bar */}
-              {occupancyData.totalUnits > 0 && (
-                <div className="w-full">
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                    <span>Occupancy</span>
-                    <span>{occupancyData.occupancyRate}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        occupancyData.occupancyRate >= 90 ? 'bg-green-500' :
-                        occupancyData.occupancyRate >= 70 ? 'bg-yellow-500' : 'bg-orange-500'
-                      }`}
-                      style={{ width: `${occupancyData.occupancyRate}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Monthly Revenue */}
-              {occupancyData.actualRent > 0 && (
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-green-700">Monthly Revenue</span>
-                    <span className="font-semibold text-green-800">
-                      {formatCurrency(occupancyData.actualRent)}
-                    </span>
-                  </div>
-                  {occupancyData.actualRent < occupancyData.totalRent && (
-                    <div className="text-xs text-green-600 mt-1">
-                      Potential: {formatCurrency(occupancyData.totalRent)}
-                    </div>
-                  )}
-                </div>
-              )}
+              <span className="text-lg sm:text-xl font-bold text-foreground">
+                {occupancyData.totalUnits}
+              </span>
+              <span className="text-xs text-muted-foreground sm:hidden">
+                Units
+              </span>
             </div>
-          ) : (
-            <div className="mb-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="flex items-center gap-2 text-orange-700">
-                <Lock className="h-4 w-4" />
-                <div>
-                  <span className="text-sm font-medium block">Property requires plan upgrade</span>
-                  {occupancyData.totalUnits > 0 && (
-                    <span className="text-xs opacity-75">
-                      {occupancyData.totalUnits} units • {occupancyData.occupiedUnits} occupied
-                    </span>
-                  )}
-                </div>
+
+            <div className="flex flex-col items-center sm:items-start p-2.5 sm:p-3 bg-emerald-500/10 rounded-lg">
+              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-1">
+                <Users className="h-3.5 w-3.5 max-xl:hidden" />
+                <span className="text-xs font-medium  hidden sm:inline">
+                  Occupied
+                </span>
+              </div>
+              <span className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                {occupancyData.occupiedUnits}
+              </span>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 sm:hidden">
+                Occupied
+              </span>
+            </div>
+          </div>
+
+          {/* Occupancy Progress Bar - Desktop */}
+          {occupancyData.totalUnits > 0 && (
+            <div className="hidden sm:block mb-4">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                <span>Occupancy Rate</span>
+                <span className="font-medium text-foreground">
+                  {occupancyData.occupiedUnits} of {occupancyData.totalUnits}{" "}
+                  units
+                </span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${getOccupancyColor(occupancyData.occupancyRate)}`}
+                  style={{ width: `${occupancyData.occupancyRate}%` }}
+                />
               </div>
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            {isVisible ? (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={handleViewDetails}
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  View Details
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="px-3"
-                  onClick={handleViewDetails}
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </>
-            ) : (
-              <Button 
-                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-                onClick={handleUpgradeClick}
-              >
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Upgrade to Access
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          {/* Revenue Section */}
+          {occupancyData.actualRent > 0 && (
+            <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg border border-emerald-200 dark:border-emerald-500/20 mb-4 max-md:hidden">
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                <Banknote className="h-4 w-4" />
+                <span className="text-sm font-medium">Monthly Revenue</span>
+              </div>
+              <div className="text-right">
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                  {formatCurrency(occupancyData.actualRent)}
+                </span>
+                {occupancyData.actualRent < occupancyData.totalRent && (
+                  <span className="block text-xs text-emerald-600/70 dark:text-emerald-400/70">
+                    Potential: {formatCurrency(occupancyData.totalRent)}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
-      {/* Upgrade Modal */}
-      <UpgradeModal 
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        propertyName={propertyName}
-        subscriptionData={subscriptionContext}
-      />
-    </>
+          {/* Action Button */}
+          <div className="mt-auto">
+            <Button
+              variant="outline"
+              className="w-full group/btn"
+              onClick={handleViewDetails}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              View Details
+              <ChevronRight className="h-4 w-4 ml-auto opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }

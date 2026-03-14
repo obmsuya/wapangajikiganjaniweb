@@ -209,7 +209,7 @@ export default function PropertiesPage() {
 
         {/* Properties Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-gray-200 rounded-lg h-80 animate-pulse"></div>
             ))}
@@ -233,7 +233,7 @@ export default function PropertiesPage() {
                   <Home className="h-5 w-5 text-green-600" />
                   Active Properties ({visibleProperties.length})
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid 2xl:grid-cols-2 gap-6">
                   {visibleProperties.map((property) => (
                     <PropertyCard 
                       key={property.id} 

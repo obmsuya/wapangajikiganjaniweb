@@ -21,7 +21,7 @@ const radiusStyles = {
   sm: "rounded-sm",
   md: "rounded-md",
   lg: "rounded-lg",
-  xl: "rounded-xl",
+  xl: "rounded-4xl",
   full: "rounded-full",
 };
 
@@ -29,8 +29,8 @@ const Card = React.forwardRef(({
   children,
   className = "",
   variant = "default",
-  size = "md",
-  radius = "lg",
+  size = "sm",
+  radius = "xl",
   hover = false,
   clickable = false,
   header,
