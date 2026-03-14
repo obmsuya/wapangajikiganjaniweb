@@ -27,7 +27,7 @@ export default function UpgradeModal({ isOpen, onClose, propertyName = null }) {
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-8">
           <div className="text-center">
             {propertyName ? (
               <p className="text-gray-600">
@@ -38,15 +38,6 @@ export default function UpgradeModal({ isOpen, onClose, propertyName = null }) {
                 You've reached your property limit of <span className="font-medium">{tokenData?.propertyLimit || 1}</span> properties.
               </p>
             )}
-          </div>
-
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 mb-2">Current Status:</h4>
-            <div className="text-sm text-blue-800 space-y-1">
-              <p>Plan: <span className="font-medium">{tokenData?.planName || 'Free Plan'}</span></p>
-              <p>Properties: <span className="font-medium">{tokenData?.currentProperties || 0}</span> / {tokenData?.propertyLimit || 1}</p>
-              <p>Visible: <span className="font-medium">{tokenData?.visibleProperties || 0}</span></p>
-            </div>
           </div>
 
           <div className="flex gap-3">
