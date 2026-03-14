@@ -78,14 +78,14 @@ const CloudflarePageHeader = ({
   ...props
 }) => {
   return (
-    <div className={`mb-6 ${className}`} {...props}>
+    <div className={`mb-8 mt-4 ${className}`} {...props}>
       {breadcrumbs && (
         <div className="mb-2">
           <CloudflareBreadcrumbs items={breadcrumbs} />
         </div>
       )}
       
-      <div className="flex items-center justify-between">
+      <div className="flex items-center flex-col md:flex-row justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{title}</h1>
           {description && <p className="mt-1 text-gray-500">{description}</p>}

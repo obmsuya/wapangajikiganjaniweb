@@ -156,7 +156,7 @@ export default function PropertiesPage() {
   }, [properties, subscriptionData]);
 
   return (
-    <div className="min-h-screen p-6 relative">
+    <div className="min-h-screen relative">
       {isSubscriptionSyncing && (
         <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-50">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
@@ -164,75 +164,34 @@ export default function PropertiesPage() {
           <p className="text-sm text-gray-600 mt-2">Please wait while we activate your plan and refresh your properties.</p>
         </div>
       )}
+
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
         <CloudflarePageHeader
           title="Properties"
           description="Manage your properties and tenants"
           actions={
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-8 justify-between w-full">
               {subscriptionData && (
                 <Badge 
                   variant="outline" 
-                  className={subscriptionData.isFreePlan ? 'border-orange-200 text-orange-700' : 'border-green-200 text-green-700'}
+                  className={`border ${subscriptionData.isFreePlan ? 'border-orange-200 text-orange-700' : 'bg-green-200 border-green-700 text-green-700'}`}
                 >
                   <Crown className="h-3 w-3 mr-1" />
                   {subscriptionData.planName || 'Free Plan'}
                 </Badge>
               )}
               
-              <Button onClick={handleNavigateToSetup}>
+              <Button 
+                onClick={handleNavigateToSetup}
+                className="w-fit"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Property
               </Button>
             </div>
           }
         />
-
-        {/* Subscription Status Card */}
-        {subscriptionData && (
-          <Card className="mb-6 border-l-4 border-l-blue-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium">
-                      Properties: {subscriptionData.currentProperties || 0} / {subscriptionData.propertyLimit === -1 ? '∞' : subscriptionData.propertyLimit}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Home className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium">
-                      Visible: {subscriptionData.visibleProperties || visibleProperties.length}
-                    </span>
-                  </div>
-                  
-                  {invisibleProperties.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-orange-600" />
-                      <span className="text-sm font-medium text-orange-600">
-                        Invisible: {invisibleProperties.length}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                
-                {subscriptionData.isFreePlan && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => router.push('/landlord/subscriptions')}
-                  >
-                    <TrendingUp className="h-4 w-4 mr-1" />
-                    Upgrade Plan
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Search Bar */}
         <div className="mb-6">

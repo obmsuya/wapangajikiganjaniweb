@@ -58,7 +58,7 @@ export default function DashboardLayout({ children }) {
     <div className="flex h-screen overflow-hidden">
       <CustomSidebar role={user.user_type === 'landlord' ? 'landlord' : 'admin'} user={user} />
       <main className="flex-1 overflow-y-auto">
-        <div className="container mx-auto p-4 md:p-6">
+        <div className="container mx-auto p-4 md:px-12">
           {children}
         </div>
       </main>

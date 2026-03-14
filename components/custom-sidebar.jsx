@@ -1,53 +1,77 @@
-// components/custom-sidebar.jsx
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Building2, 
-  Wrench, 
-  Crown, 
-  Settings, 
-  Menu, 
-  X,
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  Wrench,
+  Crown,
+  Settings,
   ChevronDown,
   ChevronLeft,
   Handshake,
   Banknote,
+  Bell,
+  User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import NotificationSidebarFooter from "./sidebar/NotificationSidebarFooter";
+import { cn } from "@/lib/utils";
 
-const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen, toggleSubmenu, proBadge = false, isCollapsed }) => {
+const SidebarItem = ({
+  icon: Icon,
+  label,
+  href,
+  active,
+  children,
+  isSubmenuOpen,
+  toggleSubmenu,
+  proBadge = false,
+  isCollapsed,
+}) => {
   const hasSubmenu = Array.isArray(children) && children.length > 0;
 
   if (hasSubmenu) {
     return (
       <div className="mb-1">
-        <button 
+        <button
           onClick={toggleSubmenu}
-          className={`w-full sidebar-link group ${active ? 'active' : ''} ${isCollapsed ? 'justify-center' : ''}`}
-          title={isCollapsed ? label : ''}
+          className={cn(
+            "w-full flex items-center gap-2 rounded-full text-sm font-medium transition-all duration-200",
+            "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+            active && "bg-sidebar-accent text-white",
+            isCollapsed && "justify-center px-2"
+          )}
+          title={isCollapsed ? label : ""}
         >
           <Icon size={20} className="shrink-0" />
           {!isCollapsed && (
             <>
               <span className="flex-1 text-left truncate">{label}</span>
-              <ChevronDown size={16} className={`transition-transform shrink-0 ${isSubmenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                size={16}
+                className={cn(
+                  "transition-transform shrink-0 text-sidebar-foreground/50",
+                  isSubmenuOpen && "rotate-180"
+                )}
+              />
             </>
           )}
         </button>
-        
+
         {isSubmenuOpen && !isCollapsed && (
-          <div className="ml-8 mt-1 space-y-1 border-l-2 border-sidebar-border pl-3">
+          <div className="ml-9 mt-1 space-y-0.5 border-l-2 border-sidebar-border pl-3">
             {children.map((item, index) => (
               <Link
                 key={index}
                 href={item.href}
-                className={`sidebar-link text-sm py-2 ${item.active ? 'active' : ''}`}
+                className={cn(
+                  "flex items-center py-2 px-2 text-sm rounded-full transition-colors",
+                  "text-sidebar-foreground/60 hover:text-sidebar-foreground",
+                  item.active && "text-sidebar-foreground font-medium"
+                )}
               >
                 <span className="truncate">{item.label}</span>
               </Link>
@@ -59,17 +83,22 @@ const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen,
   }
 
   return (
-    <Link 
-      href={href} 
-      className={`sidebar-link mb-1 group ${active ? 'active' : ''} ${isCollapsed ? 'justify-center' : ''}`}
-      title={isCollapsed ? label : ''}
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center gap-3 p-3.5 rounded-full text-sm font-medium transition-all duration-200 mb-1",
+        "text-sidebar-foreground/70 hover:text-primary hover:bg-sidebar-primary/15",
+        active && "bg-sidebar-primary hover:bg-sidebar-primary/90 text-white hover:text-white shadow-sm",
+        isCollapsed && "justify-center px-2"
+      )}
+      title={isCollapsed ? label : ""}
     >
       <Icon size={20} className="shrink-0" />
       {!isCollapsed && (
         <>
           <span className="flex-1 truncate">{label}</span>
           {proBadge && (
-            <Badge className="bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs px-2 py-0.5 ml-2 shrink-0">
+            <Badge className="bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs px-2 py-0.5 shrink-0 border-0">
               <Crown className="w-3 h-3 mr-1" />
               PRO
             </Badge>
@@ -80,16 +109,38 @@ const SidebarItem = ({ icon: Icon, label, href, active, children, isSubmenuOpen,
   );
 };
 
+const BottomTabItem = ({ icon: Icon, label, href, active }) => {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex flex-col items-center justify-center gap-1 p-1 min-w-[64px] transition-all duration-200",
+        "text-muted-foreground",
+        active && "text-primary"
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200",
+          active && "bg-primary/10"
+        )}
+      >
+        <Icon size={18} strokeWidth={active ? 2 : 1.5} />
+      </div>
+      <span className={cn("text-[8px] font-medium", active && "font-semibold")}>{label}</span>
+    </Link>
+  );
+};
+
 export function CustomSidebar({ role = "admin", user }) {
   const pathname = usePathname();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState({});
 
   const toggleSubmenu = (key) => {
-    setOpenSubmenus(prev => ({
+    setOpenSubmenus((prev) => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: !prev[key],
     }));
   };
 
@@ -101,7 +152,7 @@ export function CustomSidebar({ role = "admin", user }) {
   };
 
   const getRoutes = () => {
-    if (user?.user_type === 'landlord' || role === 'landlord') {
+    if (user?.user_type === "landlord" || role === "landlord") {
       return [
         {
           label: "Properties",
@@ -121,7 +172,6 @@ export function CustomSidebar({ role = "admin", user }) {
           href: "/landlord/maintenance",
           active: pathname === "/landlord/maintenance",
         },
-
         {
           label: "Wapangaji",
           icon: Crown,
@@ -134,11 +184,11 @@ export function CustomSidebar({ role = "admin", user }) {
           icon: Handshake,
           href: "/landlord/payments/confirmations",
           active: pathname.includes("/landlord/payments/confirmations"),
-        }
+        },
       ];
     }
 
-    if (user?.user_type === 'tenant' || role === 'tenant') {
+    if (user?.user_type === "tenant" || role === "tenant") {
       return [
         {
           label: "Dashboard",
@@ -152,11 +202,10 @@ export function CustomSidebar({ role = "admin", user }) {
           href: "/tenant/maintenance",
           active: pathname === "/tenant/maintenance",
         },
-
       ];
     }
 
-    if (user?.user_type === 'partner' || role === 'partner') {
+    if (user?.user_type === "partner" || role === "partner") {
       return [
         {
           label: "Dashboard",
@@ -185,8 +234,8 @@ export function CustomSidebar({ role = "admin", user }) {
             label: "All Users",
             href: "/admin/users",
             active: pathname === "/admin/users",
-          }
-        ]
+          },
+        ],
       },
       {
         label: "Properties",
@@ -216,106 +265,140 @@ export function CustomSidebar({ role = "admin", user }) {
   };
 
   const routes = getRoutes();
-  const sidebarWidth = isCollapsed ? 'w-16' : 'w-64';
+  const sidebarWidth = isCollapsed ? "w-16" : "w-64";
+
+  // Get primary routes for bottom tabs (max 5)
+  const getBottomTabRoutes = () => {
+    const primaryRoutes = routes.filter((r) => !r.children).slice(0, 4);
+    // Add a profile/more tab
+    return [
+      ...primaryRoutes,
+      {
+        label: "Profile",
+        icon: User,
+        href: "/profile",
+        active: pathname.includes("/profile"),
+      },
+    ].slice(0, 5);
+  };
+
+  const bottomTabRoutes = getBottomTabRoutes();
 
   const getUserPortalTitle = () => {
-    if (user?.user_type === 'tenant') return "Tenant Portal";
-    if (user?.user_type === 'landlord') return "Landlord Portal";
+    if (user?.user_type === "tenant") return "Tenant Portal";
+    if (user?.user_type === "landlord") return "Landlord Portal";
     return "Admin Portal";
   };
 
-  const renderSidebarContent = (isMobile = false) => (
-    <div className="flex flex-col h-full">
-      <div className={`flex items-center justify-between p-4 border-b border-sidebar-border ${isCollapsed && !isMobile ? 'px-2' : ''}`}>
-        {(!isCollapsed || isMobile) && (
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold truncate">Wapangaji Kiganjani</h2>
-            <p className="text-sm text-sidebar-fg/70 truncate">
-              {getUserPortalTitle()}
-            </p>
-          </div>
-        )}
-        
-        {isMobile ? (
-          <button 
-            onClick={() => setIsMobileOpen(false)}
-            className="p-1 rounded-md hover:bg-sidebar-hover ml-2"
-            aria-label="Close menu"
-          >
-            <X size={20} />
-          </button>
-        ) : (
-          <button 
-            onClick={toggleCollapse}
-            className={`p-1.5 rounded-md hover:bg-sidebar-hover transition-colors ${isCollapsed ? 'mx-auto' : 'ml-2'}`}
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <ChevronLeft size={18} className={`transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
-          </button>
-        )}
-      </div>
-
-      <nav className={`flex-1 overflow-y-auto p-3 space-y-1 ${isCollapsed && !isMobile ? 'px-2' : ''}`}>
-        {routes.map((route) => (
-          <SidebarItem
-            key={route.href || route.label}
-            icon={route.icon}
-            label={route.label}
-            href={route.href}
-            active={route.active}
-            isSubmenuOpen={route.submenuKey ? openSubmenus[route.submenuKey] : false}
-            toggleSubmenu={() => route.submenuKey && toggleSubmenu(route.submenuKey)}
-            children={route.children}
-            proBadge={route.proBadge}
-            isCollapsed={isCollapsed && !isMobile}
-          />
-        ))}
-      </nav>
-
-      {(!isCollapsed || isMobile) && (
-        <div className="border-t border-sidebar-border">
-          <NotificationSidebarFooter user={user} isCollapsed={false} />
-        </div>
-      )}
-      
-      {(isCollapsed && !isMobile) && (
-        <div className="border-t border-sidebar-border">
-          <NotificationSidebarFooter user={user} isCollapsed={true} />
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <>
-      <button 
-        onClick={() => setIsMobileOpen(true)}
-        className="fixed z-40 bottom-4 right-4 md:hidden bg-primary text-primary-fg p-3 rounded-full shadow-lg hover:shadow-xl transition-all"
-        aria-label="Open menu"
+      {/* Desktop Sidebar */}
+      <aside
+        className={cn(
+          "hidden md:flex fixed inset-y-0 left-4 z-30 flex-col border border-sidebar-border rounded-4xl transition-all duration-300 ease-in-out my-4",
+          sidebarWidth
+        )}
       >
-        <Menu size={24} />
-      </button>
+        {/* Header */}
+        <div
+          className={cn(
+            "flex items-center justify-between h-16 px-4 border-sidebar-border",
+            isCollapsed && "px-2"
+          )}
+        >
+          {!isCollapsed && (
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-bold text-sidebar-foreground truncate">
+                Wapangaji
+              </h2>
+              <p className="text-xs text-sidebar-foreground/60 truncate">
+                {getUserPortalTitle()}
+              </p>
+            </div>
+          )}
+          <button
+            onClick={toggleCollapse}
+            className={cn(
+              "p-2 rounded-full hover:bg-primary/30 transition-colors text-sidebar-foreground/60 hover:text-primary border hover:border-primary",
+              isCollapsed && "mx-auto"
+            )}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <ChevronLeft
+              size={18}
+              className={cn("transition-transform", isCollapsed && "rotate-180")}
+            />
+          </button>
+        </div>
 
-      <div 
-        className={`fixed inset-0 z-40 bg-black/20 backdrop-blur-sm md:hidden transition-opacity duration-300 ${
-          isMobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setIsMobileOpen(false)}
-      />
+        {/* Navigation */}
+        <nav className={cn("flex-1 overflow-y-auto p-4", isCollapsed && "px-2")}>
+          {routes.map((route) => (
+            <SidebarItem
+              key={route.href || route.label}
+              icon={route.icon}
+              label={route.label}
+              href={route.href}
+              active={route.active}
+              isSubmenuOpen={route.submenuKey ? openSubmenus[route.submenuKey] : false}
+              toggleSubmenu={() => route.submenuKey && toggleSubmenu(route.submenuKey)}
+              children={route.children}
+              proBadge={route.proBadge}
+              isCollapsed={isCollapsed}
+            />
+          ))}
+        </nav>
 
-      <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 md:hidden ${
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        {renderSidebarContent(true)}
+        {/* Footer */}
+        <div className="border-t border-sidebar-border p-3">
+          <div
+            className={cn(
+              "flex items-center gap-3 p-2 rounded-full hover:bg-sidebar-accent transition-colors cursor-pointer",
+              isCollapsed && "justify-center"
+            )}
+          >
+            <div className="w-9 h-9 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-sm font-semibold shrink-0">
+              {user?.name?.charAt(0) || "U"}
+            </div>
+            {!isCollapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                  {user?.name || "User"}
+                </p>
+                <p className="text-xs text-sidebar-foreground/60 truncate">
+                  {user?.email || "user@example.com"}
+                </p>
+              </div>
+            )}
+            {!isCollapsed && (
+              <button className="p-1.5 rounded-md hover:bg-sidebar-border transition-colors text-sidebar-foreground/60">
+                <Bell size={18} />
+              </button>
+            )}
+          </div>
+        </div>
       </aside>
 
-      <aside className={`hidden md:flex fixed inset-y-0 left-0 z-30 ${sidebarWidth} bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out`}>
-        {renderSidebarContent(false)}
-      </aside>
+      {/* Desktop Spacer */}
+      <div className={cn("hidden md:block", sidebarWidth, "transition-all duration-300 ease-in-out")} />
 
-      <div className={`hidden md:block ${sidebarWidth} transition-all duration-300 ease-in-out`} />
+      {/* Mobile Bottom Tab Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border">
+        <div className="flex items-center justify-around pb-safe">
+          {bottomTabRoutes.map((route) => (
+            <BottomTabItem
+              key={route.href}
+              icon={route.icon}
+              label={route.label}
+              href={route.href}
+              active={route.active}
+            />
+          ))}
+        </div>
+      </nav>
+
+      {/* Mobile Bottom Spacer */}
+      <div className="md:hidden h-20" />
     </>
   );
 }
