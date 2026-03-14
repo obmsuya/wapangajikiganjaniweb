@@ -5,7 +5,7 @@ export default function AuthLayout({ children }) {
   return (
     <div className="min-h-screen bg-background">
       <ToastProvider />
-      <div className="container mx-auto py-8">
+      <div className="">
         {children}
       </div>
     </div>

@@ -1,13 +1,13 @@
 // app/layout.jsx
 "use client";
-import { Quicksand } from "next/font/google";
+import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { usePathname } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner"
 
-const comicNeue = Quicksand({
-  variable: "--font-quicksand",
+const comicNeue = Inter({
+  variable: "--font-inter",
   weight: ["300", "400","600", "700"],
   subsets: ["latin"],
 });
