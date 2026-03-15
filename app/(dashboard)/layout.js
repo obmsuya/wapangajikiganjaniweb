@@ -52,8 +52,7 @@ export default function DashboardLayout({ children }) {
       </div>
     );
   }
-
-
+  
   return (
     <div className="flex h-screen overflow-hidden">
       <CustomSidebar role={user.user_type === 'landlord' ? 'landlord' : 'admin'} user={user} />

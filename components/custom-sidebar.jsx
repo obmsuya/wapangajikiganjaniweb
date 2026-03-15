@@ -290,6 +290,8 @@ export function CustomSidebar({ role = "admin", user }) {
     return "Admin Portal";
   };
 
+  console.log(user);
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -353,25 +355,26 @@ export function CustomSidebar({ role = "admin", user }) {
         <div className="border-t border-sidebar-border p-3">
           <div
             className={cn(
-              "flex items-center gap-3 p-2 rounded-full hover:bg-sidebar-accent transition-colors cursor-pointer",
-              isCollapsed && "justify-center"
+              "flex items-center gap-3 p-2 rounded-full hover:bg-primary/30 transition-colors cursor-pointer",
+              isCollapsed && "justify-center hover:bg-transparent"
             )}
           >
             <div className="w-9 h-9 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-sm font-semibold shrink-0">
-              {user?.name?.charAt(0) || "U"}
+              {user?.full_name?.charAt(0)}
             </div>
             {!isCollapsed && (
-              <div className="min-w-0 flex-1">
+              
+              <Link href="/profile" className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {user?.name || "User"}
+                  {user?.full_name || "User"}
                 </p>
                 <p className="text-xs text-sidebar-foreground/60 truncate">
-                  {user?.email || "user@example.com"}
+                  {user?.phone_number || "user@example.com"}
                 </p>
-              </div>
+              </Link>
             )}
             {!isCollapsed && (
-              <button className="p-1.5 rounded-md hover:bg-sidebar-border transition-colors text-sidebar-foreground/60">
+              <button className="p-1.5 rounded-xl hover:bg-blue-600/50 transition-colors text-sidebar-foreground/60">
                 <Bell size={18} />
               </button>
             )}
