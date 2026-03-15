@@ -290,7 +290,7 @@ export default function PropertyPaymentsTab({ property }) {
 
       {/* Payments Table */}
       <CloudflareCard>
-        <CloudflareCardHeader className="-mb-4">
+        <CloudflareCardHeader>
           <h3 className="text-lg font-semibold">Recent Payments</h3>
           <p className="text-sm text-gray-600">
             Payment history for this property

@@ -211,7 +211,7 @@ export default function MaintenanceRequestsList({ userType = 'tenant', statusFil
           </div>
         </CloudflareCardHeader>
 
-        <CloudflareCardContent className="-mt-4">
+        <CloudflareCardContent>
           <CloudflareTable
             data={filteredRequests}
             columns={getColumns()}

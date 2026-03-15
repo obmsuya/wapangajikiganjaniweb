@@ -59,7 +59,7 @@ function MaintenanceSummaryCards({ summary }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:mt-8">
       {summaryCards.map((card, index) => (
         <Card className="rounded-2xl" key={index}>
           <CardContent>
@@ -108,7 +108,7 @@ export default function LandlordMaintenancePage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-md:pb-16">
       <CloudflareBreadcrumbs items={breadcrumbItems} />
 
       <CloudflarePageHeader

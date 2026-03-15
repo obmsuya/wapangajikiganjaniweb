@@ -172,7 +172,7 @@ const CloudflareTable = ({
   return (
     <div className={`w-full ${className}`}>
       {/* Table controls */}
-      <div className="flex flex-col justify-between items-start my-8 gap-4 w-full">
+      <div className="flex flex-col justify-between items-start mb-8 gap-4 w-full">
         <div className="flex flex-col md:flex-row md:items-center space-y-2 space-x-2 justify-between w-full">
           {searchable && (
             <div className="relative w-full">
@@ -367,7 +367,7 @@ const CloudflareTable = ({
       <CloudflareCard padded={false} className="border border-card-border">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-slate-50 dark:bg-slate-800 border-b border-card-border h-12">
+            <thead className="bg-slate-50 dark:bg-slate-800 border-b border-card-border sm:h-12">
               <tr>
                 {selectable && (
                   <th className="px-4 py-3 text-left w-10">
