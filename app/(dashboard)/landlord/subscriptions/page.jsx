@@ -720,7 +720,7 @@ export default function SubscriptionPage() {
                             : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                         }`}
                     >
-                      <div className="w-8 h-8 rounded overflow-hidden bg-white p-1 shadow-sm">
+                      <div className="w-8 h-8 rounded overflow-hidden bg-background p-1 shadow-sm">
                         <img
                           src={p.logo}
                           alt={p.name}

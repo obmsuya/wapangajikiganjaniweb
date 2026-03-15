@@ -135,7 +135,7 @@ export default function PartnerRegisterPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-white">
+    <div className="min-h-screen relative overflow-hidden bg-background">
       {/* Theme Toggle */}
       <motion.button
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

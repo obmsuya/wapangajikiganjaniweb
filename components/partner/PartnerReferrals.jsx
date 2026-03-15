@@ -119,7 +119,7 @@ export default function PartnerReferrals() {
   return (
     <div className="space-y-6">
       {/* Commission Summary */}
-      <Card className="bg-white border-gray-200">
+      <Card className="bg-background border-gray-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Award className="h-5 w-5" />
@@ -156,7 +156,7 @@ export default function PartnerReferrals() {
       </Card>
 
       {/* Referrals Table */}
-      <Card className="bg-white border-gray-200">
+      <Card className="bg-background border-gray-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -184,7 +184,7 @@ export default function PartnerReferrals() {
                 <p className="text-sm text-blue-800">
                   <strong>Your Referral Code:</strong> Share this code with potential landlords
                 </p>
-                <div className="mt-2 p-2 bg-white rounded border font-mono text-lg text-center">
+                <div className="mt-2 p-2 bg-background rounded border font-mono text-lg text-center">
                   {referralStats?.referralCode || 'Loading...'}
                 </div>
               </div>

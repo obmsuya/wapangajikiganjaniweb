@@ -98,7 +98,7 @@ export default function WelcomePage() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl p-8 mb-12 shadow-lg"
+          className="bg-background dark:bg-gray-800 rounded-2xl p-8 mb-12 shadow-lg"
         >
           <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
             Quick Setup Process

@@ -321,7 +321,7 @@ const NotificationCard = ({ notification, onMarkAsRead, onDelete, isSelected, on
     <Card className={`transition-all duration-200 hover:shadow-md border-l-4 ${
       notification.isRead 
         ? 'bg-gray-50/50 dark:bg-gray-800/50' 
-        : 'bg-white dark:bg-gray-900 shadow-sm'
+        : 'bg-background dark:bg-gray-900 shadow-sm'
     } ${colorClass.split(' ')[2]} ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">

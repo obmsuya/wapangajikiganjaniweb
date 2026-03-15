@@ -564,7 +564,7 @@ export default function FloorLayoutEditor({
                     <span>Selected Unit</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-white border rounded"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-background border rounded"></div>
                     <span>Available Space</span>
                   </div>
                   {previewMode && (

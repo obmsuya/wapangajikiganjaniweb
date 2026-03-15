@@ -122,7 +122,7 @@ export default function TenantOverview({ onPayNow }) {
           </CardHeader>
           <CardContent className="space-y-3">
             {overdueRent.slice(0, 3).map((rent) => (
-              <div key={rent.unit_id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200">
+              <div key={rent.unit_id} className="flex items-center justify-between p-4 bg-background rounded-lg border border-red-200">
                 <div>
                   <p className="font-medium text-red-900">{rent.unit_name}</p>
                   <p className="text-sm text-red-700">{rent.property_name}</p>
@@ -153,7 +153,7 @@ export default function TenantOverview({ onPayNow }) {
           </CardHeader>
           <CardContent className="space-y-3">
             {upcomingRent.slice(0, 3).map((rent) => (
-              <div key={rent.unit_id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-yellow-200">
+              <div key={rent.unit_id} className="flex items-center justify-between p-4 bg-background rounded-lg border border-yellow-200">
                 <div>
                   <p className="font-medium text-yellow-900">{rent.unit_name}</p>
                   <p className="text-sm text-yellow-700">{rent.property_name}</p>

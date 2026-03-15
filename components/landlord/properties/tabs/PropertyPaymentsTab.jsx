@@ -143,7 +143,7 @@ export default function PropertyPaymentsTab({ property }) {
       accessorKey: "status",
       header: "Status",
       cell: (row) => (
-        <Badge className={getStatusColor(row.status)}>{row.status}</Badge>
+        <Badge variant="secondary" className={getStatusColor(row.status)}>{row.status}</Badge>
       ),
     },
     {

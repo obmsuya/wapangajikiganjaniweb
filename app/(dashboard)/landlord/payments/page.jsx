@@ -160,7 +160,7 @@ export default function PaymentsPage() {
         { value: "failed", label: "Failed" },
       ],
       cell: (row) => (
-        <Badge className={getStatusColor(row.status)}>
+        <Badge variant="secondary" className={getStatusColor(row.status)}>
           {row.status || "N/A"}
         </Badge>
       ),
@@ -226,7 +226,7 @@ export default function PaymentsPage() {
 
       {error && (
         <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6">
+          <CardContent>
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div className="min-w-0">
@@ -237,6 +237,8 @@ export default function PaymentsPage() {
           </CardContent>
         </Card>
       )}
+
+      <br />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4 mb-4">
         <Card className="relative overflow-hidden transition-shadow duration-300">
