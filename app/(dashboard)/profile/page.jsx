@@ -209,7 +209,7 @@ export default function ProfilePage() {
 
   if (loading && !user) {
     return (
-      <div className="flex items-center justify-center min-h-[40vh]">
+      <div className="flex items-center justify-center max-sm:pb-16">
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
           <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           <p className="text-sm">Loading profile…</p>

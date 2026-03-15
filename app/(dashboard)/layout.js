@@ -47,7 +47,7 @@ export default function DashboardLayout({ children }) {
 
   if (isSetupRoute) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white dark:bg-white">
         {children}
       </div>
     );

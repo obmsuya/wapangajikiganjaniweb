@@ -4,9 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ededed;
+  --background: #fff;
   --foreground: #000000;
-  --card: #efefef;
+  --card: #f9f9f9;
   --card-foreground: #000000;
   --popover: #FDFDFF;
   --popover-foreground: #000000;
@@ -152,6 +152,6 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-white text-foreground;
   }
 }
