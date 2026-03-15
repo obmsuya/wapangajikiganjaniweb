@@ -168,13 +168,13 @@ export default function SubscriptionPage() {
       header: "Plan",
       accessor: "planName",
       cell: (row) => (
-        <div className="flex items-center gap-2">
-          <Crown className="h-4 w-4 text-yellow-500" />
+        <div className="flex items-center sm:gap-4">
+          <Crown className="h-4 w-4 text-yellow-500 max-sm:hidden" />
           <div>
-            <div className="font-medium">{row.planName}</div>
+            <div className="sm:font-medium max-md:text-xs">{row.planName}</div>
             <Badge
               variant="secondary"
-              className={getPlanTypeColor(row.planType)}
+              className={`text-xs ${getPlanTypeColor(row.planType)}`}
             >
               {row.planType}
             </Badge>
@@ -187,8 +187,8 @@ export default function SubscriptionPage() {
       accessor: "duration",
       cell: (row) => (
         <div>
-          <div>{new Date(row.startDate).toLocaleDateString()}</div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm sm:text-base">{new Date(row.startDate).toLocaleDateString()}</div>
+          <div className="text-xs sm:text-sm text-gray-500">
             to {new Date(row.endDate).toLocaleDateString()}
           </div>
         </div>
@@ -198,7 +198,7 @@ export default function SubscriptionPage() {
       header: "Status",
       accessor: "status",
       cell: (row) => (
-        <Badge className={getSubscriptionStatusColor(row.status)}>
+        <Badge variant="outline" className={getSubscriptionStatusColor(row.status)}>
           {row.status}
         </Badge>
       ),
@@ -207,7 +207,7 @@ export default function SubscriptionPage() {
       header: "Price",
       accessor: "price",
       cell: (row) => (
-        <span className="font-medium">{formatCurrency(row.price)}</span>
+        <span className="max-sm:text-xs font-medium">{formatCurrency(row.price)}</span>
       ),
     },
   ];
@@ -418,9 +418,9 @@ export default function SubscriptionPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Details Card */}
               <div className="lg:col-span-2">
-                <Card className="border-0 shadow-sm overflow-hidden">
+                <Card className="border border-border overflow-hidden">
                   {/* Premium Header */}
-                  <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 px-6 py-8">
+                  <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 px-6 py-8 rounded-3xl">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
                         <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
@@ -432,6 +432,7 @@ export default function SubscriptionPage() {
                       </div>
                       <Badge
                         className={`${getSubscriptionStatusColor(currentSubscription.status)} text-sm`}
+                        variant="secondary"
                       >
                         {currentSubscription.status}
                       </Badge>
@@ -449,6 +450,7 @@ export default function SubscriptionPage() {
                           <div>
                             <Badge
                               className={`${getPlanTypeColor(currentSubscription.plan.planType)} text-sm`}
+                              variant="outline"
                             >
                               {currentSubscription.plan.planType}
                             </Badge>
@@ -480,11 +482,11 @@ export default function SubscriptionPage() {
                           Billing Period
                         </Label>
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                            <div className="text-xs text-slate-600 mb-1">
+                          <div className="p-4 rounded-lg border border-primary bg-primary/5">
+                            <div className="text-xs text-primary mb-1">
                               Started
                             </div>
-                            <div className="text-sm font-semibold text-slate-900">
+                            <div className="text-sm font-semibold text-primary">
                               {new Date(
                                 currentSubscription.startDate,
                               ).toLocaleDateString("en-US", {
@@ -494,11 +496,11 @@ export default function SubscriptionPage() {
                               })}
                             </div>
                           </div>
-                          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                            <div className="text-xs text-slate-600 mb-1">
+                          <div className="p-4 rounded-lg border border-orange-300 bg-orange-100">
+                            <div className="text-xs text-orange-600 mb-1">
                               Expires
                             </div>
-                            <div className="text-sm font-semibold text-slate-900">
+                            <div className="text-sm font-semibold text-orange-900">
                               {new Date(
                                 currentSubscription.endDate,
                               ).toLocaleDateString("en-US", {
@@ -514,18 +516,18 @@ export default function SubscriptionPage() {
                       <Separator />
 
                       {/* Action Buttons */}
-                      <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+                      <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
                         <Button
                           variant="outline"
                           onClick={cancelSubscription}
                           disabled={loading}
-                          className="w-full sm:w-fit border-red-200 text-red-600 hover:bg-red-50"
+                          className="w-full px-4 sm:w-fit border-red-200 text-red-600 hover:bg-red-50"
                         >
                           Cancel Plan
                         </Button>
                         <Button
                           onClick={() => setActiveTab("plans")}
-                          className="w-full sm:w-fit"
+                          className="w-full sm:w-fit px-4"
                         >
                           <TrendingUp className="h-4 w-4 mr-2" />
                           Upgrade Plan
@@ -538,7 +540,7 @@ export default function SubscriptionPage() {
 
               {/* Usage Summary Card */}
               <Card className="border-0 shadow-sm overflow-hidden">
-                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 px-6 py-6">
+                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/40 px-6 py-6 rounded-3xl">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="h-5 w-5 text-emerald-600" />
                     <h3 className="font-semibold text-slate-900">
@@ -549,7 +551,7 @@ export default function SubscriptionPage() {
 
                 <CardContent className="pt-6 space-y-6">
                   {/* Total Properties */}
-                  <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200">
+                  <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-3xl border border-blue-200">
                     <div className="text-4xl font-bold text-blue-600 mb-2">
                       {subscriptionStatus?.propertyCounts?.total || 0}
                     </div>
@@ -560,7 +562,7 @@ export default function SubscriptionPage() {
 
                   {/* Active and Available */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <div className="p-4 bg-emerald-50 rounded-3xl border border-emerald-200">
                       <div className="text-2xl font-bold text-emerald-600">
                         {subscriptionStatus?.propertyCounts?.total || 0}
                       </div>
@@ -568,7 +570,7 @@ export default function SubscriptionPage() {
                         Active
                       </div>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="p-4 rounded-3xl border border-slate-200 bg-slate-100">
                       <div className="text-2xl font-bold text-slate-600 flex items-center gap-1">
                         {subscriptionStatus?.propertyCounts?.available ===
                         "Unlimited" ? (
