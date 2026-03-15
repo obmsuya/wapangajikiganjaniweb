@@ -235,9 +235,9 @@ export default function PropertyCard({
       className="group relative overflow-hidden border-border/50 bg-card transition-all duration-300 hover:border-border hover:shadow-lg cursor-pointer"
       onClick={handleCardClick}
     >
-      <div className="flex flex-col sm:flex-row">
+      <div className="flex flex-col">
         {/* Image Section */}
-        <div className="relative h-36 sm:h-auto sm:w-40 md:w-64 flex-shrink-0 overflow-hidden rounded-3xl">
+        <div className="relative h-36 md:h-48 flex-shrink-0 overflow-hidden rounded-3xl">
           {propertyImage && !imageError ? (
             <>
               {imageLoading && (

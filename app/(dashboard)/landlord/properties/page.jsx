@@ -233,7 +233,7 @@ export default function PropertiesPage() {
                   <Home className="h-5 w-5 text-green-600" />
                   Active Properties ({visibleProperties.length})
                 </h2>
-                <div className="grid 2xl:grid-cols-2 gap-6">
+                <div className="grid md:grid-cols-2 gap-4">
                   {visibleProperties.map((property) => (
                     <PropertyCard 
                       key={property.id} 
@@ -253,7 +253,7 @@ export default function PropertiesPage() {
                   <AlertCircle className="h-5 w-5 text-orange-600" />
                   Upgrade Required ({invisibleProperties.length})
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {invisibleProperties.map((property) => (
                     <PropertyCard 
                       key={property.id} 
