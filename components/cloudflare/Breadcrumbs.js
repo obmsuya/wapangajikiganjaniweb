@@ -28,7 +28,7 @@ const CloudflareBreadcrumbs = ({
   
   return (
     <nav 
-      className={`flex items-center space-x-1 text-sm pt-4 ${className}`}
+      className={`flex items-center space-x-4 text-sm pt-4 ${className}`}
       aria-label="Breadcrumb"
       {...props}
     >
