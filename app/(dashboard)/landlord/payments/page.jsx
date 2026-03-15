@@ -292,7 +292,7 @@ export default function PaymentsPage() {
         </Card>
       </div>
 
-      <Card className="border-0 px-0 rounded-none">
+      <Card className="border-0 px-0 rounded-none bg-background">
         <CardHeader className="pb-4 sm:pb-6">
           <div className="flex flex-col gap-4 sm:gap-6">
             <div>
