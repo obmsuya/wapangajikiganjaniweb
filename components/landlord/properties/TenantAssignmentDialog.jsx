@@ -1,5 +1,15 @@
 import { useState, useEffect } from "react";
-import { User, Calendar, DollarSign, CheckCircle, UserPlus, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  UserPlus,
+  User,
+  Phone,
+  CalendarDays,
+  Banknote,
+  Repeat2,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,38 +17,34 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
 import { useTenantAssignment } from "@/hooks/landlord/useTenantAssignment";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-const PAYMENT_FREQUENCY_OPTIONS = [
-  { value: "1", label: "1 Month" },
-  { value: "2", label: "2 Months" },
-  { value: "3", label: "3 Months" },
-  { value: "4", label: "4 Months" },
-  { value: "5", label: "5 Months" },
-  { value: "6", label: "6 Months" },
-  { value: "7", label: "7 Months" },
-  { value: "8", label: "8 Months" },
-  { value: "9", label: "9 Months" },
-  { value: "10", label: "10 Months" },
-  { value: "11", label: "11 Months" },
-  { value: "12", label: "12 Months" },
-  { value: "13", label: "13 Months" },
-  { value: "14", label: "14 Months" },
-  { value: "15", label: "15 Months" },
-  { value: "16", label: "16 Months" },
-  { value: "17", label: "17 Months" },
-  { value: "18", label: "18 Months" },
-  { value: "19", label: "19 Months" },
-  { value: "20", label: "20 Months" },
-  { value: "21", label: "21 Months" },
-  { value: "22", label: "22 Months" },
-  { value: "23", label: "23 Months" },
-  { value: "24", label: "24 Months" },
-];
+// 1–24 months generated programmatically
+const PAYMENT_FREQUENCY_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
+  value: String(i + 1),
+  label: `${i + 1}mo`,
+}));
+
+const QUICK_OPTIONS = PAYMENT_FREQUENCY_OPTIONS.slice(0, 6);
+const EXTENDED_OPTIONS = PAYMENT_FREQUENCY_OPTIONS.slice(6);
+
+function FormField({ label, icon: Icon, hint, children }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="flex items-center gap-1.5 text-sm font-medium">
+        <Icon className="size-3.5 text-muted-foreground shrink-0" />
+        {label}
+      </Label>
+      {children}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
 
 export default function TenantAssignmentDialog({
   isOpen,
@@ -60,8 +66,8 @@ export default function TenantAssignmentDialog({
 
   useEffect(() => {
     if (isOpen && unit) {
-      const rent = unit.full_unit_info?.rent_amount ?? unit.rent_amount ?? '';
-      setFormData(prev => ({
+      const rent = unit.full_unit_info?.rent_amount ?? unit.rent_amount ?? "";
+      setFormData((prev) => ({
         ...prev,
         rent_amount: rent !== undefined && rent !== null ? rent : "",
       }));
@@ -78,19 +84,17 @@ export default function TenantAssignmentDialog({
     }
   }, [isOpen, unit]);
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const set = (field) => (e) =>
+    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const handlePaymentFrequencyChange = (value) => {
-    setFormData(prev => ({ ...prev, payment_frequency: value }));
-  };
+  const setFreq = (value) =>
+    setFormData((prev) => ({ ...prev, payment_frequency: value }));
 
   const validateForm = () => {
     const errors = [];
     if (!formData.full_name?.trim()) errors.push("Tenant name is required");
     if (!formData.phone_number?.trim()) errors.push("Phone number is required");
-    if (!formData.rent_amount || formData.rent_amount <= 0)
+    if (!formData.rent_amount || Number(formData.rent_amount) <= 0)
       errors.push("Rent amount is required");
     if (!formData.payment_frequency)
       errors.push("Payment frequency is required");
@@ -100,201 +104,182 @@ export default function TenantAssignmentDialog({
   const handleSubmit = async () => {
     const errors = validateForm();
     if (errors.length) {
-      toast.error("Please fix these issues", { description: errors.join(", ") });
+      toast.error("Please fix these issues", {
+        description: errors.join(", "),
+      });
       return;
     }
-
     try {
-      const payload = {
+      await assignTenant({
         unit_id: unit.id,
         full_name: formData.full_name.trim(),
         phone_number: formData.phone_number.trim(),
         rent_amount: parseFloat(formData.rent_amount),
         payment_frequency: formData.payment_frequency,
         start_date: formData.start_date,
-      };
-
-      await assignTenant(payload);
-
+      });
       onSuccess?.();
       onClose();
     } catch {
+      // handled by hook
     }
   };
 
-  const isRentInputDisabled = loading;
-
-  const commonOptions = PAYMENT_FREQUENCY_OPTIONS.slice(0, 5);
-  const remainingOptions = PAYMENT_FREQUENCY_OPTIONS.slice(5);
+  const visibleOptions = showAllFrequencies
+    ? PAYMENT_FREQUENCY_OPTIONS
+    : QUICK_OPTIONS;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-blue-600" />
+      <DialogContent className="w-full max-w-md p-0 gap-0 overflow-hidden">
+        {/* ── Header ── */}
+        <DialogHeader className="px-5 pt-5 pb-4 border-b border-border">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <span className="p-1.5 rounded-lg bg-primary/10">
+              <UserPlus className="size-4 text-primary" />
+            </span>
             Add New Tenant
           </DialogTitle>
-          <p className="text-sm text-gray-600 mt-1">
-            Adding tenant to <span className="font-medium">{unit?.unit_name}</span>
-          </p>
+          {unit?.unit_name && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Assigning to{" "}
+              <span className="font-semibold text-foreground">
+                {unit.unit_name}
+              </span>
+            </p>
+          )}
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] w-full pr-4">
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="tenant-name" className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Tenant Name
-              </Label>
-              <input
-                id="tenant-name"
-                placeholder="Enter full name"
-                value={formData.full_name}
-                onChange={(e) => handleInputChange("full_name", e.target.value)}
-                disabled={loading}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
+        {/* ── Form ── */}
+        <ScrollArea className="max-h-[65vh]">
+          <div className="px-5 py-4 space-y-5">
 
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Phone Number
-              </Label>
-              <input
-                id="phone"
+            {/* Name */}
+            <FormField label="Full Name" icon={User}>
+              <Input
+                placeholder="e.g. Amina Juma"
+                value={formData.full_name}
+                onChange={set("full_name")}
+                disabled={loading}
+              />
+            </FormField>
+
+            {/* Phone */}
+            <FormField
+              label="Phone Number"
+              icon={Phone}
+              hint="Login details will be sent to this number via SMS"
+            >
+              <Input
                 placeholder="+255 743 456 789"
                 value={formData.phone_number}
-                onChange={(e) => handleInputChange("phone_number", e.target.value)}
+                onChange={set("phone_number")}
                 disabled={loading}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
-              <p className="text-xs text-gray-500">
-                Login details will be sent to this number
-              </p>
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label htmlFor="rent" className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                Rent Amount (TZS)
-              </Label>
+            {/* Rent amount */}
+            <FormField label="Rent Amount (TZS)" icon={Banknote}>
               <div className="relative">
-                <input
-                  id="rent"
+                <span className="absolute left-3 inset-y-0 flex items-center text-xs font-medium text-muted-foreground pointer-events-none select-none">
+                  TZS
+                </span>
+                <Input
                   type="number"
-                  placeholder="Enter amount"
+                  placeholder="0"
                   value={formData.rent_amount}
-                  onChange={(e) => handleInputChange("rent_amount", e.target.value)}
-                  disabled={isRentInputDisabled}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10 pr-12"
+                  onChange={set("rent_amount")}
+                  disabled={loading}
+                  className="pl-11"
                 />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
-                  TZS
-                </span>
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
-                  TZS
-                </span>
               </div>
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                Payment Frequency
-              </Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {commonOptions.map((option) => (
-                  <Button
-                    key={option.value}
-                    variant={formData.payment_frequency === option.value ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePaymentFrequencyChange(option.value)}
-                    disabled={loading}
-                    className="px-3 py-1.5 text-xs whitespace-nowrap"
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-                {!showAllFrequencies && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAllFrequencies(true)}
-                    disabled={loading}
-                    className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center justify-center"
-                  >
-                    <ChevronDown className="w-4 h-4 mr-1" />
-                    More
-                  </Button>
-                )}
-                {showAllFrequencies && (
-                  <>
-                    {remainingOptions.map((option) => (
-                      <Button
-                        key={option.value}
-                        variant={formData.payment_frequency === option.value ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePaymentFrequencyChange(option.value)}
+            {/* Payment frequency */}
+            <FormField label="Payment Frequency" icon={Repeat2}>
+              <div className="space-y-2">
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                  {visibleOptions.map((opt) => {
+                    const isSelected = formData.payment_frequency === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setFreq(opt.value)}
                         disabled={loading}
-                        className="px-3 py-1.5 text-xs whitespace-nowrap"
+                        className={cn(
+                          "h-9 rounded-lg border text-xs font-medium transition-all",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          isSelected
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background text-foreground border-border hover:border-primary/50 hover:bg-primary/5",
+                          loading && "opacity-50 cursor-not-allowed"
+                        )}
                       >
-                        {option.label}
-                      </Button>
-                    ))}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowAllFrequencies(false)}
-                      disabled={loading}
-                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center justify-center"
-                    >
-                      <ChevronUp className="w-4 h-4 mr-1" />
-                      Less
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="start-date" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Move-in Date
-              </Label>
-              <input
-                id="start-date"
+                <button
+                  type="button"
+                  onClick={() => setShowAllFrequencies((v) => !v)}
+                  disabled={loading}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showAllFrequencies ? (
+                    <>
+                      <ChevronUp className="size-3.5" />
+                      Show less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="size-3.5" />
+                      Show all 24 months
+                    </>
+                  )}
+                </button>
+              </div>
+            </FormField>
+
+            {/* Move-in date */}
+            <FormField label="Move-in Date" icon={CalendarDays}>
+              <Input
                 type="date"
                 value={formData.start_date}
-                onChange={(e) => handleInputChange("start_date", e.target.value)}
+                onChange={set("start_date")}
                 disabled={loading}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
-            </div>
+            </FormField>
           </div>
         </ScrollArea>
 
-        <div className="flex gap-3 pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={loading}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-1 bg-blue-600 hover:bg-blue-700"
-          >
-            {loading ? "Adding..." : "Add Tenant"}
-          </Button>
-        </div>
+        {/* ── Footer ── */}
+        <div className="px-5 py-4 border-t border-border space-y-3">
+          <div className="flex gap-2.5">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex-1 gap-2"
+            >
+              <UserPlus className="size-3.5" />
+              {loading ? "Adding…" : "Add Tenant"}
+            </Button>
+          </div>
 
-        <div className="text-xs text-gray-500 text-center pb-2">
-          A welcome message with login details will be sent via SMS
+          <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <MessageSquare className="size-3 shrink-0" />
+            A welcome SMS with login details will be sent automatically
+          </p>
         </div>
       </DialogContent>
     </Dialog>
