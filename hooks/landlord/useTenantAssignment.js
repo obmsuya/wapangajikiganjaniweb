@@ -61,6 +61,89 @@ export function useTenantAssignment() {
 }
 
 /**
+ * Hook for registering a tenant who was already living in the unit
+ * before this system was introduced.
+ * 
+ * registerExistingTenant — POST  /api/v1/tenants/register-existing/
+ * updateExistingTenant   — PATCH /api/v1/tenants/existing/<occupancy_id>/update/
+ */
+export function useExistingTenantRegistration() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const registerExistingTenant = useCallback(async (data) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const payload = {
+        unit_id:               parseInt(data.unit_id),
+        full_name:             String(data.full_name).trim(),
+        phone_number:          String(data.phone_number).trim(),
+        rent_amount:           parseFloat(data.rent_amount),
+        payment_frequency:     parseInt(data.payment_frequency),
+        original_move_in_date: data.original_move_in_date,
+        last_payment_amount:   parseFloat(data.last_payment_amount),
+      };
+
+      const result = await TenantService.registerExistingTenant(payload);
+      customToast.success('Existing tenant registered', {
+        description: `${data.full_name} has been added. Next due date calculated automatically.`,
+      });
+      return result;
+    } catch (err) {
+      console.error('Existing tenant registration error:', err);
+      setError(err.message || 'Failed to register existing tenant');
+      customToast.error('Failed to register existing tenant', { description: err.message });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateExistingTenant = useCallback(async (occupancyId, data) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Only send fields the backend PATCH endpoint accepts.
+      // phone_number is intentionally excluded — cannot be changed.
+      const payload = {
+        rent_amount:           parseFloat(data.rent_amount),
+        payment_frequency:     parseInt(data.payment_frequency),
+        original_move_in_date: data.original_move_in_date,
+        last_payment_amount:   parseFloat(data.last_payment_amount),
+      };
+
+      const result = await TenantService.updateExistingTenant(occupancyId, payload);
+      customToast.success('Tenant updated', {
+        description: `${data.full_name}'s details have been saved.`,
+      });
+      return result;
+    } catch (err) {
+      console.error('Existing tenant update error:', err);
+      setError(err.message || 'Failed to update tenant');
+      customToast.error('Failed to update tenant', { description: err.message });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    registerExistingTenant,
+    updateExistingTenant,
+    loading,
+    error,
+    clearError,
+  };
+}
+
+/**
  * Hook for tenant management operations - SIMPLIFIED
  */
 export function useTenantManagement() {

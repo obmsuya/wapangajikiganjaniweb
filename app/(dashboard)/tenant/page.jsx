@@ -8,19 +8,20 @@ import {
   CloudflareBreadcrumbs, 
   CloudflarePageHeader 
 } from '@/components/cloudflare/Breadcrumbs';
-import TenantOverview from '@/components/tenant/TenantOverview';
-import TenantRentSchedule from '@/components/tenant/TenantRentSchedule';
+import TenantOverview      from '@/components/tenant/TenantOverview';
+import TenantRentSchedule  from '@/components/tenant/TenantRentSchedule';
 import TenantPaymentHistory from '@/components/tenant/TenantPaymentHistory';
-import TenantPaymentDialog from '@/components/tenant/TenantPaymentDialog';
+import TenantPaymentDialog  from '@/components/tenant/TenantPaymentDialog';
 import { useTenantDashboardStore } from '@/stores/tenant/useTenantDashboardStore';
-import { useTenantPaymentStore } from '@/stores/tenant/useTenantPaymentStore';
+import { useTenantPaymentStore }   from '@/stores/tenant/useTenantPaymentStore';
 
 export default function TenantDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [isClient, setIsClient] = useState(false);
+  const [isClient, setIsClient]   = useState(false);
 
-  const { refreshData } = useTenantDashboardStore();
-  const { paymentFlow, resetPaymentFlow, setShowPaymentDialog } = useTenantPaymentStore();
+  const { refreshData }                                  = useTenantDashboardStore();
+  const { paymentFlow, resetPaymentFlow,
+          setShowPaymentDialog, setSelectedUnit }        = useTenantPaymentStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -36,52 +37,35 @@ export default function TenantDashboard() {
     }
   }, [paymentFlow, resetPaymentFlow, refreshData]);
 
-  const handlePayNow = () => {
+  // unit is the occupancy object from TenantOverview (or whichever tab triggers pay).
+  // If no unit is passed the store's existing selectedUnit is used — nothing breaks.
+  const handlePayNow = (unit = null) => {
+    if (unit) setSelectedUnit(unit);
     setShowPaymentDialog(true);
   };
 
   const breadcrumbItems = [
-    { 
-      label: 'Tenant Dashboard', 
-      icon: <User className="h-4 w-4" /> 
-    }
+    { label: 'Tenant Dashboard', icon: <User className="h-4 w-4" /> }
   ];
 
   const tabs = [
-    {
-      id: 'overview',
-      label: 'Overview',
-      icon: Home,
-      component: TenantOverview
-    },
-    {
-      id: 'schedule',
-      label: 'Rent Schedule',
-      icon: Calendar,
-      component: TenantRentSchedule
-    },
-    {
-      id: 'history',
-      label: 'Payment History',
-      icon: History,
-      component: TenantPaymentHistory
-    }
+    { id: 'overview',  label: 'Overview',         icon: Home,     component: TenantOverview      },
+    { id: 'schedule',  label: 'Rent Schedule',     icon: Calendar, component: TenantRentSchedule  },
+    { id: 'history',   label: 'Payment History',   icon: History,  component: TenantPaymentHistory },
   ];
 
   const renderTabButton = (tab) => {
-    const Icon = tab.icon;
+    const Icon     = tab.icon;
     const isActive = activeTab === tab.id;
-    
     return (
       <button
         key={tab.id}
         onClick={() => setActiveTab(tab.id)}
         className={`
           relative flex flex-col items-center justify-center p-4 rounded-lg
-          ${isActive 
-            ? 'bg-blue-600 text-white shadow-sm' 
-            : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-blue-600 shadow-sm border border-gray-200'
-          }
+          ${isActive
+            ? 'bg-blue-600 text-white shadow-sm'
+            : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-blue-600 shadow-sm border border-gray-200'}
           min-w-[80px] h-20
         `}
       >
@@ -134,7 +118,7 @@ export default function TenantDashboard() {
                         <p className="text-sm text-gray-500">
                           {activeTab === 'overview' && 'Your rental overview and quick actions'}
                           {activeTab === 'schedule' && 'View and manage your rent payment schedule'}
-                          {activeTab === 'history' && 'Track all your payment history'}
+                          {activeTab === 'history'  && 'Track all your payment history'}
                         </p>
                       </div>
                     </>
@@ -143,6 +127,8 @@ export default function TenantDashboard() {
               </div>
 
               {isClient && ActiveComponent && (
+                // onPayNow(unit) — child passes the occupancy object so the dialog
+                // knows exactly which unit and amount to show.
                 <ActiveComponent onPayNow={handlePayNow} />
               )}
             </div>
@@ -150,7 +136,7 @@ export default function TenantDashboard() {
         </div>
       </div>
 
-      {/* Only use the Dialog - no more Sheet */}
+      {/* Single dialog instance — unit context set via handlePayNow before opening */}
       <TenantPaymentDialog />
     </div>
   );
