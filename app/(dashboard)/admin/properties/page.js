@@ -57,7 +57,7 @@ export default function AdminPropertiesPage() {
           <TabsList className="w-full justify-start bg-gray-100 dark:bg-gray-800 rounded-t-lg rounded-b-none border-b border-gray-200 dark:border-gray-700 p-0">
             <TabsTrigger 
               value="overview" 
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-950 rounded-b-none data-[state=active]:border-b-0 data-[state=active]:border-x data-[state=active]:border-t data-[state=active]:border-gray-200 dark:data-[state=active]:border-gray-700 py-3 px-5"
+              className="data-[state=active]:bg-background dark:data-[state=active]:bg-gray-950 rounded-b-none data-[state=active]:border-b-0 data-[state=active]:border-x data-[state=active]:border-t data-[state=active]:border-gray-200 dark:data-[state=active]:border-gray-700 py-3 px-5"
             >
               <LayoutDashboard className="h-4 w-4 mr-2" />
               Dashboard
@@ -65,7 +65,7 @@ export default function AdminPropertiesPage() {
             
             <TabsTrigger 
               value="properties" 
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-950 rounded-b-none data-[state=active]:border-b-0 data-[state=active]:border-x data-[state=active]:border-t data-[state=active]:border-gray-200 dark:data-[state=active]:border-gray-700 py-3 px-5"
+              className="data-[state=active]:bg-background dark:data-[state=active]:bg-gray-950 rounded-b-none data-[state=active]:border-b-0 data-[state=active]:border-x data-[state=active]:border-t data-[state=active]:border-gray-200 dark:data-[state=active]:border-gray-700 py-3 px-5"
             >
               <Building className="h-4 w-4 mr-2" />
               Properties
@@ -73,7 +73,7 @@ export default function AdminPropertiesPage() {
             
             <TabsTrigger 
               value="tenants" 
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-950 rounded-b-none data-[state=active]:border-b-0 data-[state=active]:border-x data-[state=active]:border-t data-[state=active]:border-gray-200 dark:data-[state=active]:border-gray-700 py-3 px-5"
+              className="data-[state=active]:bg-background dark:data-[state=active]:bg-gray-950 rounded-b-none data-[state=active]:border-b-0 data-[state=active]:border-x data-[state=active]:border-t data-[state=active]:border-gray-200 dark:data-[state=active]:border-gray-700 py-3 px-5"
             >
               <Users className="h-4 w-4 mr-2" />
               Tenants
@@ -81,14 +81,14 @@ export default function AdminPropertiesPage() {
             
             <TabsTrigger 
               value="analytics" 
-              className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-950 rounded-b-none data-[state=active]:border-b-0 data-[state=active]:border-x data-[state=active]:border-t data-[state=active]:border-gray-200 dark:data-[state=active]:border-gray-700 py-3 px-5"
+              className="data-[state=active]:bg-background dark:data-[state=active]:bg-gray-950 rounded-b-none data-[state=active]:border-b-0 data-[state=active]:border-x data-[state=active]:border-t data-[state=active]:border-gray-200 dark:data-[state=active]:border-gray-700 py-3 px-5"
             >
               <BarChart4 className="h-4 w-4 mr-2" />
               Analytics
             </TabsTrigger>
           </TabsList>
           
-          <div className="p-6 bg-white dark:bg-gray-950 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-lg">
+          <div className="p-6 bg-background dark:bg-gray-950 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-lg">
             {/* Tab Contents */}
             
             {/* Dashboard Overview Tab */}

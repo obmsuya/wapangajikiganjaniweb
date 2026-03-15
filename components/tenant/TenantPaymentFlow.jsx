@@ -265,7 +265,7 @@ export default function TenantPaymentFlow() {
               : 'Complete the payment on your mobile device to finish the transaction.'}
           </p>
           {currentTransaction && (
-            <div className="space-y-2 text-sm bg-white p-4 rounded-lg">
+            <div className="space-y-2 text-sm bg-background p-4 rounded-lg">
               <p><strong>Amount:</strong> {formatCurrency(currentTransaction.amount || formData.amount)}</p>
               <p><strong>Unit:</strong> {currentTransaction.unit_name || selectedUnit?.unit_name}</p>
               {currentTransaction.payment_id && (

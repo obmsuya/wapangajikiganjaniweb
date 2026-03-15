@@ -89,7 +89,7 @@ export default function TenantRentSchedule({ onPayNow }) {
           </CardHeader>
           <CardContent className="space-y-3">
             {overdue.map((schedule) => (
-              <div key={schedule.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200">
+              <div key={schedule.id} className="flex items-center justify-between p-4 bg-background rounded-lg border border-red-200">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <div>
@@ -132,7 +132,7 @@ export default function TenantRentSchedule({ onPayNow }) {
           </CardHeader>
           <CardContent className="space-y-3">
             {upcoming.map((schedule) => (
-              <div key={schedule.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-yellow-200">
+              <div key={schedule.id} className="flex items-center justify-between p-4 bg-background rounded-lg border border-yellow-200">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <div>

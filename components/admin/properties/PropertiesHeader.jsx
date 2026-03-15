@@ -58,7 +58,7 @@ export default function PropertiesHeader({ title }) {
                   <h3 className="text-2xl font-bold mt-1">{card.value}</h3>
                 )}
               </div>
-              <div className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm">
+              <div className="p-2 rounded-full bg-background dark:bg-gray-800 shadow-sm">
                 {card.icon}
               </div>
             </CardContent>

@@ -386,7 +386,7 @@ export function CustomSidebar({ role = "admin", user }) {
       <div className={cn("hidden md:block", sidebarWidth, "transition-all duration-300 ease-in-out")} />
 
       {/* Mobile Bottom Tab Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#ededed] border-t border-border">
         <div className="flex items-center justify-around pb-safe">
           {bottomTabRoutes.map((route) => (
             <BottomTabItem

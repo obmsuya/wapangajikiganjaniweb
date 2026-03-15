@@ -45,7 +45,7 @@ export default function PropertySetupPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: isExiting ? 0 : 1 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen bg-white"
+      className="min-h-screen bg-background"
     >
       {/* Header */}
       <div className="border-b border-border bg-card max-w-6xl mx-auto">

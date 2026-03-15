@@ -65,7 +65,7 @@ export default function TenantDashboard() {
           relative flex flex-col items-center justify-center p-4 rounded-lg
           ${isActive
             ? 'bg-blue-600 text-white shadow-sm'
-            : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-blue-600 shadow-sm border border-gray-200'}
+            : 'bg-background text-gray-600 hover:bg-gray-50 hover:text-blue-600 shadow-sm border border-gray-200'}
           min-w-[80px] h-20
         `}
       >
@@ -93,7 +93,7 @@ export default function TenantDashboard() {
 
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="lg:w-64 flex-shrink-0">
-          <Card className="p-6 bg-white border-gray-200">
+          <Card className="p-6 bg-background border-gray-200">
             <h3 className="text-lg font-semibold mb-6 text-center">Navigation</h3>
             <div className="flex lg:flex-col gap-4 justify-center lg:justify-start">
               {tabs.map(renderTabButton)}
@@ -102,7 +102,7 @@ export default function TenantDashboard() {
         </div>
 
         <div className="flex-1">
-          <Card className="min-h-[600px] bg-white border-gray-200">
+          <Card className="min-h-[600px] bg-background border-gray-200">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b">
                 {(() => {

@@ -81,7 +81,7 @@ export default function PartnerOverview({ onRequestPayout }) {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-white border-gray-200">
+        <Card className="bg-background border-gray-200">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Wallet className="h-4 w-4" />
@@ -103,7 +103,7 @@ export default function PartnerOverview({ onRequestPayout }) {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-gray-200">
+        <Card className="bg-background border-gray-200">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Users className="h-4 w-4" />
@@ -127,7 +127,7 @@ export default function PartnerOverview({ onRequestPayout }) {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-gray-200">
+        <Card className="bg-background border-gray-200">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <TrendingUp className="h-4 w-4" />
@@ -149,7 +149,7 @@ export default function PartnerOverview({ onRequestPayout }) {
 
       {/* Partner Info & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-white border-gray-200">
+        <Card className="bg-background border-gray-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Home className="h-5 w-5" />
@@ -190,7 +190,7 @@ export default function PartnerOverview({ onRequestPayout }) {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-gray-200">
+        <Card className="bg-background border-gray-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
@@ -232,7 +232,7 @@ export default function PartnerOverview({ onRequestPayout }) {
 
       {/* Recent Activity */}
       {dashboardData.recentActivity && dashboardData.recentActivity.length > 0 && (
-        <Card className="bg-white border-gray-200">
+        <Card className="bg-background border-gray-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />

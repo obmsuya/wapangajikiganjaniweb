@@ -61,7 +61,7 @@ export function CloudflareDialogContent({ className = "", children, ...props }) 
   return (
     <div
       className={`
-        relative bg-white/95 backdrop-blur-xl shadow-2xl border-0 
+        relative bg-background/95 backdrop-blur-xl shadow-2xl border-0 
         rounded-2xl overflow-hidden
         ${className}
       `}

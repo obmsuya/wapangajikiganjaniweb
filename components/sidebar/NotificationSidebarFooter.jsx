@@ -95,7 +95,7 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
       className={`p-3 border-l-4 ${
         notification.isRead
           ? "bg-gray-50/50 dark:bg-gray-800/50"
-          : "bg-white dark:bg-gray-900"
+          : "bg-background dark:bg-gray-900"
       } ${
         colorClass.split(" ")[2]
       } hover:bg-gray-50 dark:hover:bg-gray-800/70 transition-colors`}
@@ -276,12 +276,12 @@ export default function NotificationSidebarFooter({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="w-80 p-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+                    className="w-80 p-0 bg-background dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
                     side="right"
                     align="end"
                     sideOffset={8}
                   >
-                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+                    <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-background dark:bg-gray-900">
                       <div className="flex items-center justify-between">
                         <h3 className="font-medium text-sm">Notifications</h3>
                         <Button
@@ -297,15 +297,15 @@ export default function NotificationSidebarFooter({
 
                     <ScrollArea className="h-80">
                       {loading ? (
-                        <div className="p-4 text-center text-sm text-gray-500 bg-white dark:bg-gray-900">
+                        <div className="p-4 text-center text-sm text-gray-500 bg-background dark:bg-gray-900">
                           Loading notifications...
                         </div>
                       ) : recentNotifications.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-gray-500 bg-white dark:bg-gray-900">
+                        <div className="p-4 text-center text-sm text-gray-500 bg-background dark:bg-gray-900">
                           No notifications yet
                         </div>
                       ) : (
-                        <div className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                        <div className="divide-y divide-gray-100 dark:divide-gray-800 bg-background dark:bg-gray-900">
                           {recentNotifications.map((notification) => (
                             <NotificationItem
                               key={notification.id}
@@ -370,18 +370,18 @@ export default function NotificationSidebarFooter({
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent
-                  className="w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+                  className="w-56 bg-background dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
                   side="right"
                   align="end"
                 >
-                  <DropdownMenuLabel className="bg-white dark:bg-gray-900">
+                  <DropdownMenuLabel className="bg-background dark:bg-gray-900">
                     My Account
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem
                     onClick={() => router.push("/profile")}
-                    className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    className="bg-background dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     <User className="w-4 h-4 mr-2" />
                     Profile
@@ -392,7 +392,7 @@ export default function NotificationSidebarFooter({
                   <DropdownMenuItem
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className="text-red-600 dark:text-red-400 bg-white dark:bg-gray-900 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    className="text-red-600 dark:text-red-400 bg-background dark:bg-gray-900 hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     {isLoggingOut ? "Logging out..." : "Log out"}
@@ -436,12 +436,12 @@ export default function NotificationSidebarFooter({
           </PopoverTrigger>
 
           <PopoverContent
-            className="w-80 p-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl"
+            className="w-80 p-0 bg-background dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl"
             side="right"
             align="end"
             sideOffset={8}
           >
-            <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
+            <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-background dark:bg-gray-900">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-sm">Notifications</h3>
                 <Button
@@ -457,16 +457,16 @@ export default function NotificationSidebarFooter({
 
             <ScrollArea className="h-80">
               {loading ? (
-                <div className="p-4 text-center text-sm text-gray-500 bg-white dark:bg-gray-900">
+                <div className="p-4 text-center text-sm text-gray-500 bg-background dark:bg-gray-900">
                   Loading notifications...
                 </div>
               ) : recentNotifications.length === 0 ? (
-                <div className="p-4 text-center text-sm text-gray-500 bg-white dark:bg-gray-900">
+                <div className="p-4 text-center text-sm text-gray-500 bg-background dark:bg-gray-900">
                   <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                   No notifications yet
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800 bg-background dark:bg-gray-900">
                   {recentNotifications.map((notification) => (
                     <NotificationItem
                       key={notification.id}
@@ -518,11 +518,11 @@ export default function NotificationSidebarFooter({
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
-            className="w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl"
+            className="w-56 bg-background dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl"
             side="right"
             align="end"
           >
-            <DropdownMenuLabel className="bg-white dark:bg-gray-900">
+            <DropdownMenuLabel className="bg-background dark:bg-gray-900">
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
                   {user?.profile_picture ? (
@@ -550,7 +550,7 @@ export default function NotificationSidebarFooter({
 
             <DropdownMenuItem
               onClick={() => router.push("/profile")}
-              className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="bg-background dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               <User className="w-4 h-4 mr-2" />
               Profile Settings
@@ -561,7 +561,7 @@ export default function NotificationSidebarFooter({
             <DropdownMenuItem
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="text-red-600 dark:text-red-400 bg-white dark:bg-gray-900 hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="text-red-600 dark:text-red-400 bg-background dark:bg-gray-900 hover:bg-red-50 dark:hover:bg-red-900/20"
             >
               <LogOut className="w-4 h-4 mr-2" />
               {isLoggingOut ? "Logging out..." : "Log out"}

@@ -257,7 +257,7 @@ export default function FloorPlanDesigner({
               ? "bg-primary border-2 border-primary/80 shadow-md"
               : previewMode
               ? "bg-muted/40 border border-border/50"
-              : "bg-white border-2 border-border hover:border-primary/50 hover:bg-primary/5",
+              : "bg-background border-2 border-border hover:border-primary/50 hover:bg-primary/5",
             (previewMode || isLoadingFloor) ? "cursor-default" : "cursor-pointer",
             isLoadingFloor ? "opacity-40" : "",
           ].join(" ")}
@@ -614,7 +614,7 @@ export default function FloorPlanDesigner({
               <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
                 <LegendItem color="bg-primary" label="Selected unit" />
                 <LegendItem
-                  color="bg-white border-2 border-border"
+                  color="bg-background border-2 border-border"
                   label="Available space"
                 />
                 {previewMode && (
@@ -645,7 +645,7 @@ function SectionHeader({ title, description }) {
 
 function StatPill({ value, label, color }) {
   return (
-    <div className="rounded-lg bg-white/60 border border-border/50 px-3 py-2 text-center">
+    <div className="rounded-lg bg-background/60 border border-border/50 px-3 py-2 text-center">
       <div className={`text-xl font-bold tabular-nums ${color}`}>{value}</div>
       <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
     </div>

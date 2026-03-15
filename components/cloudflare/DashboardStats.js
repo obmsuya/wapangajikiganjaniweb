@@ -108,7 +108,7 @@ const CloudflareDashboardStats = () => {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Joined</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                <tbody className="bg-background dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
                   {rawData.recent_users.map((user, index) => (
                     <tr key={user.id || index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{user.full_name}</td>

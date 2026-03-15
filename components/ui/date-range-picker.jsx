@@ -84,7 +84,7 @@ export function DatePickerWithRange({ from, to, onUpdate }) {
   }
 
   return (
-    <div className="flex flex-col space-y-4 bg-white dark:bg-gray-950 p-2 rounded-md border border-gray-200 dark:border-gray-800">
+    <div className="flex flex-col space-y-4 bg-background dark:bg-gray-950 p-2 rounded-md border border-gray-200 dark:border-gray-800">
       <Calendar
         initialFocus
         mode="range"
@@ -92,7 +92,7 @@ export function DatePickerWithRange({ from, to, onUpdate }) {
         selected={date}
         onSelect={setDate}
         numberOfMonths={2}
-        className="rounded-md bg-white dark:bg-gray-950"
+        className="rounded-md bg-background dark:bg-gray-950"
       />
       <div className="flex items-center justify-between border-t pt-4 border-gray-200 dark:border-gray-800">
         <div className="text-sm text-gray-500">

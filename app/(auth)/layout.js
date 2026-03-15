@@ -3,7 +3,7 @@ import { ToastProvider } from "@/components/ui/toast-provider";
 
 export default function AuthLayout({ children }) {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <ToastProvider />
       <div className="">
         {children}

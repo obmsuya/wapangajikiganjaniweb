@@ -112,7 +112,7 @@ export default function FloorPlanGrid({
 
       {/* Grid Container */}
       <div 
-        className="relative mx-auto border-2 border-gray-300 rounded-lg p-4 bg-white dark:bg-gray-900"
+        className="relative mx-auto border-2 border-gray-300 rounded-lg p-4 bg-background dark:bg-gray-900"
         style={{
           width: `${gridSize * (cellSize + 4) + 32}px`,
           height: `${gridSize * (cellSize + 4) + 32}px`

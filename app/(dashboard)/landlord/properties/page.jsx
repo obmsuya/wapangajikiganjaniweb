@@ -159,7 +159,7 @@ export default function PropertiesPage() {
   return (
     <div className="min-h-screen relative max-md:pb-12">
       {isSubscriptionSyncing && (
-        <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-50">
+        <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center z-50">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
           <p className="text-lg font-medium text-gray-800">Updating your subscription...</p>
           <p className="text-sm text-gray-600 mt-2">Please wait while we activate your plan and refresh your properties.</p>
@@ -175,7 +175,7 @@ export default function PropertiesPage() {
             <div className="flex items-center gap-8 justify-between w-full">
               {subscriptionData && (
                 <Badge 
-                  variant="outline" 
+                  variant="secondary" 
                   className={`border ${subscriptionData.isFreePlan ? 'border-orange-200 text-orange-700' : 'bg-green-200 border-green-700 text-green-700'}`}
                 >
                   <Crown className="h-3 w-3 mr-1" />

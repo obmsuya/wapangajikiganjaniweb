@@ -260,9 +260,10 @@ export default function PropertyCard({
           )}
 
           {/* Category Badge - Positioned on image */}
-          <div className="absolute top-3 left-3">
+          <div className="absolute top-2 left-2">
             <Badge
-              className={`${getCategoryStyle(propertyCategory)} border-0 font-medium shadow-sm`}
+              variant="secondary"
+              className={`${getCategoryStyle(propertyCategory)} border font-medium text-xs`}
             >
               {propertyCategory}
             </Badge>
@@ -270,7 +271,7 @@ export default function PropertyCard({
 
           {/* Occupancy indicator on image - mobile only */}
           <div className="absolute bottom-3 left-3 right-3 sm:hidden">
-            <div className="flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm">
+            <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm">
               <div
                 className={`h-2 w-2 rounded-full ${getOccupancyColor(occupancyData.occupancyRate)}`}
               />
