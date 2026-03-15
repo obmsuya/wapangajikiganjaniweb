@@ -28,17 +28,17 @@ const CloudflareBreadcrumbs = ({
   
   return (
     <nav 
-      className={`flex items-center space-x-2 text-sm ${className}`}
+      className={`flex items-center space-x-1 text-sm pt-4 ${className}`}
       aria-label="Breadcrumb"
       {...props}
     >
-      <ol className="flex items-center space-x-2">
+      <ol className="flex items-center space-x-1">
         {breadcrumbItems.map((item, index) => {
           const isFirst = index === 0;
           const isLast = index === breadcrumbItems.length - 1;
           
           return (
-            <li key={index} className="flex items-center">
+            <li key={index} className="flex items-center text-xs">
               {index > 0 && (
                 <ChevronRight className="h-4 w-4 text-gray-400 mx-1" aria-hidden="true" />
               )}
@@ -78,17 +78,17 @@ const CloudflarePageHeader = ({
   ...props
 }) => {
   return (
-    <div className={`mb-8 mt-4 ${className}`} {...props}>
+    <div className={`my-2 max-md:mb-4 w-full ${className}`} {...props}>
       {breadcrumbs && (
-        <div className="mb-2">
+        <div className="mb-2 max-md:mb-4">
           <CloudflareBreadcrumbs items={breadcrumbs} />
         </div>
       )}
       
-      <div className="flex items-center flex-col md:flex-row justify-between">
+      <div className="flex md:items-center flex-col gap-4 md:flex-row justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-          {description && <p className="mt-1 text-gray-500">{description}</p>}
+          {description && <p className="text-gray-500 text-sm">{description}</p>}
         </div>
         
         {actions && (

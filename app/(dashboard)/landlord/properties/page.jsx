@@ -156,7 +156,7 @@ export default function PropertiesPage() {
   }, [properties, subscriptionData]);
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative max-md:pb-12">
       {isSubscriptionSyncing && (
         <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-50">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
@@ -165,7 +165,7 @@ export default function PropertiesPage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto">
+      <div className="mx-auto">
         {/* Page Header */}
         <CloudflarePageHeader
           title="Properties"

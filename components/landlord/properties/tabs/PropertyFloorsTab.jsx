@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/components/cloudflare/Card";
 import FloorLayoutEditor from "@/components/landlord/properties/FloorLayoutEditor";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 export default function PropertyFloorsTab({ 
   property, 
@@ -76,7 +77,7 @@ export default function PropertyFloorsTab({
     if (!floor.configured) {
       return {
         status: 'not_configured',
-        badge: <Badge variant="secondary">Not Configured</Badge>,
+        badge: <Badge variant="warning">Not Configured</Badge>,
         icon: <AlertTriangle className="h-4 w-4 text-yellow-500" />
       };
     }
@@ -84,25 +85,21 @@ export default function PropertyFloorsTab({
     if (floor.units_total === 0) {
       return {
         status: 'no_units',
-        badge: <Badge variant="secondary">No Units</Badge>,
-        icon: <AlertTriangle className="h-4 w-4 text-yellow-500" />
+        badge: <Badge variant="destructive">No Units</Badge>,
+        icon: <AlertTriangle className="h-4 w-4 text-red-500" />
       };
     }
     
     return {
       status: 'configured',
-      badge: <Badge variant="default">Configured</Badge>,
+      badge: <Badge variant="success">Configured</Badge>,
       icon: <CheckCircle className="h-4 w-4 text-green-500" />
     };
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Floor Plans</h3>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-4">
         {Object.values(floorData).map((floor) => {
           const statusInfo = getFloorStatusInfo(floor);
           
@@ -184,7 +181,7 @@ export default function PropertyFloorsTab({
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t">
+                  {/* <div className="pt-3 border-t">
                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 h-32 flex items-center justify-center">
                       {floor.layout_data ? (
                         <div className="text-center">
@@ -201,12 +198,11 @@ export default function PropertyFloorsTab({
                         </div>
                       )}
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className="pt-3 border-t">
                     <Button
                       variant="outline"
-                      size="sm"
                       className="w-full"
                       onClick={() => handleEditFloor(floor.floor_number)}
                     >
@@ -221,14 +217,8 @@ export default function PropertyFloorsTab({
         })}
       </div>
 
-      <Dialog open={showLayoutEditor} onOpenChange={setShowLayoutEditor}>
-         <DialogContent className="w-full max-w-screen-lg max-h-[90vh] overflow-y-auto p-6">
-          <DialogHeader>
-            <DialogTitle>
-              Edit Floor {editingFloor} Layout
-            </DialogTitle>
-          </DialogHeader>
-          
+      <Sheet open={showLayoutEditor} onOpenChange={setShowLayoutEditor} className="z-50">
+         <SheetContent className="w-full max-w-screen-lg max-h-[90vh] overflow-y-auto p-6">
           {editingFloor && (
             <FloorLayoutEditor
               propertyId={property.id}
@@ -241,8 +231,8 @@ export default function PropertyFloorsTab({
               }}
             />
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -2,38 +2,42 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  Banknote, 
-  Clock, 
+import {
+  Banknote,
+  Clock,
   AlertCircle,
   Check,
   X,
   Eye,
   RefreshCw,
   Search,
-  ArrowUpRight
+  ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/components/cloudflare/Card";
+import {
+  CloudflareCard,
+  CloudflareCardHeader,
+  CloudflareCardContent,
+} from "@/components/cloudflare/Card";
 import { CloudflareTable } from "@/components/cloudflare/Table";
 import { usePaymentTabStore } from "@/stores/landlord/UsePaymentTabStore";
 import customToast from "@/components/ui/custom-toast";
@@ -41,8 +45,8 @@ import customToast from "@/components/ui/custom-toast";
 export default function PropertyPaymentsTab({ property }) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [confirmAction, setConfirmAction] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
+  const [confirmAction, setConfirmAction] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const {
     loading,
@@ -57,7 +61,7 @@ export default function PropertyPaymentsTab({ property }) {
     formatCurrency,
     getStatusColor,
     initializeTab,
-    refreshData
+    refreshData,
   } = usePaymentTabStore();
 
   useEffect(() => {
@@ -76,19 +80,19 @@ export default function PropertyPaymentsTab({ property }) {
     if (!selectedPayment || !confirmAction) return;
 
     const success = await confirmPayment(
-      selectedPayment.id, 
-      confirmAction, 
-      rejectionReason
+      selectedPayment.id,
+      confirmAction,
+      rejectionReason,
     );
 
     if (success) {
       customToast.success("Payment Updated", {
-        description: `Payment ${confirmAction === 'accept' ? 'confirmed' : 'rejected'} successfully.`
+        description: `Payment ${confirmAction === "accept" ? "confirmed" : "rejected"} successfully.`,
       });
       setShowConfirmDialog(false);
       setSelectedPayment(null);
-      setConfirmAction('');
-      setRejectionReason('');
+      setConfirmAction("");
+      setRejectionReason("");
     }
   };
 
@@ -99,61 +103,57 @@ export default function PropertyPaymentsTab({ property }) {
   // Fixed column definitions - removed 'original' references
   const paymentColumns = [
     {
-      accessorKey: 'tenant_name',
-      header: 'Tenant',
+      accessorKey: "tenant_name",
+      header: "Tenant",
       cell: (row) => (
         <div>
-          <div className="font-medium">{row.tenant_name}</div>
-          <div className="text-sm text-gray-500">{row.tenant_phone}</div>
+          <div className="text-sm md:text-base font-medium mb-1">{row.tenant_name}</div>
+          <div className="text-xs md:text-sm text-gray-500">{row.tenant_phone}</div>
         </div>
-      )
+      ),
     },
     {
-      accessorKey: 'unit_name',
-      header: 'Unit',
+      accessorKey: "unit_name",
+      header: "Unit",
       cell: (row) => (
         <div>
-          <div className="font-medium">{row.unit_name}</div>
-          <div className="text-sm text-gray-500">Floor {row.floor_number}</div>
+          <div className="text-xs md:text-base font-medium">{row.unit_name}</div>
+          <div className="text-xs md:text-sm text-gray-500">Floor {row.floor_number}</div>
         </div>
-      )
+      ),
     },
     {
-      accessorKey: 'amount',
-      header: 'Amount',
+      accessorKey: "amount",
+      header: "Amount",
       cell: (row) => (
-        <div className="font-medium">
-          {formatCurrency(row.amount)}
-        </div>
-      )
+        <div className="max-md:text-xs font-medium">{formatCurrency(row.amount)}</div>
+      ),
     },
     {
-      accessorKey: 'payment_period_start',
-      header: 'Period',
+      accessorKey: "payment_period_start",
+      header: "Period",
       cell: (row) => (
-        <div className="text-sm">
-          {new Date(row.payment_period_start).toLocaleDateString()} - 
+        <div className="max-md:text-xs text-sm">
+          {new Date(row.payment_period_start).toLocaleDateString()} -
           {new Date(row.payment_period_end).toLocaleDateString()}
         </div>
-      )
+      ),
     },
     {
-      accessorKey: 'status',
-      header: 'Status',
+      accessorKey: "status",
+      header: "Status",
       cell: (row) => (
-        <Badge className={getStatusColor(row.status)}>
-          {row.status}
-        </Badge>
-      )
+        <Badge className={getStatusColor(row.status)}>{row.status}</Badge>
+      ),
     },
     {
-      accessorKey: 'created_at',
-      header: 'Date',
+      accessorKey: "created_at",
+      header: "Date",
       cell: (row) => (
-        <div className="text-sm">
+        <div className="max-md:text-xs text-sm">
           {new Date(row.created_at).toLocaleDateString()}
         </div>
-      )
+      ),
     },
     // {
     //   accessorKey: 'actions',
@@ -204,7 +204,9 @@ export default function PropertyPaymentsTab({ property }) {
     return (
       <div className="text-center py-8">
         <AlertCircle className="h-12 w-12 mx-auto text-red-300 mb-4" />
-        <h3 className="text-lg font-medium text-red-800 mb-2">Failed to Load Payments</h3>
+        <h3 className="text-lg font-medium text-red-800 mb-2">
+          Failed to Load Payments
+        </h3>
         <p className="text-red-600 mb-4">{error}</p>
         <Button onClick={() => refreshData(property?.id)} variant="outline">
           <RefreshCw className="h-4 w-4 mr-2" />
@@ -216,7 +218,6 @@ export default function PropertyPaymentsTab({ property }) {
 
   return (
     <div className="space-y-6">
-
       {/* Pending Payments Alert */}
       {pendingPayments.length > 0 && (
         <CloudflareCard>
@@ -225,9 +226,12 @@ export default function PropertyPaymentsTab({ property }) {
               <Clock className="h-5 w-5 text-yellow-600" />
               <div>
                 <h3 className="font-medium text-gray-900">
-                  {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} need confirmation
+                  {pendingPayments.length} payment
+                  {pendingPayments.length > 1 ? "s" : ""} need confirmation
                 </h3>
-                <p className="text-sm text-gray-600">Review and confirm tenant payments below</p>
+                <p className="text-sm text-gray-600">
+                  Review and confirm tenant payments below
+                </p>
               </div>
             </div>
           </CloudflareCardContent>
@@ -235,32 +239,50 @@ export default function PropertyPaymentsTab({ property }) {
       )}
 
       {/* Filters */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative">
+      <div className="flex items-end md:items-center justify-between max-md:flex-wrap">
+        <div className="flex md:items-center gap-2 max-md:flex-col w-full">
+          <div className="relative ">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder="Search tenant or unit..."
               value={filters.search}
               onChange={(e) => updateFilters({ search: e.target.value })}
-              className="pl-10 w-64"
+              className="pl-10 w-full max-w-96"
             />
           </div>
-          
-          <Select value={filters.status} onValueChange={(value) => updateFilters({ status: value })}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-            </SelectContent>
-          </Select>
+
+          <div className="flex items-center justify-between gap-8 w-full">
+            <Select
+              value={filters.status}
+              onValueChange={(value) => updateFilters({ status: value })}
+            >
+              <SelectTrigger className="md:w-40">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              onClick={() => refreshData(property?.id)}
+              variant="outline"
+              className="w-fit md:hidden flex"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
-        <Button onClick={() => refreshData(property?.id)} variant="outline" size="sm">
+        <Button
+          onClick={() => refreshData(property?.id)}
+          variant="outline"
+          className="hidden md:flex md:w-fit"
+        >
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
@@ -268,9 +290,11 @@ export default function PropertyPaymentsTab({ property }) {
 
       {/* Payments Table */}
       <CloudflareCard>
-        <CloudflareCardHeader>
+        <CloudflareCardHeader className="-mb-4">
           <h3 className="text-lg font-semibold">Recent Payments</h3>
-          <p className="text-sm text-gray-600">Payment history for this property</p>
+          <p className="text-sm text-gray-600">
+            Payment history for this property
+          </p>
         </CloudflareCardHeader>
         <CloudflareCardContent>
           <CloudflareTable
@@ -286,27 +310,35 @@ export default function PropertyPaymentsTab({ property }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {confirmAction === 'accept' ? 'Confirm Payment' : 'Reject Payment'}
+              {confirmAction === "accept"
+                ? "Confirm Payment"
+                : "Reject Payment"}
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="py-4">
             <p className="text-sm text-gray-600 mb-4">
-              {confirmAction === 'accept' 
-                ? 'Confirm that you received this payment from the tenant.'
-                : 'Reject this payment and provide a reason.'
-              }
+              {confirmAction === "accept"
+                ? "Confirm that you received this payment from the tenant."
+                : "Reject this payment and provide a reason."}
             </p>
-            
+
             {selectedPayment && (
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                <p><strong>Tenant:</strong> {selectedPayment.tenant_name}</p>
-                <p><strong>Amount:</strong> {formatCurrency(selectedPayment.amount)}</p>
-                <p><strong>Unit:</strong> {selectedPayment.unit_name}</p>
+                <p>
+                  <strong>Tenant:</strong> {selectedPayment.tenant_name}
+                </p>
+                <p>
+                  <strong>Amount:</strong>{" "}
+                  {formatCurrency(selectedPayment.amount)}
+                </p>
+                <p>
+                  <strong>Unit:</strong> {selectedPayment.unit_name}
+                </p>
               </div>
             )}
 
-            {confirmAction === 'reject' && (
+            {confirmAction === "reject" && (
               <div>
                 <Label htmlFor="rejection-reason">Reason for rejection</Label>
                 <Textarea
@@ -321,14 +353,23 @@ export default function PropertyPaymentsTab({ property }) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmDialog(false)}
+            >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleConfirmSubmit}
-              className={confirmAction === 'accept' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+              className={
+                confirmAction === "accept"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-red-600 hover:bg-red-700"
+              }
             >
-              {confirmAction === 'accept' ? 'Confirm Payment' : 'Reject Payment'}
+              {confirmAction === "accept"
+                ? "Confirm Payment"
+                : "Reject Payment"}
             </Button>
           </DialogFooter>
         </DialogContent>

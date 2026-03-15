@@ -3,11 +3,11 @@ import React from "react";
 import { motion } from "framer-motion";
 
 const variantStyles = {
-  default: "bg-primary-50 text-primary-700 border-primary-200",
+  default: "bg-primary/50 text-primary-700 border-primary-200",
   primary: "bg-primary/10 text-primary border-primary/20",
-  secondary: "bg-secondary text-secondary-foreground border-secondary/30",
+  secondary: "bg-gray-200 text-gray-500 border-gray-300",
   outline: "bg-transparent text-foreground border-input",
-  destructive: "bg-destructive/10 text-destructive border-destructive/20",
+  destructive: "bg-red-500/10 text-border-500 border-border-500/20",
   success: "bg-green-50 text-green-700 border-green-200",
   warning: "bg-yellow-50 text-yellow-700 border-yellow-200",
   info: "bg-blue-50 text-blue-700 border-blue-200",
@@ -43,11 +43,11 @@ const Badge = React.forwardRef(({
 
   // Compute dot color based on variant if not explicitly set
   const computedDotColor = dotColor || {
-    default: "bg-primary-500",
+    default: "bg-primary/50",
     primary: "bg-primary",
-    secondary: "bg-secondary-foreground",
+    secondary: "bg-gray-300",
     outline: "bg-foreground",
-    destructive: "bg-destructive",
+    destructive: "bg-red-500",
     success: "bg-green-500",
     warning: "bg-yellow-500",
     info: "bg-blue-500",

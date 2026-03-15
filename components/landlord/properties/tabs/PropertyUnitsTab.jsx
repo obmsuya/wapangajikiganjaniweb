@@ -2,13 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  Home,
-  UserPlus,
-  Square,
-  Bed,
-  Edit,
-} from "lucide-react";
+import { Home, UserPlus, Square, Bed, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CloudflareTable } from "@/components/cloudflare/Table";
@@ -37,7 +31,7 @@ export default function PropertyUnitsTab({
             }
             if (tenant.unit_name && tenant.floor_number) {
               return (
-                tenant.unit_name === unit.unit_name && 
+                tenant.unit_name === unit.unit_name &&
                 tenant.floor_number === floor.floor_number
               );
             }
@@ -45,15 +39,16 @@ export default function PropertyUnitsTab({
             if (unit.svg_id && tenant.unit_svg_id) {
               return tenant.unit_svg_id === unit.svg_id;
             }
-            
+
             if (tenant.unit_name === unit.unit_name) {
-              const otherUnitsWithSameTenant = tenants.filter(t => 
-                t.unit_name === unit.unit_name && 
-                t.floor_number !== floor.floor_number
+              const otherUnitsWithSameTenant = tenants.filter(
+                (t) =>
+                  t.unit_name === unit.unit_name &&
+                  t.floor_number !== floor.floor_number,
               );
               return otherUnitsWithSameTenant.length === 0;
             }
-            
+
             return false;
           });
 
@@ -83,7 +78,6 @@ export default function PropertyUnitsTab({
       sortable: true,
       cell: (row) => (
         <div className="flex items-center">
-          <Home className="h-4 w-4 mr-2 text-gray-400" />
           <div>
             <div className="font-medium">{row.unit_name}</div>
             <div className="text-sm text-gray-500">{row.floor_name}</div>
@@ -97,11 +91,6 @@ export default function PropertyUnitsTab({
       cell: (row) => (
         <div className="flex items-center gap-4 text-sm text-gray-500">
           <div className="flex items-center">
-            <Square className="h-3 w-3 mr-1" />
-            {row.area_sqm || 150} sqm
-          </div>
-          <div className="flex items-center">
-            <Bed className="h-3 w-3 mr-1" />
             {row.rooms || 1} rooms
           </div>
         </div>
@@ -112,8 +101,8 @@ export default function PropertyUnitsTab({
       accessor: "rent_amount",
       sortable: true,
       cell: (row) => (
-        <div className="font-medium">
-          TSh {parseFloat(row.rent_amount || 0).toLocaleString()}
+        <div>
+          Tsh {parseFloat(row.rent_amount || 0).toLocaleString()}
         </div>
       ),
     },
@@ -133,8 +122,8 @@ export default function PropertyUnitsTab({
             row.status === "occupied"
               ? "default"
               : row.status === "available"
-              ? "secondary"
-              : "destructive"
+                ? "secondary"
+                : "destructive"
           }
         >
           {row.status || "available"}
@@ -150,7 +139,7 @@ export default function PropertyUnitsTab({
             {row.current_tenant.tenant.full_name}
           </div>
         ) : (
-          <span className="text-gray-400">No tenant</span>
+          <span className="text-gray-500">No tenant</span>
         ),
     },
     {
@@ -170,10 +159,9 @@ export default function PropertyUnitsTab({
           ) : (
             <>
               <Button
-                variant="ghost"
                 size="sm"
                 onClick={() => onAssignTenant?.(row)}
-                className="h-8 px-2 text-green-600 hover:text-green-700"
+                className="h-8 p-2 text-green-600 hover:text-green-700 bg-green-200 border-green-500 hover:bg-green-300/75 border w-fit"
               >
                 <UserPlus className="h-4 w-4" />
               </Button>
@@ -181,7 +169,7 @@ export default function PropertyUnitsTab({
                 variant="ghost"
                 size="sm"
                 onClick={() => onEditUnit?.(row)}
-                className="h-8 px-2"
+                className="h-8 px-2 w-fit hover:bg-gray-200"
               >
                 <Edit className="h-4 w-4" />
               </Button>
@@ -193,7 +181,7 @@ export default function PropertyUnitsTab({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-4">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium">Property Units</h3>

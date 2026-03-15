@@ -9,7 +9,7 @@ const CloudflareCard = ({
   padded = true,
   ...props 
 }) => {
-  const baseStyle = 'rounded-md overflow-hidden';
+  const baseStyle = 'rounded-3xl overflow-hidden';
   
   const variantStyles = {
     default: 'bg-card border border-card-border',

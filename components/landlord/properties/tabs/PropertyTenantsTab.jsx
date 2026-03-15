@@ -84,9 +84,9 @@ export default function PropertyTenantsTab({ property }) {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'former': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-blue-100 text-blue-800';
+      case 'active': return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+      case 'former': return 'bg-slate-100 text-slate-700 border border-slate-200';
+      default: return 'bg-blue-100 text-blue-700 border border-blue-200';
     }
   };
 
@@ -106,9 +106,9 @@ export default function PropertyTenantsTab({ property }) {
           <h3 className="text-lg font-semibold">Current Tenants</h3>
           <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
         </div>
-        <div className="grid gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 bg-gray-100 rounded-lg animate-pulse"></div>
+            <div key={i} className="h-40 bg-slate-100 rounded-lg animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -117,8 +117,8 @@ export default function PropertyTenantsTab({ property }) {
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-600 mb-4">Failed to load tenants: {error}</p>
+      <div className="text-center py-12 px-4">
+        <p className="text-red-600 mb-4 text-sm sm:text-base">Failed to load tenants: {error}</p>
         <Button onClick={refreshTenants} variant="outline">
           <RefreshCw className="w-4 h-4 mr-2" />
           Try Again
@@ -130,30 +130,35 @@ export default function PropertyTenantsTab({ property }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Users className="w-6 h-6 text-blue-600" />
-          <h3 className="text-lg font-semibold">Current Tenants</h3>
-          <Badge variant="secondary" className="ml-2">
-            {tenants.length} tenant{tenants.length !== 1 ? 's' : ''}
-          </Badge>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Users className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold text-slate-900">Tenants</h3>
+            <Badge  className="mt-1 bg-slate-200 text-slate-700 text-xs">
+              {tenants.length} tenant{tenants.length !== 1 ? 's' : ''}
+            </Badge>
+          </div>
         </div>
         
         <Button
           onClick={refreshTenants}
-          variant="outline"
-          size="sm"
           disabled={loading}
+          variant="outline"
+          className="w-full sm:w-fit"
         >
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          <span className="hidden sm:inline">Refresh</span>
+          <span className="sm:hidden">Refresh</span>
         </Button>
       </div>
 
       {/* Search */}
       {tenants.length > 0 && (
         <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
           <Input
             placeholder="Search by name, unit, or phone..."
             value={searchTerm}
@@ -165,110 +170,114 @@ export default function PropertyTenantsTab({ property }) {
 
       {/* Tenants List */}
       {filteredTenants.length === 0 ? (
-        <div className="text-center py-12">
-          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h4 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="text-center py-12 px-4">
+          <div className="mb-4 flex justify-center">
+            <Users className="w-16 h-16 text-slate-300" />
+          </div>
+          <h4 className="text-lg font-semibold text-slate-900 mb-2">
             {searchTerm ? 'No tenants found' : 'No tenants yet'}
           </h4>
-          <p className="text-gray-600 mb-6">
+          <p className="text-slate-600 text-sm">
             {searchTerm 
               ? 'Try adjusting your search terms' 
               : 'Add tenants to start managing your property'
             }
           </p>
-          {/* {!searchTerm && (
-            <Button
-              onClick={() => setShowAssignDialog(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add First Tenant
-            </Button>
-          )} */}
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 lg:grid-cols-2">
           {filteredTenants.map((tenant) => (
-            <CloudflareCard key={tenant.id} className="p-6">
-              <div className="flex items-start justify-between">
-                {/* Tenant Info */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h4 className="text-lg font-semibold text-gray-900">
+            <CloudflareCard key={tenant.id} className="p-4 sm:p-6">
+              <div className="flex flex-col gap-4">
+                {/* Header with Name and Status */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-base sm:text-lg font-semibold text-slate-900 truncate">
                       {tenant.name}
                     </h4>
-                    <Badge className={getStatusColor(tenant.status)}>
-                      {tenant.status === 'active' ? 'Active' : 'Former'}
-                    </Badge>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Contact & Unit Info */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Phone className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600">Phone:</span>
-                        <span className="font-medium">{tenant.phone}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-sm">
-                        <Home className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600">Unit:</span>
-                        <span className="font-medium">
-                          {tenant.unit_name} • {tenant.floor_name}
-                        </span>
-                      </div>
+                  <Badge className={`${getStatusColor(tenant.status)} whitespace-nowrap text-xs bg-transparent`}>
+                    {tenant.status === 'active' ? 'Active' : 'Former'}
+                  </Badge>
+                </div>
+                
+                {/* Info Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Contact Info */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm">
+                      <Phone className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      <span className="text-slate-600">Phone:</span>
+                      <span className="font-medium text-slate-900 truncate">{tenant.phone}</span>
                     </div>
                     
-                    {/* Payment Info */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <DollarSign className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600">Rent:</span>
-                        <span className="font-medium">
-                          {formatCurrency(tenant.rent_amount)} • {getPaymentFrequencyLabel(tenant.payment_frequency)}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600">Moved in:</span>
-                        <span className="font-medium">{formatDate(tenant.move_in_date)}</span>
-                      </div>
-                      
-                      {tenant.next_payment_date && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600">Next payment:</span>
-                          <span className="font-medium">{formatDate(tenant.next_payment_date)}</span>
-                        </div>
-                      )}
+                    <div className="flex items-center gap-2 text-xs sm:text-sm">
+                      <Home className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      <span className="text-slate-600">Unit:</span>
+                      <span className="font-medium text-slate-900 truncate">
+                        {tenant.unit_name} • {tenant.floor_name}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Payment Info */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm">
+                      <DollarSign className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <span className="text-slate-600">Rent:</span>
+                      <span className="font-medium text-slate-900 truncate">
+                        {formatCurrency(tenant.rent_amount)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-xs sm:text-sm">
+                      <Calendar className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                      <span className="text-slate-600">Moved in:</span>
+                      <span className="font-medium text-slate-900">{formatDate(tenant.move_in_date)}</span>
                     </div>
                   </div>
                 </div>
 
+                {/* Additional Info */}
+                <div className="pt-2 border-t border-slate-200 space-y-2">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm">
+                    <span className="text-slate-600">Frequency:</span>
+                    <span className="inline-block px-2 py-1 bg-slate-100 text-slate-700 rounded font-medium text-xs">
+                      {getPaymentFrequencyLabel(tenant.payment_frequency)}
+                    </span>
+                  </div>
+                  
+                  {tenant.next_payment_date && (
+                    <div className="flex items-center gap-2 text-xs sm:text-sm">
+                      <Calendar className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                      <span className="text-slate-600">Next payment:</span>
+                      <span className="font-medium text-slate-900">{formatDate(tenant.next_payment_date)}</span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Actions */}
-                <div className="flex flex-col gap-2 ml-4">
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
                   <Button
                     onClick={() => handleSendReminder(tenant.id, tenant.name)}
                     disabled={actionLoading}
-                    size="sm"
+                    className="flex-1 text-xs sm:text-sm"
                     variant="outline"
-                    className="text-xs"
                   >
                     <MessageSquare className="w-3 h-3 mr-1" />
-                    Send Reminder
+                    <span className="hidden sm:inline">Send Reminder</span>
+                    <span className="sm:hidden">Reminder</span>
                   </Button>
                   
                   <Button
                     onClick={() => handleVacateTenant(tenant.id, tenant.name)}
                     disabled={actionLoading}
-                    size="sm"
                     variant="outline"
-                    className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="flex-1 text-xs sm:text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border-red-600 bg-red-100"
                   >
                     <UserX className="w-3 h-3 mr-1" />
-                    Remove Tenant
+                    <span className="hidden sm:inline">Remove</span>
+                    <span className="sm:hidden">Remove</span>
                   </Button>
                 </div>
               </div>
