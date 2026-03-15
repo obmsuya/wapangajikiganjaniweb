@@ -121,16 +121,16 @@ export default function UnitConfiguration({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground mb-2">Room Configuration</h2>
+        <h2 className="text-2xl font-bold text-foreground">Room Configuration</h2>
         <p className="text-muted-foreground">
           Set the monthly rent for each room. All rooms will be saved.
         </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <CloudflareCard>
-          <CloudflareCardContent className="p-4">
+          <CloudflareCardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Rooms</p>
@@ -142,7 +142,7 @@ export default function UnitConfiguration({
         </CloudflareCard>
 
         <CloudflareCard>
-          <CloudflareCardContent className="p-4">
+          <CloudflareCardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Configured</p>
@@ -153,8 +153,8 @@ export default function UnitConfiguration({
           </CloudflareCardContent>
         </CloudflareCard>
 
-        <CloudflareCard>
-          <CloudflareCardContent className="p-4">
+        <CloudflareCard className="max-lg:cols-span-2">
+          <CloudflareCardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Monthly Rent</p>
@@ -190,7 +190,7 @@ export default function UnitConfiguration({
                   {floorUnits.map((unit) => (
                     <motion.div
                       key={unit.id}
-                      className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                      className="border rounded-3xl p-4 cursor-pointer"
                       onClick={() => handleEditUnit(unit)}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -216,7 +216,7 @@ export default function UnitConfiguration({
                       <Button
                         variant={unit.rent_amount > 0 ? "outline" : "default"}
                         size="sm"
-                        className="w-full mt-3"
+                        className="w-full sm:w-fit mt-3"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEditUnit(unit);
@@ -299,7 +299,7 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-72 sm:max-w-96">
         <DialogHeader>
           <DialogTitle>Room {unit.unit_name}</DialogTitle>
         </DialogHeader>
@@ -307,7 +307,7 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
         <div className="space-y-5">
 
           {/* Optional room name */}
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="unit_name">Room name (optional)</Label>
             <Input
               id="unit_name"
@@ -318,7 +318,7 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
           </div>
 
           {/* Rent input – text field with live formatting */}
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="rent_amount">Monthly rent (TZS) *</Label>
             <Input
               id="rent_amount"
@@ -337,11 +337,11 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-end gap-3 pt-3">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" className="w-fit px-8" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>Save Room</Button>
+            <Button onClick={handleSave} className="w-fit px-8">Save Room</Button>
           </div>
         </div>
       </DialogContent>

@@ -112,7 +112,7 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Configure Unit {unit.unit_name}</DialogTitle>
+          <DialogTitle>Configure {unit.unit_name}</DialogTitle>
           <DialogDescription>
             Edit the details for this unit. Changes will be saved when you click "Save Changes".
           </DialogDescription>
@@ -181,10 +181,10 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>
+          <Button className="w-fit" variant="outline" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button className="w-fit" onClick={handleSave} disabled={isSaving}>
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>

@@ -1,12 +1,10 @@
-// components/landlord/properties/PropertySetupForm.jsx
 "use client";
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { usePropertyCreation } from "@/hooks/properties/useProperties";
 import PropertyBasicInfo from "./PropertyBasicInfo";
 import PropertyTypeSelection from "./PropertyTypeSelection";
@@ -15,11 +13,36 @@ import UnitConfiguration from "./UnitConfiguration";
 import PropertySummary from "./PropertySummary";
 
 const steps = [
-  { id: 1, title: "Property Details", description: "Basic information about your property" },
-  { id: 2, title: "Property Type", description: "Choose your property configuration" },
-  { id: 3, title: "Floor Plans", description: "Design your property layout" },
-  { id: 4, title: "Unit Details", description: "Configure individual units" },
-  { id: 5, title: "Review & Create", description: "Review and finalize your property" }
+  {
+    id: 1,
+    title: "Property Details",
+    description: "Basic information about your property",
+    shortTitle: "Details",
+  },
+  {
+    id: 2,
+    title: "Property Type",
+    description: "Choose your property configuration",
+    shortTitle: "Type",
+  },
+  {
+    id: 3,
+    title: "Floor Plans",
+    description: "Design your property layout",
+    shortTitle: "Floors",
+  },
+  {
+    id: 4,
+    title: "Unit Details",
+    description: "Configure individual units",
+    shortTitle: "Units",
+  },
+  {
+    id: 5,
+    title: "Review & Create",
+    description: "Review and finalize your property",
+    shortTitle: "Review",
+  },
 ];
 
 export default function PropertySetupForm({ onComplete, onCancel }) {
@@ -34,12 +57,10 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
     prevStep,
     goToStep,
     saveProperty,
-    resetForm,
-    totalUnits,
     maxSteps,
     updatePropertyData,
     updateFloorData,
-    addUnitData
+    addUnitData,
   } = usePropertyCreation();
 
   const [canProceed, setCanProceed] = useState(false);
@@ -66,8 +87,8 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
     try {
       const result = await saveProperty();
       onComplete?.(result);
-    } catch (error) {
-      console.error("Failed to save property:", error);
+    } catch (err) {
+      console.error("Failed to save property:", err);
     }
   };
 
@@ -75,13 +96,13 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
     const baseProps = {
       onValidationChange: setCanProceed,
       onNext: handleNext,
-      onPrevious: handlePrevious
+      onPrevious: handlePrevious,
     };
 
     switch (currentStep) {
       case 1:
         return (
-          <PropertyBasicInfo 
+          <PropertyBasicInfo
             {...baseProps}
             propertyData={propertyData}
             updatePropertyData={updatePropertyData}
@@ -89,7 +110,7 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
         );
       case 2:
         return (
-          <PropertyTypeSelection 
+          <PropertyTypeSelection
             {...baseProps}
             propertyData={propertyData}
             updatePropertyData={updatePropertyData}
@@ -97,7 +118,7 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
         );
       case 3:
         return (
-          <FloorPlanDesigner 
+          <FloorPlanDesigner
             {...baseProps}
             propertyData={propertyData}
             floorData={floorData}
@@ -108,7 +129,7 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
         );
       case 4:
         return (
-          <UnitConfiguration 
+          <UnitConfiguration
             {...baseProps}
             propertyData={propertyData}
             floorData={floorData}
@@ -117,7 +138,7 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
         );
       case 5:
         return (
-          <PropertySummary 
+          <PropertySummary
             {...baseProps}
             propertyData={propertyData}
             floorData={floorData}
@@ -129,7 +150,7 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
         );
       default:
         return (
-          <PropertyBasicInfo 
+          <PropertyBasicInfo
             {...baseProps}
             propertyData={propertyData}
             updatePropertyData={updatePropertyData}
@@ -138,72 +159,101 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
     }
   };
 
-  const progressPercentage = (currentStep / maxSteps) * 100;
+  const currentStepMeta = steps[currentStep - 1];
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+              Create New Property
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
+              Step {currentStep} of {maxSteps} — {currentStepMeta?.description}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCancel}
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label="Cancel setup"
+          >
+            <X className="size-5" />
+          </Button>
+        </div>
+
+        {/* Step Indicator */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Create New Property</h1>
-              <p className="text-muted-foreground mt-1">
-                Step {currentStep} of {maxSteps}: {steps[currentStep - 1]?.description}
-              </p>
-            </div>
-            {currentStep > 1 && (
-              <Button variant="outline" onClick={handlePrevious}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
-              </Button>
-            )}
-          </div>
+          <div className="flex items-center justify-between">
+            {steps.map((step, index) => {
+              const isCompleted = step.id < currentStep;
+              const isActive = step.id === currentStep;
+              const isClickable = step.id <= currentStep;
 
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">Progress</span>
-              <span className="text-sm text-muted-foreground">{Math.round(progressPercentage)}%</span>
-            </div>
-            <Progress value={progressPercentage} className="h-2" />
-          </div>
+              return (
+                <div key={step.id} className="flex items-center flex-1 min-w-0">
+                  <div className="flex flex-col items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleStepClick(step.id)}
+                      disabled={!isClickable}
+                      aria-label={`Go to step ${step.id}: ${step.title}`}
+                      className={[
+                        "size-9 sm:size-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-200 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : isCompleted
+                          ? "bg-green-500 text-white hover:bg-green-600 cursor-pointer"
+                          : "bg-muted text-muted-foreground cursor-not-allowed",
+                      ].join(" ")}
+                    >
+                      {isCompleted ? (
+                        <Check className="size-4" />
+                      ) : (
+                        step.id
+                      )}
+                    </button>
+                    <span
+                      className={[
+                        "hidden sm:block text-xs font-medium whitespace-nowrap",
+                        isActive
+                          ? "text-primary"
+                          : isCompleted
+                          ? "text-green-600"
+                          : "text-muted-foreground",
+                      ].join(" ")}
+                    >
+                      {step.shortTitle}
+                    </span>
+                  </div>
 
-          <div className="flex items-center justify-between mb-8">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <button
-                  onClick={() => handleStepClick(step.id)}
-                  disabled={step.id > currentStep}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                    step.id === currentStep
-                      ? 'bg-primary-600 text-white'
-                      : step.id < currentStep
-                      ? 'bg-green-500 text-white cursor-pointer hover:bg-green-600'
-                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  {step.id < currentStep ? '✓' : step.id}
-                </button>
-                {index < steps.length - 1 && (
-                  <div
-                    className={`h-1 w-12 mx-2 ${
-                      step.id < currentStep ? 'bg-green-500' : 'bg-gray-200'
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
+                  {index < steps.length - 1 && (
+                    <div
+                      className={[
+                        "h-0.5 flex-1 mx-2 sm:mx-3 rounded-full transition-colors duration-300",
+                        isCompleted ? "bg-green-500" : "bg-muted",
+                      ].join(" ")}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        <Card className="min-h-[600px]">
-          <CardContent className="p-8">
+        {/* Step Content */}
+        <Card>
+          <CardContent className="p-2">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 16 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
+                exit={{ opacity: 0, x: -16 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
               >
                 {renderStepContent()}
               </motion.div>
@@ -211,38 +261,58 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
           </CardContent>
         </Card>
 
+        {/* Error */}
         {error && (
-          <Card className="mt-4 border-red-200 bg-red-50">
+          <Card className="mt-4 border-destructive/30 bg-destructive/5">
             <CardContent className="p-4">
-              <p className="text-red-600 text-sm">{error}</p>
+              <p className="text-destructive text-sm">{error}</p>
             </CardContent>
           </Card>
         )}
 
-        <div className="flex items-center justify-between mt-8">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel Setup
+        {/* Footer Navigation */}
+        <div className="flex items-center justify-between mt-6 gap-3">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            className="shrink-0 w-fit"
+          >
+            Cancel
           </Button>
-          
-          <div className="flex items-center gap-4">
-            {currentStep < maxSteps ? (
-              <Button 
-                onClick={handleNext} 
-                disabled={!canProceed}
+
+          <div className="flex items-center gap-3">
+            {currentStep > 1 && (
+              <Button
+                variant="outline"
+                onClick={handlePrevious}
+                className="shrink-0 w-fit"
               >
-                Next Step
-                <ChevronRight className="w-4 h-4 ml-1" />
+                <ChevronLeft className="size-4 mr-1" />
+                <span className="hidden sm:inline">Previous</span>
+              </Button>
+            )}
+
+            {currentStep < maxSteps ? (
+              <Button
+                onClick={handleNext}
+                disabled={!canProceed}
+                className="shrink-0 w-fit"
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="size-4 ml-1" />
               </Button>
             ) : (
-              <Button 
+              <Button
                 onClick={handleComplete}
                 disabled={!canProceed || isLoading}
+                className="shrink-0 w-fit"
               >
-                {isLoading ? 'Creating Property...' : 'Create Property'}
+                {isLoading ? "Creating…" : "Create Property"}
               </Button>
             )}
           </div>
         </div>
+
       </div>
     </div>
   );

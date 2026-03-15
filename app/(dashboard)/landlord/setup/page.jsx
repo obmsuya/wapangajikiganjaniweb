@@ -48,17 +48,15 @@ export default function PropertySetupPage() {
       className="min-h-screen bg-background"
     >
       {/* Header */}
-      <div className="border-b border-border bg-card">
+      <div className="border-b border-border bg-card max-w-6xl mx-auto">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="outline"
               onClick={() => router.back()}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 w-fit"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back
             </Button>
             <div>
               <h1 className="text-lg font-semibold text-foreground">
