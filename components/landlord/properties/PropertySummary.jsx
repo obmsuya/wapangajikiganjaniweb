@@ -226,7 +226,7 @@ export default function PropertySummary({
       {/* Detailed Information */}
       <Tabs defaultValue="basic" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="basic">Basic Info</TabsTrigger>
+          <TabsTrigger value="basic">Info</TabsTrigger>
           <TabsTrigger value="floors">Floor Plans</TabsTrigger>
           <TabsTrigger value="units">Units</TabsTrigger>
         </TabsList>
@@ -282,7 +282,7 @@ export default function PropertySummary({
 
         <TabsContent value="floors" className="space-y-4">
           <CloudflareCard>
-            <CloudflareCardHeader 
+            <CloudflareCardHeader className="max-sm:flex-col gap-2 max-smw-full"
               title="Floor Plans"
               icon={<Layers className="w-5 h-5" />}
               action={
@@ -301,9 +301,9 @@ export default function PropertySummary({
             <CloudflareCardContent>
               <div className="space-y-4">
                 {Object.entries(floorData || {}).map(([floorNum, floor]) => (
-                  <div key={floorNum} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <div key={floorNum} className="flex items-center justify-between p-4 border rounded-2xl max-sm:flex-col gap-2">
+                    <div className="flex sm:items-center gap-4 max-sm:flex-col">
+                      <div className="max-sm:w-8 max-sm:h-8 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                         <span className="text-blue-600 font-bold">{floorNum}</span>
                       </div>
                       <div>
@@ -313,8 +313,8 @@ export default function PropertySummary({
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">
+                    <div className="flex items-center gap-2 max-sm:flex-col max-sm:w-full">
+                      <Badge variant="secondary" className="max-sm:w-full">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Configured
                       </Badge>

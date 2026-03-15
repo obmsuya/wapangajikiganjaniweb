@@ -21,7 +21,7 @@ const radiusStyles = {
   sm: "rounded-sm",
   md: "rounded-md",
   lg: "rounded-lg",
-  xl: "rounded-xl",
+  xl: "rounded-4xl",
   full: "rounded-full",
 };
 
@@ -29,11 +29,10 @@ const Card = React.forwardRef(({
   children,
   className = "",
   variant = "default",
-  size = "md",
-  radius = "lg",
+  size = "sm",
+  radius = "xl",
   hover = false,
   clickable = false,
-  shadow = "sm",
   header,
   footer,
   title,
@@ -43,22 +42,13 @@ const Card = React.forwardRef(({
   imagePosition = "top",
   ...props
 }, ref) => {
-  const shadowStyles = {
-    none: "",
-    sm: "shadow-sm",
-    md: "shadow-md",
-    lg: "shadow-lg",
-    xl: "shadow-xl",
-  };
-
   const cardContent = (
     <div className={`
       ${variantStyles[variant] || variantStyles.default}
       ${sizeStyles[size] || sizeStyles.md}
       ${radiusStyles[radius] || radiusStyles.lg}
-      ${shadowStyles[shadow] || shadowStyles.sm}
       overflow-hidden border transition-all duration-200
-      ${hover ? "hover:shadow-md hover:-translate-y-1" : ""}
+      ${hover ? "hover:-translate-y-1" : ""}
       ${clickable ? "cursor-pointer active:scale-[0.98]" : ""}
       ${className}
     `}

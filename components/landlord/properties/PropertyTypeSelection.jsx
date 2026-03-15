@@ -65,7 +65,7 @@ export default function PropertyTypeSelection({ onValidationChange }) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-foreground mb-2">Property Type</h2>
         <p className="text-muted-foreground">
@@ -82,54 +82,44 @@ export default function PropertyTypeSelection({ onValidationChange }) {
             transition={{ delay: index * 0.1 }}
           >
             <Card
-              className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+              className={`cursor-pointer p-6 ${
                 selectedType === type.id
-                  ? 'ring-2 ring-primary-500 border-primary-500'
-                  : 'border-gray-200 hover:border-primary-300'
+                  ? 'ring-2 ring-primary border-primary'
+                  : 'border-border hover:border-zinc-400'
               }`}
               onClick={() => handleTypeSelection(type.id)}
             >
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
+              <CardContent>
+                <div className="flex items-start gap-4 max-sm:flex-col">
                   <div
                     className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                       selectedType === type.id
-                        ? 'bg-primary-100 text-primary-600'
-                        : 'bg-gray-100 text-gray-600'
+                        ? 'bg-primary/20 text-primary'
+                        : 'bg-gray-300/45 text-gray-600'
                     }`}
                   >
                     <type.icon className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2 gap-4">
                       <h3 className="text-lg font-semibold text-foreground">
                         {type.title}
                       </h3>
                       <div
                         className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                           selectedType === type.id
-                            ? 'border-primary-500 bg-primary-500'
+                            ? 'border-primary bg-primary-500'
                             : 'border-gray-300'
                         }`}
                       >
                         {selectedType === type.id && (
-                          <div className="w-2 h-2 bg-white rounded-full" />
+                          <div className="w-2 h-2 bg-primary rounded-full" />
                         )}
                       </div>
                     </div>
-                    <p className="text-muted-foreground text-sm mb-4">
+                    <p className="text-muted-foreground text-sm">
                       {type.description}
                     </p>
-                    <div className="space-y-1">
-                      {type.features.map((feature, featureIndex) => (
-                        <div key={featureIndex} className="flex items-center gap-2">
-                          <div className="w-1 h-1 bg-primary-500 rounded-full" />
-                          <span className="text-xs text-muted-foreground">
-                            {feature}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -146,17 +136,17 @@ export default function PropertyTypeSelection({ onValidationChange }) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4"
+          className="bg-green-100 dark:bg-green-900/20 rounded-3xl p-4 border border-green-400"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+          <div className="flex items-start max-sm:items-center gap-3 max-sm:flex-col">
+            <div className="w-8 h-8 bg-green-200 text-green-600 rounded-full flex items-center justify-center">
               ✓
             </div>
             <div>
-              <p className="font-medium text-foreground">
+              <p className="font-medium text-green-900">
                 {propertyTypes.find(t => t.id === selectedType)?.title}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-green-900/65">
                 {selectedType === 'Multi-Floor' 
                   ? 'Multi-floor property - Layout will be configured in the next step'
                   : 'Single floor property'

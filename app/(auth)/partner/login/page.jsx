@@ -248,7 +248,7 @@ export default function PartnerLoginPage() {
                       value={formData.phone_number}
                       onChange={handleChange}
                       error={errors.phone_number}
-                      className="h-12 bg-background/50"
+                      className="h-12 bg-white/50"
                     />
                   </motion.div>
 
@@ -266,7 +266,7 @@ export default function PartnerLoginPage() {
                       value={formData.password}
                       onChange={handleChange}
                       error={errors.password}
-                      className="h-12 bg-background/50 pr-12"
+                      className="h-12 bg-white/50 pr-12"
                     />
                     <button
                       type="button"

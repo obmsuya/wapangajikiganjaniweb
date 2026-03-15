@@ -17,6 +17,7 @@ import {
   Calendar,
   Star,
   BarChart3,
+  TrendingUp,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,9 +47,9 @@ import customToast from "@/components/ui/custom-toast";
    Mobile providers – only the ones that work
    -------------------------------------------------------------- */
 const MOBILE_PROVIDERS = [
-  { id: "AIRTEL",   name: "Airtel Money", logo: "/images/airtel-logo.png" },
-  { id: "TIGO",     name: "Tigo Pesa",   logo: "/images/tigo-logo.png" },
-  { id: "AZAMPESA", name: "Azam Pesa",   logo: "/images/azam-pesa-logo.png" },
+  { id: "AIRTEL", name: "Airtel Money", logo: "/images/airtel-logo.png" },
+  { id: "TIGO", name: "Tigo Pesa", logo: "/images/tigo-logo.png" },
+  { id: "AZAMPESA", name: "Azam Pesa", logo: "/images/azam-pesa-logo.png" },
 ];
 
 export default function SubscriptionPage() {
@@ -118,7 +119,7 @@ export default function SubscriptionPage() {
       const response = await processMNOPayment(
         selectedPlan.id,
         paymentData.accountNumber,
-        paymentData.provider
+        paymentData.provider,
       );
 
       if (response?.success) {
@@ -167,13 +168,13 @@ export default function SubscriptionPage() {
       header: "Plan",
       accessor: "planName",
       cell: (row) => (
-        <div className="flex items-center gap-2">
-          <Crown className="h-4 w-4 text-yellow-500" />
+        <div className="flex items-center sm:gap-4">
+          <Crown className="h-4 w-4 text-yellow-500 max-sm:hidden" />
           <div>
-            <div className="font-medium">{row.planName}</div>
+            <div className="sm:font-medium max-md:text-xs">{row.planName}</div>
             <Badge
               variant="secondary"
-              className={getPlanTypeColor(row.planType)}
+              className={`text-xs ${getPlanTypeColor(row.planType)}`}
             >
               {row.planType}
             </Badge>
@@ -186,8 +187,8 @@ export default function SubscriptionPage() {
       accessor: "duration",
       cell: (row) => (
         <div>
-          <div>{new Date(row.startDate).toLocaleDateString()}</div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm sm:text-base">{new Date(row.startDate).toLocaleDateString()}</div>
+          <div className="text-xs sm:text-sm text-gray-500">
             to {new Date(row.endDate).toLocaleDateString()}
           </div>
         </div>
@@ -197,7 +198,7 @@ export default function SubscriptionPage() {
       header: "Status",
       accessor: "status",
       cell: (row) => (
-        <Badge className={getSubscriptionStatusColor(row.status)}>
+        <Badge variant="outline" className={getSubscriptionStatusColor(row.status)}>
           {row.status}
         </Badge>
       ),
@@ -206,7 +207,7 @@ export default function SubscriptionPage() {
       header: "Price",
       accessor: "price",
       cell: (row) => (
-        <span className="font-medium">{formatCurrency(row.price)}</span>
+        <span className="max-sm:text-xs font-medium">{formatCurrency(row.price)}</span>
       ),
     },
   ];
@@ -229,9 +230,9 @@ export default function SubscriptionPage() {
   /* Main UI                                                             */
   /* ------------------------------------------------------------------ */
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <div className="space-y-8 pb-16">
       {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-8">
         <div>
           <h1 className="text-3xl font-bold">Subscription Management</h1>
           <p className="text-muted-foreground">
@@ -242,6 +243,7 @@ export default function SubscriptionPage() {
           variant="outline"
           onClick={refreshAllData}
           disabled={loading}
+          className="w-fit"
         >
           <RefreshCw
             className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
@@ -279,19 +281,23 @@ export default function SubscriptionPage() {
         )}
 
       {/* ── Tabs ── */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="plans" className="flex items-center gap-2">
             <Crown className="h-4 w-4" />
-            Plans
+            <span className="hidden md:inline">Plans</span>
           </TabsTrigger>
           <TabsTrigger value="current" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
-            Current
+            <span className="hidden md:inline">Current</span>
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            History
+            <span className="hidden md:inline">History</span>
           </TabsTrigger>
         </TabsList>
 
@@ -304,18 +310,18 @@ export default function SubscriptionPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {plans.map((plan) => (
               <Card
                 key={plan.id}
                 className={`relative transition-all hover:shadow-lg ${
                   plan.planType === "premium"
-                    ? "border-blue-500 shadow-md ring-1 ring-blue-500"
+                    ? "shadow-xl shadow-primary/20 border-0 py-8"
                     : ""
                 }`}
               >
                 {plan.planType === "premium" && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <div className="mx-auto text-center">
                     <Badge className="bg-blue-500 text-white">
                       <Star className="h-3 w-3 mr-1" />
                       Most Popular
@@ -323,7 +329,7 @@ export default function SubscriptionPage() {
                   </div>
                 )}
 
-                <CardHeader className="text-center">
+                <CardHeader className="text-center mt-2">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <Crown className="h-5 w-5 text-yellow-500" />
                     <CardTitle>{plan.name}</CardTitle>
@@ -333,7 +339,7 @@ export default function SubscriptionPage() {
                   </Badge>
                 </CardHeader>
 
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 px-4">
                   {/* Price */}
                   <div className="text-center">
                     <div className="text-3xl font-bold">
@@ -368,10 +374,7 @@ export default function SubscriptionPage() {
                       <h4 className="font-medium">Features:</h4>
                       <div className="space-y-2">
                         {Object.entries(plan.features).map(([key, value]) => (
-                          <div
-                            key={key}
-                            className="flex items-center gap-2"
-                          >
+                          <div key={key} className="flex items-center gap-2">
                             <CheckCircle className="h-4 w-4 text-green-500" />
                             <span className="text-sm capitalize">
                               {key.replace("_", " ")}: {value ? "Yes" : "No"}
@@ -387,7 +390,9 @@ export default function SubscriptionPage() {
                     className="w-full"
                     onClick={() => handlePlanSelect(plan)}
                     disabled={currentSubscription?.plan?.id === plan.id}
-                    variant={plan.planType === "premium" ? "default" : "outline"}
+                    variant={
+                      plan.planType === "premium" ? "default" : "outline"
+                    }
                   >
                     {currentSubscription?.plan?.id === plan.id ? (
                       <>
@@ -410,152 +415,184 @@ export default function SubscriptionPage() {
         {/* ── Current Subscription Tab ── */}
         <TabsContent value="current" className="space-y-6">
           {currentSubscription ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Details */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Subscription Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        Plan Name
-                      </Label>
-                      <div className="font-medium">
-                        {currentSubscription.plan.name}
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        Plan Type
-                      </Label>
-                      <div className="mt-1">
-                        <Badge
-                          className={getPlanTypeColor(
-                            currentSubscription.plan.planType
-                          )}
-                        >
-                          {currentSubscription.plan.planType}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        Status
-                      </Label>
-                      <div className="mt-1">
-                        <Badge
-                          className={getSubscriptionStatusColor(
-                            currentSubscription.status
-                          )}
-                        >
-                          {currentSubscription.status}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        Auto Renew
-                      </Label>
-                      <div className="font-medium">
-                        {currentSubscription.autoRenew ? "Yes" : "No"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">
-                      Billing Period
-                    </Label>
-                    <div className="text-sm space-y-1">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Main Details Card */}
+              <div className="lg:col-span-2">
+                <Card className="border border-border overflow-hidden">
+                  {/* Premium Header */}
+                  <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 px-6 py-8 rounded-3xl">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
-                        Started:{" "}
-                        {new Date(
-                          currentSubscription.startDate
-                        ).toLocaleDateString()}
+                        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
+                          {currentSubscription.plan.name}
+                        </h2>
+                        <p className="text-sm text-slate-600 mt-1">
+                          Your current plan
+                        </p>
                       </div>
-                      <div>
-                        Expires:{" "}
-                        {new Date(
-                          currentSubscription.endDate
-                        ).toLocaleDateString()}
-                      </div>
+                      <Badge
+                        className={`${getSubscriptionStatusColor(currentSubscription.status)} text-sm`}
+                        variant="secondary"
+                      >
+                        {currentSubscription.status}
+                      </Badge>
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setActiveTab("plans")}
-                      className="flex-1"
-                    >
-                      <Crown className="h-4 w-4 mr-2" />
-                      Upgrade Plan
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={cancelSubscription}
-                      disabled={loading}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  <CardContent className="pt-8">
+                    <div className="space-y-6">
+                      {/* Plan Details Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label className="text-xs sm:text-sm text-slate-600 font-medium">
+                            Plan Type
+                          </Label>
+                          <div>
+                            <Badge
+                              className={`${getPlanTypeColor(currentSubscription.plan.planType)} text-sm`}
+                              variant="outline"
+                            >
+                              {currentSubscription.plan.planType}
+                            </Badge>
+                          </div>
+                        </div>
 
-              {/* Usage Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Usage Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="text-center p-6 bg-blue-50 rounded-lg">
-                    <div className="text-3xl font-bold text-blue-600">
+                        <div className="space-y-2">
+                          <Label className="text-xs sm:text-sm text-slate-600 font-medium">
+                            Auto Renewal
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-2 h-2 rounded-full ${currentSubscription.autoRenew ? "bg-emerald-500" : "bg-slate-300"}`}
+                            ></div>
+                            <span className="text-sm font-medium text-slate-900">
+                              {currentSubscription.autoRenew
+                                ? "Enabled"
+                                : "Disabled"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Billing Period */}
+                      <div className="space-y-4">
+                        <Label className="text-xs sm:text-sm text-slate-600 font-medium">
+                          Billing Period
+                        </Label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 rounded-lg border border-primary bg-primary/5">
+                            <div className="text-xs text-primary mb-1">
+                              Started
+                            </div>
+                            <div className="text-sm font-semibold text-primary">
+                              {new Date(
+                                currentSubscription.startDate,
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </div>
+                          </div>
+                          <div className="p-4 rounded-lg border border-orange-300 bg-orange-100">
+                            <div className="text-xs text-orange-600 mb-1">
+                              Expires
+                            </div>
+                            <div className="text-sm font-semibold text-orange-900">
+                              {new Date(
+                                currentSubscription.endDate,
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          onClick={cancelSubscription}
+                          disabled={loading}
+                          className="w-full px-4 sm:w-fit border-red-200 text-red-600 hover:bg-red-50"
+                        >
+                          Cancel Plan
+                        </Button>
+                        <Button
+                          onClick={() => setActiveTab("plans")}
+                          className="w-full sm:w-fit px-4"
+                        >
+                          <TrendingUp className="h-4 w-4 mr-2" />
+                          Upgrade Plan
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Usage Summary Card */}
+              <Card className="border-0 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/40 px-6 py-6 rounded-3xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="h-5 w-5 text-emerald-600" />
+                    <h3 className="font-semibold text-slate-900">
+                      Usage Summary
+                    </h3>
+                  </div>
+                </div>
+
+                <CardContent className="pt-6 space-y-6">
+                  {/* Total Properties */}
+                  <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-3xl border border-blue-200">
+                    <div className="text-4xl font-bold text-blue-600 mb-2">
                       {subscriptionStatus?.propertyCounts?.total || 0}
                     </div>
-                    <div className="text-sm text-blue-600 font-medium">
+                    <div className="text-xs sm:text-sm text-blue-700 font-medium">
                       Total Properties
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <div className="text-xl font-semibold text-green-600">
+                  {/* Active and Available */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-4 bg-emerald-50 rounded-3xl border border-emerald-200">
+                      <div className="text-2xl font-bold text-emerald-600">
                         {subscriptionStatus?.propertyCounts?.total || 0}
                       </div>
-                      <div className="text-xs text-green-600">Active</div>
-                    </div>
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <div className="text-xl font-semibold text-gray-600">
-                        {currentSubscription.plan.propertyLimit === -1
-                          ? "∞"
-                          : Math.max(
-                              0,
-                              currentSubscription.plan.propertyLimit -
-                                (subscriptionStatus?.propertyCounts?.total || 0)
-                            )}
+                      <div className="text-xs text-emerald-700 font-medium mt-1">
+                        Active
                       </div>
-                      <div className="text-xs text-gray-600">Available</div>
+                    </div>
+                    <div className="p-4 rounded-3xl border border-slate-200 bg-slate-100">
+                      <div className="text-2xl font-bold text-slate-600 flex items-center gap-1">
+                        {subscriptionStatus?.propertyCounts?.available ===
+                        "Unlimited" ? (
+                          <Infinity className="h-5 w-5" />
+                        ) : (
+                          subscriptionStatus?.propertyCounts?.available || 0
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-700 font-medium mt-1">
+                        Available
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <Label className="text-sm text-muted-foreground">
-                      Property Limit Usage
-                    </Label>
-                    <div className="mt-3">
-                      <div className="flex items-center justify-between text-sm mb-2">
-                        <span>Used</span>
-                        <span>
+                  {/* Usage Bar */}
+                  {currentSubscription.propertyLimit !== -1 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600 font-medium">
+                          Property Limit
+                        </span>
+                        <span className="text-slate-900 font-bold">
                           {subscriptionStatus?.propertyCounts?.total || 0} /{" "}
                           {currentSubscription.plan.propertyLimit === -1
                             ? "∞"
@@ -574,23 +611,29 @@ export default function SubscriptionPage() {
                         className="h-2"
                       />
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
           ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center py-12">
-                  <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
+            <Card className="border-0 shadow-sm">
+              <CardContent className="pt-12 sm:pt-16">
+                <div className="text-center py-8 px-4 sm:px-6">
+                  <div className="inline-flex p-4 bg-slate-100 rounded-2xl mb-6">
+                    <AlertTriangle className="h-12 w-12 text-slate-500" />
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
                     No Active Subscription
                   </h3>
-                  <p className="text-muted-foreground mb-6">
-                    You don’t have an active subscription. Choose a plan to get
-                    started.
+                  <p className="text-sm sm:text-base text-slate-600 mb-8 max-w-md mx-auto">
+                    You don't have an active subscription. Choose a plan to
+                    unlock features and grow your business.
                   </p>
-                  <Button onClick={() => setActiveTab("plans")}>
+                  <Button
+                    onClick={() => setActiveTab("plans")}
+                    size="lg"
+                    className="w-full sm:w-fit"
+                  >
                     <Crown className="h-4 w-4 mr-2" />
                     View Plans
                   </Button>
@@ -613,7 +656,7 @@ export default function SubscriptionPage() {
 
           {subscriptionHistory?.length > 0 ? (
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="p-0">
                 <CloudflareTable
                   data={subscriptionHistory}
                   columns={historyColumns}
@@ -755,9 +798,11 @@ export default function SubscriptionPage() {
             <Button
               onClick={handlePayment}
               disabled={
-                isProcessing || !paymentData.provider || !paymentData.accountNumber
+                isProcessing ||
+                !paymentData.provider ||
+                !paymentData.accountNumber
               }
-              className="w-full sm:w-auto"
+              className="w-full sm:w-fit"
             >
               {isProcessing ? (
                 <>
@@ -824,10 +869,7 @@ export default function SubscriptionPage() {
           </div>
 
           <DialogFooter>
-            <Button
-              onClick={() => setShowSuccess(false)}
-              className="w-full"
-            >
+            <Button onClick={() => setShowSuccess(false)} className="w-full">
               <Building2 className="h-4 w-4 mr-2" />
               Go to Dashboard
             </Button>

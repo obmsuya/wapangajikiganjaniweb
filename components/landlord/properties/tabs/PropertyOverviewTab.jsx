@@ -18,11 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  CloudflareCard,
-  CloudflareCardHeader,
-  CloudflareCardContent,
-} from "@/components/cloudflare/Card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import api from "@/lib/api/api-client";
 
 const GRID_SIZE = 8;
@@ -41,7 +37,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
       try {
         setLoading(true);
         const tenantsResponse = await api.get(
-          `/api/v1/tenants/property/${property.id}/tenants/`
+          `/api/v1/tenants/property/${property.id}/tenants/`,
         );
 
         if (tenantsResponse.tenants) {
@@ -58,10 +54,12 @@ export default function PropertyOverviewTab({ property, floorData }) {
   }, [property?.id]);
 
   const getUnitPaymentStatus = (unit, floorNumber) => {
-    const tenant = tenantsData.find(t => t.unit_id === unit.id);
+    const tenant = tenantsData.find((t) => t.unit_id === unit.id);
     if (!tenant) return "vacant";
-    return tenant.payment_status || tenant.full_unit_info?.payment_status || "due";
-};
+    return (
+      tenant.payment_status || tenant.full_unit_info?.payment_status || "due"
+    );
+  };
 
   const processedFloors = useMemo(() => {
     if (!floorData) return [];
@@ -74,10 +72,10 @@ export default function PropertyOverviewTab({ property, floorData }) {
           .map((unit) => {
             const paymentStatus = getUnitPaymentStatus(
               unit,
-              parseInt(floorNum, 10)
+              parseInt(floorNum, 10),
             );
 
-            const tenant = tenantsData.find(t => t.unit_id === unit.id);
+            const tenant = tenantsData.find((t) => t.unit_id === unit.id);
 
             return {
               cellIndex: unit.svg_id,
@@ -90,12 +88,12 @@ export default function PropertyOverviewTab({ property, floorData }) {
             };
           })
           .filter(
-            (unit) => unit.cellIndex !== undefined && unit.cellIndex !== null
+            (unit) => unit.cellIndex !== undefined && unit.cellIndex !== null,
           )
           .sort((a, b) => a.cellIndex - b.cellIndex);
 
         const occupiedCount = gridCells.filter(
-          (unit) => unit.isOccupied
+          (unit) => unit.isOccupied,
         ).length;
         const occupancyRate =
           gridCells.length > 0
@@ -185,7 +183,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
           onClick={() => handleUnitClick(unit, floor.floorNumber)}
         >
           {index + 1}
-        </div>
+        </div>,
       );
     });
 
@@ -193,6 +191,11 @@ export default function PropertyOverviewTab({ property, floorData }) {
     floor.layoutHeight = (maxY - minY + 1) * CELL_SIZE;
 
     return cells;
+  };
+
+  const handleUnitClick = (unit, floorNumber) => {
+    setSelectedUnit({ ...unit, floorNumber });
+    setDialogOpen(true);
   };
 
   if (!property) {
@@ -216,43 +219,45 @@ export default function PropertyOverviewTab({ property, floorData }) {
   return (
     <div className="space-y-6">
       {/* Payment Status Legend */}
-      <CloudflareCard>
-        <CloudflareCardHeader title="Payment Status Legend" />
-        <CloudflareCardContent>
+      <Card radius="xl" className="px-5">
+        <CardHeader className="text-xl font-semibold ">
+          Payment Status Legend
+        </CardHeader>
+        <CardContent>
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-500 border-2 border-green-600 rounded"></div>
+              <div className="w-4 h-4 bg-green-500 border-2 border-green-600 rounded-xl"></div>
               <span className="text-sm">Rent Paid</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-orange-500 border-2 border-orange-600 rounded"></div>
+              <div className="w-4 h-4 bg-orange-500 border-2 border-orange-600 rounded-xl"></div>
               <span className="text-sm">Rent Due</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-500 border-2 border-red-600 rounded"></div>
+              <div className="w-4 h-4 bg-red-500 border-2 border-red-600 rounded-xl"></div>
               <span className="text-sm">Rent Overdue</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gray-500 border-2 border-gray-600 rounded"></div>
+              <div className="w-4 h-4 bg-gray-500 border-2 border-gray-600 rounded-xl"></div>
               <span className="text-sm">Vacant</span>
             </div>
           </div>
-        </CloudflareCardContent>
-      </CloudflareCard>
+        </CardContent>
+      </Card>
 
       {/* Floor Plans Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {processedFloors.map((floor) => (
-          <CloudflareCard key={floor.floorNumber}>
-            <CloudflareCardHeader
+          <Card key={floor.floorNumber}>
+            <CardHeader
               title={`Floor ${floor.floorNumber}`}
               subtitle={`${floor.totalUnits} units • ${floor.occupancyRate}% occupied`}
             />
-            <CloudflareCardContent>
+            <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-center">
                   <div
-                    className="relative bg-white rounded-lg p-4 border border-gray-200"
+                    className="relative rounded-lg p-4"
                     style={{
                       width: floor.layoutWidth + 20 || GRID_SIZE * CELL_SIZE,
                       height: floor.layoutHeight + 20 || GRID_SIZE * CELL_SIZE,
@@ -310,8 +315,8 @@ export default function PropertyOverviewTab({ property, floorData }) {
                   </div>
                 </div>
               </div>
-            </CloudflareCardContent>
-          </CloudflareCard>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
@@ -341,19 +346,19 @@ export default function PropertyOverviewTab({ property, floorData }) {
                     selectedUnit.paymentStatus === "paid"
                       ? "bg-green-100 text-green-800"
                       : selectedUnit.paymentStatus === "overdue"
-                      ? "bg-red-100 text-red-800"
-                      : selectedUnit.paymentStatus === "due"
-                      ? "bg-orange-100 text-orange-800"
-                      : "bg-gray-100 text-gray-800"
+                        ? "bg-red-100 text-red-800"
+                        : selectedUnit.paymentStatus === "due"
+                          ? "bg-orange-100 text-orange-800"
+                          : "bg-gray-100 text-gray-800"
                   }`}
                 >
                   {selectedUnit.paymentStatus === "paid"
                     ? "Rent Paid"
                     : selectedUnit.paymentStatus === "overdue"
-                    ? "Rent Overdue"
-                    : selectedUnit.paymentStatus === "due"
-                    ? "Rent Due"
-                    : "Vacant"}
+                      ? "Rent Overdue"
+                      : selectedUnit.paymentStatus === "due"
+                        ? "Rent Due"
+                        : "Vacant"}
                 </span>
               </div>
 
@@ -400,7 +405,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
                       <div>
                         <p className="text-sm">
                           {new Date(
-                            selectedUnit.tenant.move_in_date
+                            selectedUnit.tenant.move_in_date,
                           ).toLocaleDateString()}
                         </p>
                         <p className="text-xs text-gray-500">Move-in Date</p>
@@ -414,7 +419,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
                       <div>
                         <p className="text-sm">
                           {new Date(
-                            selectedUnit.tenant.next_payment_date
+                            selectedUnit.tenant.next_payment_date,
                           ).toLocaleDateString()}
                         </p>
                         <p className="text-xs text-gray-500">

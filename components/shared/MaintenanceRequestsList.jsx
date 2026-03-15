@@ -192,12 +192,12 @@ export default function MaintenanceRequestsList({ userType = 'tenant', statusFil
 
   return (
     <>
-      <CloudflareCard>
+      <CloudflareCard className="px-0 border-none">
         <CloudflareCardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Wrench className="h-5 w-5 text-orange-600" />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="p-2 bg-orange-100 rounded-xl w-fit">
+                <Wrench className="h-4 w-4 text-orange-600" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
@@ -208,8 +208,6 @@ export default function MaintenanceRequestsList({ userType = 'tenant', statusFil
                 </p>
               </div>
             </div>
-            
-
           </div>
         </CloudflareCardHeader>
 

@@ -47,18 +47,17 @@ export default function DashboardLayout({ children }) {
 
   if (isSetupRoute) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white dark:bg-white">
         {children}
       </div>
     );
   }
-
-
+  
   return (
     <div className="flex h-screen overflow-hidden">
       <CustomSidebar role={user.user_type === 'landlord' ? 'landlord' : 'admin'} user={user} />
       <main className="flex-1 overflow-y-auto">
-        <div className="container mx-auto p-4 md:p-6">
+        <div className="container mx-auto p-4 md:px-12 md:pt-10 ">
           {children}
         </div>
       </main>

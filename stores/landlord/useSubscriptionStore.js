@@ -528,10 +528,10 @@ export const useSubscriptionStore = create((set, get) => ({
 
   getSubscriptionStatusColor: (status) => {
     const colors = {
-      active: 'bg-green-100 text-green-800',
-      expired: 'bg-red-100 text-red-800',
-      cancelled: 'bg-gray-100 text-gray-800',
-      pending: 'bg-yellow-100 text-yellow-800'
+      active: 'bg-green-100 text-green-800 border-green-700',
+      expired: 'bg-red-100 text-red-800 border-red-700',
+      cancelled: 'bg-gray-100 text-gray-800 border-gray-700',
+      pending: 'bg-yellow-100 text-yellow-800 border-yellow-700'
     };
     return colors[status] || colors.pending;
   },
