@@ -297,14 +297,14 @@ export function CustomSidebar({ role = "admin", user }) {
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "hidden md:flex fixed inset-y-0 left-4 z-30 flex-col border border-sidebar-border rounded-4xl transition-all duration-300 ease-in-out my-4 bg-[#ededed]",
+          "hidden md:flex border bg-sidebar fixed inset-y-0 left-4 z-30 flex-col rounded-4xl transition-all duration-300 ease-in-out my-4",
           sidebarWidth
         )}
       >
         {/* Header */}
         <div
           className={cn(
-            "flex items-center justify-between h-16 px-4 border-sidebar-border",
+            "flex items-center justify-between h-16 px-4",
             isCollapsed && "px-2"
           )}
         >
@@ -352,7 +352,7 @@ export function CustomSidebar({ role = "admin", user }) {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border p-3">
+        <div className="border-t p-3">
           <div
             className={cn(
               "flex items-center gap-3 p-2 rounded-full hover:bg-primary/30 transition-colors cursor-pointer",
