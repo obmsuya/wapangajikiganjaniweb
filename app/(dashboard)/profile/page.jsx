@@ -17,6 +17,8 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
+  Info,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +37,8 @@ import { useProfileStore } from "@/stores/useProfileStore";
 import customToast from "@/components/ui/custom-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import AuthService from "@/services/auth";
+import { useRouter } from "next/navigation";
 
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
@@ -79,7 +83,9 @@ function InfoRow({ icon: Icon, label, value }) {
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
         <p className="text-sm font-medium text-foreground truncate">
-          {value || <span className="text-muted-foreground italic">Not provided</span>}
+          {value || (
+            <span className="text-muted-foreground italic">Not provided</span>
+          )}
         </p>
       </div>
     </div>
@@ -87,11 +93,13 @@ function InfoRow({ icon: Icon, label, value }) {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const fileInputRef = useRef(null);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [editForm, setEditForm] = useState({
     full_name: "",
@@ -170,10 +178,28 @@ export default function ProfilePage() {
       customToast.success("Password Changed", {
         description: "Your password has been changed successfully",
       });
-      setPasswordForm({ old_password: "", new_password: "", confirm_password: "" });
+      setPasswordForm({
+        old_password: "",
+        new_password: "",
+        confirm_password: "",
+      });
       setShowPasswordDialog(false);
     } else {
-      customToast.error("Password Change Failed", { description: result.message });
+      customToast.error("Password Change Failed", {
+        description: result.message,
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await AuthService.logout();
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -224,7 +250,9 @@ export default function ProfilePage() {
 
       {/* Page header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Profile Settings</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+          Profile Settings
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Manage your account information and preferences
         </p>
@@ -238,7 +266,9 @@ export default function ProfilePage() {
               <CardContent className="flex items-start gap-3 p-4">
                 <AlertCircle className="size-4 text-destructive shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-destructive">Something went wrong</p>
+                  <p className="text-sm font-medium text-destructive">
+                    Something went wrong
+                  </p>
                   <p className="text-xs text-destructive/80 mt-0.5">{error}</p>
                 </div>
                 <Button
@@ -256,7 +286,6 @@ export default function ProfilePage() {
       </AnimatePresence>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
         {/* ── Left column: avatar card ── */}
         <div className="space-y-4">
           <Card>
@@ -327,8 +356,12 @@ export default function ProfilePage() {
                   <CheckCircle2 className="size-4 text-green-500" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">Account Active</p>
-                  <p className="text-xs text-muted-foreground">Verified & in good standing</p>
+                  <p className="text-sm font-medium text-foreground">
+                    Account Active
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Verified & in good standing
+                  </p>
                 </div>
                 <Badge
                   variant="outline"
@@ -339,19 +372,49 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="border-red-500">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-500/10 shrink-0">
+                  <Info className="size-4 text-red-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    Danger zone
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    logout or delete your account permanently
+                  </p>
+                </div>
+              </div>
+              <br />
+              <Button
+                onClick={handleLogout}
+                variant="destructive"
+                className="gap-2"
+              >
+                <LogOut />
+                {isLoggingOut ? "Logging out..." : "Log out"}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* ── Right column: info + security ── */}
         <div className="lg:col-span-2 space-y-6">
-
           {/* Personal Information */}
           <Card>
             <CardContent className="p-0">
               {/* Card header row */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <div>
-                  <p className="font-semibold text-foreground max-sm:text-sm">Personal Information</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Your basic account details</p>
+                  <p className="font-semibold text-foreground max-sm:text-sm">
+                    Personal Information
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                    Your basic account details
+                  </p>
                 </div>
                 <Button
                   variant="outline"
@@ -379,34 +442,49 @@ export default function ProfilePage() {
                     <motion.div key="edit" {...fadeUp} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <Label htmlFor="full_name" className="text-sm">Full Name</Label>
+                          <Label htmlFor="full_name" className="text-sm">
+                            Full Name
+                          </Label>
                           <Input
                             id="full_name"
                             value={editForm.full_name}
                             onChange={(e) =>
-                              setEditForm((p) => ({ ...p, full_name: e.target.value }))
+                              setEditForm((p) => ({
+                                ...p,
+                                full_name: e.target.value,
+                              }))
                             }
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="phone_number" className="text-sm">Phone Number</Label>
+                          <Label htmlFor="phone_number" className="text-sm">
+                            Phone Number
+                          </Label>
                           <Input
                             id="phone_number"
                             value={editForm.phone_number}
                             onChange={(e) =>
-                              setEditForm((p) => ({ ...p, phone_number: e.target.value }))
+                              setEditForm((p) => ({
+                                ...p,
+                                phone_number: e.target.value,
+                              }))
                             }
                           />
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="email" className="text-sm">Email Address</Label>
+                        <Label htmlFor="email" className="text-sm">
+                          Email Address
+                        </Label>
                         <Input
                           id="email"
                           type="email"
                           value={editForm.email}
                           onChange={(e) =>
-                            setEditForm((p) => ({ ...p, email: e.target.value }))
+                            setEditForm((p) => ({
+                              ...p,
+                              email: e.target.value,
+                            }))
                           }
                         />
                       </div>
@@ -421,10 +499,26 @@ export default function ProfilePage() {
                     </motion.div>
                   ) : (
                     <motion.div key="view" {...fadeUp}>
-                      <InfoRow icon={User} label="Full Name" value={formattedUser?.full_name} />
-                      <InfoRow icon={Phone} label="Phone Number" value={formattedUser?.phone_number} />
-                      <InfoRow icon={Mail} label="Email Address" value={formattedUser?.email} />
-                      <InfoRow icon={Calendar} label="Member Since" value={formattedUser?.joinedDate} />
+                      <InfoRow
+                        icon={User}
+                        label="Full Name"
+                        value={formattedUser?.full_name}
+                      />
+                      <InfoRow
+                        icon={Phone}
+                        label="Phone Number"
+                        value={formattedUser?.phone_number}
+                      />
+                      <InfoRow
+                        icon={Mail}
+                        label="Email Address"
+                        value={formattedUser?.email}
+                      />
+                      <InfoRow
+                        icon={Calendar}
+                        label="Member Since"
+                        value={formattedUser?.joinedDate}
+                      />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -436,8 +530,12 @@ export default function ProfilePage() {
           <Card>
             <CardContent className="p-0">
               <div className="px-5 py-4 border-b border-border">
-                <p className="font-semibold text-foreground max-sm:text-sm">Security</p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Manage your login credentials</p>
+                <p className="font-semibold text-foreground max-sm:text-sm">
+                  Security
+                </p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                  Manage your login credentials
+                </p>
               </div>
               <div className="p-5">
                 <div className="flex items-center justify-between gap-4 py-2">
@@ -502,7 +600,10 @@ export default function ProfilePage() {
               label="Confirm New Password"
               value={passwordForm.confirm_password}
               onChange={(e) =>
-                setPasswordForm((p) => ({ ...p, confirm_password: e.target.value }))
+                setPasswordForm((p) => ({
+                  ...p,
+                  confirm_password: e.target.value,
+                }))
               }
               show={showConfirmPassword}
               onToggle={() => setShowConfirmPassword((v) => !v)}
@@ -515,7 +616,7 @@ export default function ProfilePage() {
                   "text-xs",
                   passwordForm.new_password.length < 6
                     ? "text-destructive"
-                    : "text-green-600 dark:text-green-400"
+                    : "text-green-600 dark:text-green-400",
                 )}
               >
                 {passwordForm.new_password.length < 6
