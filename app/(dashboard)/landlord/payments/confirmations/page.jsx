@@ -90,7 +90,7 @@ export default function PaymentConfirmationPage() {
   const breadcrumbItems = [
     {
       label: "Dashboard",
-      href: "/landlord/dashboard",
+      href: "/landlord/properties",
       icon: <Home className="h-4 w-4" />,
     },
     { label: "Payments", href: "/landlord/payments" },
