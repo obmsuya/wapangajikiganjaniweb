@@ -27,15 +27,17 @@ const clearTokens = () => {
   sessionStorage.removeItem('refresh_token');
 };
 
-// Read a token from whichever storage was used at login time
 const readToken = (key) => {
   if (typeof window === 'undefined') return null;
-  const usedLocalStorage = localStorage.getItem('remember_me') !== 'false';
-  return usedLocalStorage
-    ? localStorage.getItem(key)
-    : sessionStorage.getItem(key);
+  
+  const rememberMe = localStorage.getItem('remember_me');
+  
+  // If remember_me is explicitly 'true', use localStorage
+  if (rememberMe === 'true') return localStorage.getItem(key);
+  
+  // Otherwise use sessionStorage
+  return sessionStorage.getItem(key);
 };
-
 // ------------------------------------------------------------------
 const AuthService = {
 
