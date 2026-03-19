@@ -1,3 +1,4 @@
+// app/(dashboard)/landlord/payments/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,12 +11,8 @@ import {
   Send,
   RefreshCw,
   Search,
+  Eye,
   Home,
-  PlusCircle,
-  Info,
-  CheckCircle2,
-  Bell,
-  BellOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,20 +30,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CloudflareTable } from "@/components/cloudflare/Table";
 import {
   CloudflareBreadcrumbs,
@@ -55,271 +41,6 @@ import {
 import { usePaymentPageStore } from "@/stores/landlord/usePaymentsPageStore";
 import { toast } from "sonner";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Record Payment Dialog
-// Lets the landlord record a cash payment on behalf of a tenant.
-// No money moves through the platform — this is bookkeeping only.
-// ─────────────────────────────────────────────────────────────────────────────
-function RecordPaymentDialog({ open, onOpenChange, units = [] }) {
-  const {
-    recordPayment,
-    fetchCycleBalance,
-    recordLandlordPayment,
-    formatCurrency,
-  } = usePaymentPageStore();
-
-  const [selectedUnitId, setSelectedUnitId] = useState("");
-  const [amount, setAmount] = useState("");
-  const [notes, setNotes] = useState("");
-  const [notifyTenant, setNotifyTenant] = useState(false);
-
-  const { loading, error, cycleBalance, cycleBalanceLoading } = recordPayment;
-
-  // Load cycle balance whenever the landlord picks a unit
-  useEffect(() => {
-    if (selectedUnitId) {
-      fetchCycleBalance(selectedUnitId);
-      setAmount("");
-    }
-  }, [selectedUnitId, fetchCycleBalance]);
-
-  // Reset form on close
-  useEffect(() => {
-    if (!open) {
-      setSelectedUnitId("");
-      setAmount("");
-      setNotes("");
-      setNotifyTenant(false);
-    }
-  }, [open]);
-
-  const amountNum = parseFloat(amount) || 0;
-  const remaining = parseFloat(cycleBalance?.amount_remaining || 0);
-  const amountDue = parseFloat(cycleBalance?.amount_due || 0);
-  const amountPaid = parseFloat(cycleBalance?.amount_paid || 0);
-  const isSettled = cycleBalance?.is_settled;
-
-  // How much would be paid after this entry
-  const newTotal = amountPaid + amountNum;
-  const willSettle = newTotal >= amountDue && amountDue > 0;
-  const isAmountValid = amountNum > 0 && amountNum <= remaining;
-
-  const handleSubmit = async () => {
-    if (!selectedUnitId || !isAmountValid) return;
-
-    const result = await recordLandlordPayment({
-      unitId: selectedUnitId,
-      amount: amountNum,
-      notes,
-      notifyTenant,
-    });
-
-    if (result.success) {
-      const cycleSummary = result.data?.cycle_summary;
-      const settled = cycleSummary?.is_settled;
-      toast.success("Payment recorded", {
-        description: settled
-          ? "This billing cycle is now fully paid."
-          : `${formatCurrency(cycleSummary?.amount_remaining)} still outstanding this cycle.`,
-      });
-      onOpenChange(false);
-    } else {
-      toast.error("Could not record payment", {
-        description: result.error,
-      });
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Record a Payment</DialogTitle>
-          <DialogDescription>
-            Use this to record cash or any payment made outside the platform.
-            No money moves through the system — this is for your records only.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-5 py-2">
-          {/* Unit selector */}
-          <div className="space-y-1.5">
-            <Label htmlFor="unit-select">Unit</Label>
-            <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
-              <SelectTrigger id="unit-select">
-                <SelectValue placeholder="Select a unit" />
-              </SelectTrigger>
-              <SelectContent>
-                {units.map((u) => (
-                  <SelectItem key={u.unit_id} value={String(u.unit_id)}>
-                    {u.unit_name} — {u.tenant_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Cycle balance summary — shown once a unit is selected */}
-          {cycleBalanceLoading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-              Loading balance…
-            </div>
-          )}
-
-          {cycleBalance && !cycleBalanceLoading && (
-            <div className="rounded-lg border bg-muted/40 p-3 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Rent due this cycle</span>
-                <span className="font-medium">{formatCurrency(amountDue)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Already paid</span>
-                <span className="font-medium text-green-700">{formatCurrency(amountPaid)}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between">
-                <span className="font-medium">Still outstanding</span>
-                <span className={`font-semibold ${isSettled ? "text-green-600" : "text-destructive"}`}>
-                  {isSettled ? "Fully paid" : formatCurrency(remaining)}
-                </span>
-              </div>
-              {cycleBalance.is_early && (
-                <p className="text-xs text-muted-foreground pt-1">
-                  This cycle hasn't started yet — recording as an early payment.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Already settled notice */}
-          {isSettled && cycleBalance && (
-            <Alert>
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertDescription>
-                This cycle is already fully paid. No further payment is needed.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Amount */}
-          {cycleBalance && !isSettled && (
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <Label htmlFor="amount">Amount (TZS)</Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      You can record a partial amount. The outstanding balance
-                      will remain tracked until the cycle is fully paid.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <Input
-                id="amount"
-                type="number"
-                min="1"
-                max={remaining}
-                step="1000"
-                placeholder={`Up to ${formatCurrency(remaining)}`}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-              {/* Live progress preview */}
-              {amountNum > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {willSettle
-                    ? "This will fully settle the cycle."
-                    : `${formatCurrency(amountDue - newTotal)} will remain outstanding.`}
-                </p>
-              )}
-              {amountNum > remaining && (
-                <p className="text-xs text-destructive">
-                  Amount exceeds the outstanding balance of {formatCurrency(remaining)}.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Notes */}
-          {cycleBalance && !isSettled && (
-            <div className="space-y-1.5">
-              <Label htmlFor="notes">Notes (optional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="e.g. Paid cash at the office on 15 March"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-                className="resize-none"
-              />
-            </div>
-          )}
-
-          {/* Notify tenant toggle */}
-          {cycleBalance && !isSettled && (
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-1.5">
-                  {notifyTenant
-                    ? <Bell className="h-4 w-4 text-foreground" />
-                    : <BellOff className="h-4 w-4 text-muted-foreground" />
-                  }
-                  <span className="text-sm font-medium">Notify tenant</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {notifyTenant
-                    ? "Tenant will receive an SMS confirming this payment."
-                    : "Tenant will not be notified. Use this for internal records only."}
-                </p>
-              </div>
-              <Switch
-                checked={notifyTenant}
-                onCheckedChange={setNotifyTenant}
-                aria-label="Toggle tenant notification"
-              />
-            </div>
-          )}
-
-          {/* API error */}
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!selectedUnitId || !isAmountValid || loading || isSettled}
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Recording…
-              </>
-            ) : (
-              "Record Payment"
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Page — all original code preserved, only additions made
-// ─────────────────────────────────────────────────────────────────────────────
 export default function PaymentsPage() {
   const [showWithdrawalDialog, setShowWithdrawalDialog] = useState(false);
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
@@ -327,9 +48,6 @@ export default function PaymentsPage() {
   const [withdrawalPhone, setWithdrawalPhone] = useState("");
   const [withdrawalError, setWithdrawalError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // NEW — record payment dialog
-  const [showRecordDialog, setShowRecordDialog] = useState(false);
 
   const {
     loading,
@@ -384,23 +102,6 @@ export default function PaymentsPage() {
 
   const filteredPayments = getFilteredPayments();
 
-  // Build unit list for the record-payment dialog from existing payment data
-  // so we don't need an extra API call
-  const unitOptions = Array.from(
-    new Map(
-      allPayments
-        .filter((p) => p.unit_id)
-        .map((p) => [
-          p.unit_id,
-          {
-            unit_id: p.unit_id,
-            unit_name: p.unit_name,
-            tenant_name: p.tenant_name,
-          },
-        ])
-    ).values()
-  );
-
   const paymentColumns = [
     {
       header: "Tenant",
@@ -444,7 +145,7 @@ export default function PaymentsPage() {
       sortable: true,
       cell: (row) => (
         <div className="text-xs sm:text-sm">
-          {new Date(row.payment_period_start).toLocaleDateString()} -{" "}
+          {new Date(row.payment_period_start).toLocaleDateString()} -
           {new Date(row.payment_period_end).toLocaleDateString()}
         </div>
       ),
@@ -474,6 +175,15 @@ export default function PaymentsPage() {
         </div>
       ),
     },
+    // {
+    //   header: 'Actions',
+    //   accessor: 'actions',
+    //   cell: (row) => (
+    //     <Button size="sm" variant="outline">
+    //       <Eye className="h-4 w-4" />
+    //     </Button>
+    //   )
+    // }
   ];
 
   const breadcrumbItems = [
@@ -504,32 +214,11 @@ export default function PaymentsPage() {
         title="Payments"
         description="Manage your rental payments and wallet"
         actions={
-          <div className="flex items-center gap-2 w-full sm:w-fit">
-            {/* NEW — record a cash payment */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    onClick={() => setShowRecordDialog(true)}
-                    className="w-full sm:w-fit"
-                  >
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Record Payment
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Record a cash or off-platform payment on behalf of a tenant
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <Button onClick={refreshAll} variant="outline" size="sm" className="w-full sm:w-fit">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Refresh</span>
-              <span className="sm:hidden">Refresh</span>
-            </Button>
-          </div>
+          <Button onClick={refreshAll} variant="outline" size="sm" className="w-full sm:w-fit">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Refresh</span>
+            <span className="sm:hidden">Refresh</span>
+          </Button>
         }
       />
 
@@ -580,21 +269,7 @@ export default function PaymentsPage() {
               <div className="p-2 bg-blue-100 rounded-2xl flex-shrink-0">
                 <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
-              <div className="flex items-center gap-1.5">
-                <span>Wallet Balance</span>
-                {/* Tooltip clarifies what wallet balance means */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-56 text-center">
-                      Only includes payments made through the platform (mobile money).
-                      Cash payments are not added here.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+              <span>Wallet Balance</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4">
@@ -683,7 +358,9 @@ export default function PaymentsPage() {
                 No Payments Found
               </h3>
               <p className="text-xs sm:text-sm text-slate-600">
-                {filters.search || filters.status !== "all" || filters.period !== "all"
+                {filters.search ||
+                filters.status !== "all" ||
+                filters.period !== "all"
                   ? "Try adjusting your filters to see more results"
                   : "Payment history will appear here once tenants start making payments"}
               </p>
@@ -705,40 +382,30 @@ export default function PaymentsPage() {
         </CardContent>
       </Card>
 
-      {/* ── Record Payment Dialog (NEW) ─────────────────────────────── */}
-      <RecordPaymentDialog
-        open={showRecordDialog}
-        onOpenChange={setShowRecordDialog}
-        units={unitOptions}
-      />
-
-      {/* ── Withdrawal Dialog (UNCHANGED) ──────────────────────────── */}
-      <Dialog open={showWithdrawalDialog} onOpenChange={setShowWithdrawalDialog}>
+      {/* WITHDRAWAL DIALOG - UPDATED */}
+      <Dialog
+        open={showWithdrawalDialog}
+        onOpenChange={setShowWithdrawalDialog}
+      >
         <DialogContent className="max-w-md mx-4 sm:mx-0">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Send className="h-5 w-5 flex-shrink-0" />
               Request Withdrawal
             </DialogTitle>
-            <DialogDescription>
-              Withdraw your platform wallet balance to a mobile money account.
-            </DialogDescription>
           </DialogHeader>
 
           <div className="py-4 sm:py-6 space-y-4 sm:space-y-5 max-h-[70vh] overflow-y-auto">
+            {/* Available Balance */}
             <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
               <p className="text-xs sm:text-sm text-blue-900">
-                <strong>Available Balance:</strong>{" "}
-                <span className="block sm:inline mt-1 sm:mt-0">
-                  {formatCurrency(wallet.balance)}
-                </span>
+                <strong>Available Balance:</strong> <span className="block sm:inline mt-1 sm:mt-0">{formatCurrency(wallet.balance)}</span>
               </p>
             </div>
 
+            {/* Amount */}
             <div>
-              <Label htmlFor="amount" className="text-sm">
-                Amount to Withdraw (TZS)
-              </Label>
+              <Label htmlFor="amount" className="text-sm">Amount to Withdraw (TZS)</Label>
               <Input
                 id="amount"
                 type="number"
@@ -752,23 +419,46 @@ export default function PaymentsPage() {
               />
             </div>
 
+            {/* Provider Selection */}
             <div>
               <Label className="text-sm">Choose Provider</Label>
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3">
                 {[
-                  { value: "Airtel",   label: "Airtel",   logo: "/images/airtel-logo.png" },
-                  { value: "AzamPesa", label: "AzamPesa", logo: "/images/azam-pesa-logo.png" },
-                  { value: "Yas",      label: "Tigo",     logo: "/images/tigo-logo.png" },
-                  { value: "Halotel",  label: "Halotel",  logo: "/images/halopesa-logo.png" },
-                  { value: "Vodacom",  label: "Vodacom",  logo: "/images/vodacom-logo.png" },
+                  {
+                    value: "Airtel",
+                    label: "Airtel",
+                    logo: "/images/airtel-logo.png",
+                  },
+                  {
+                    value: "AzamPesa",
+                    label: "AzamPesa",
+                    logo: "/images/azam-pesa-logo.png",
+                  },
+                  {
+                    value: "Yas",
+                    label: "Tigo",
+                    logo: "/images/tigo-logo.png",
+                  },
+                  {
+                    value: "Halotel",
+                    label: "Halotel",
+                    logo: "/images/halopesa-logo.png",
+                  },
+                  {
+                    value: "Vodacom",
+                    label: "Vodacom",
+                    logo: "/images/vodacom-logo.png",
+                  },
                 ].map((provider) => (
                   <button
                     key={provider.value}
                     onClick={() => setWithdrawalMethod(provider.value)}
                     className={`p-2 sm:p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 sm:gap-2
-                      ${withdrawalMethod === provider.value
-                        ? "border-primary bg-primary/5"
-                        : "border-slate-200 hover:border-slate-300"}`}
+                  ${
+                    withdrawalMethod === provider.value
+                      ? "border-primary bg-primary/5"
+                      : "border-slate-200 hover:border-slate-300"
+                  }`}
                     disabled={isProcessing}
                   >
                     <img
@@ -784,10 +474,9 @@ export default function PaymentsPage() {
               </div>
             </div>
 
+            {/* Phone Number Input */}
             <div>
-              <Label htmlFor="phone" className="text-sm">
-                Recipient Phone Number
-              </Label>
+              <Label htmlFor="phone" className="text-sm">Recipient Phone Number</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -809,6 +498,7 @@ export default function PaymentsPage() {
               </p>
             </div>
 
+            {/* Validation Error */}
             {withdrawalError && (
               <p className="text-red-500 text-xs sm:text-sm">{withdrawalError}</p>
             )}

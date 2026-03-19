@@ -1,3 +1,4 @@
+// app/(dashboard)/landlord/payments/confirmations/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -16,7 +17,6 @@ import {
   Home,
   FileText,
   Timer,
-  Info,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,14 +38,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CloudflareTable } from "@/components/cloudflare/Table";
 import {
   CloudflareBreadcrumbs,
@@ -82,11 +74,13 @@ export default function PaymentConfirmationPage() {
 
   const handleConfirmPayment = async () => {
     if (!selectedPayment || !confirmAction) return;
+
     const result = await confirmPayment(
       selectedPayment.id,
       confirmAction,
       rejectionReason,
     );
+
     return result.success;
   };
 
@@ -127,7 +121,10 @@ export default function PaymentConfirmationPage() {
       );
     }
     return (
-      <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+      <Badge
+        variant="secondary"
+        className="bg-blue-50 text-blue-700 border-blue-200"
+      >
         <Clock className="h-3 w-3 mr-1" />
         Pending
       </Badge>
@@ -147,7 +144,9 @@ export default function PaymentConfirmationPage() {
             </div>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-medium text-gray-900 truncate">{row.tenantName}</div>
+            <div className="font-medium text-gray-900 truncate">
+              {row.tenantName}
+            </div>
             <div className={`text-sm ${getUrgencyColor(row)}`}>
               {row.isOverdue ? (
                 <span className="flex items-center gap-1">
@@ -172,7 +171,9 @@ export default function PaymentConfirmationPage() {
             <Building2 className="h-5 w-5 text-gray-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-medium text-gray-900 truncate">{row.propertyName}</div>
+            <div className="font-medium text-gray-900 truncate">
+              {row.propertyName}
+            </div>
             <div className="text-sm text-gray-500 truncate">{row.unitName}</div>
           </div>
         </div>
@@ -220,7 +221,9 @@ export default function PaymentConfirmationPage() {
             </div>
           )}
           {row.daysUntilDeadline !== null && (
-            <div className={`text-xs ${row.isOverdue ? "text-red-600" : "text-gray-500"}`}>
+            <div
+              className={`text-xs ${row.isOverdue ? "text-red-600" : "text-gray-500"}`}
+            >
               {row.isOverdue
                 ? `${Math.abs(row.daysUntilDeadline)} days overdue`
                 : `${row.daysUntilDeadline} days remaining`}
@@ -256,14 +259,6 @@ export default function PaymentConfirmationPage() {
     },
   ];
 
-  // ── Partial payment progress for the selected payment ──────────────
-  // Derived from fields the store already maps — no extra API call needed
-  const cycleAmountDue   = selectedPayment?.cycleAmountDue   ?? null;
-  const cycleAmountPaid  = selectedPayment?.cycleAmountPaid  ?? null;
-  const showCycleBalance = cycleAmountDue !== null && cycleAmountPaid !== null;
-  const afterConfirm     = showCycleBalance ? cycleAmountPaid + (selectedPayment?.amount ?? 0) : null;
-  const willSettle       = showCycleBalance && afterConfirm >= cycleAmountDue;
-
   return (
     <div className="mx-auto max-md:pb-8 space-y-8">
       <CloudflareBreadcrumbs items={breadcrumbItems} />
@@ -273,7 +268,9 @@ export default function PaymentConfirmationPage() {
         description="Review and confirm manual payments reported by tenants"
         actions={
           <Button variant="outline" onClick={refreshData} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         }
@@ -287,8 +284,12 @@ export default function PaymentConfirmationPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Pending</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalPending}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Pending
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {stats.totalPending}
+                </p>
                 <p className="text-sm text-gray-500 mt-1">
                   {formatCurrency(stats.totalAmount)} total
                 </p>
@@ -305,11 +306,15 @@ export default function PaymentConfirmationPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Amount</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Amount
+                </p>
                 <p className="text-3xl font-bold text-gray-900">
                   {formatCurrency(stats.totalAmount)}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">Awaiting confirmation</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Awaiting confirmation
+                </p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
                 <DollarSign className="h-6 w-6 text-green-600" />
@@ -324,7 +329,9 @@ export default function PaymentConfirmationPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Overdue</p>
-                <p className="text-3xl font-bold text-red-600">{stats.overdueCount}</p>
+                <p className="text-3xl font-bold text-red-600">
+                  {stats.overdueCount}
+                </p>
                 <p className="text-sm text-gray-500 mt-1">Past deadline</p>
               </div>
               <div className="p-3 bg-red-100 rounded-lg">
@@ -340,7 +347,9 @@ export default function PaymentConfirmationPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Today</p>
-                <p className="text-3xl font-bold text-purple-600">{stats.todayCount}</p>
+                <p className="text-3xl font-bold text-purple-600">
+                  {stats.todayCount}
+                </p>
                 <p className="text-sm text-gray-500 mt-1">New requests</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
@@ -378,7 +387,9 @@ export default function PaymentConfirmationPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="createdAt">Date Created</SelectItem>
-                <SelectItem value="paymentPeriodStart">Payment Period</SelectItem>
+                <SelectItem value="paymentPeriodStart">
+                  Payment Period
+                </SelectItem>
                 <SelectItem value="amount">Amount</SelectItem>
                 <SelectItem value="confirmationDeadline">Deadline</SelectItem>
                 <SelectItem value="daysPending">Days Pending</SelectItem>
@@ -416,7 +427,9 @@ export default function PaymentConfirmationPage() {
               <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
                 <CheckCircle className="h-12 w-12 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">All Caught Up!</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                All Caught Up!
+              </h3>
               <p className="text-gray-600 max-w-md mx-auto">
                 {loading
                   ? "Loading payments..."
@@ -444,14 +457,16 @@ export default function PaymentConfirmationPage() {
                 searchable={true}
                 filterable={false}
                 emptyMessage="No pending payments found"
-                initialSort={{ field: "confirmationDeadline", direction: "asc" }}
+                initialSort={{
+                  field: "confirmationDeadline",
+                  direction: "asc",
+                }}
               />
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* ── Confirm / Reject Dialog ─────────────────────────────────── */}
       <Dialog open={showConfirmDialog} onOpenChange={closeConfirmDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -483,15 +498,14 @@ export default function PaymentConfirmationPage() {
           </DialogHeader>
 
           {selectedPayment && (
-            <div className="space-y-5">
-              {/* Payment details */}
-              <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+            <div className="space-y-6">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-xs text-gray-500 uppercase tracking-wider">
                       Tenant
                     </Label>
-                    <div className="font-medium text-gray-900 mt-0.5">
+                    <div className="font-medium text-gray-900">
                       {selectedPayment.tenantName}
                     </div>
                   </div>
@@ -499,7 +513,7 @@ export default function PaymentConfirmationPage() {
                     <Label className="text-xs text-gray-500 uppercase tracking-wider">
                       Amount
                     </Label>
-                    <div className="font-semibold text-lg text-gray-900 mt-0.5">
+                    <div className="font-semibold text-lg text-gray-900">
                       {formatCurrency(selectedPayment.amount)}
                     </div>
                   </div>
@@ -507,7 +521,7 @@ export default function PaymentConfirmationPage() {
                     <Label className="text-xs text-gray-500 uppercase tracking-wider">
                       Property
                     </Label>
-                    <div className="font-medium text-gray-900 mt-0.5">
+                    <div className="font-medium text-gray-900">
                       {selectedPayment.propertyName}
                     </div>
                   </div>
@@ -515,135 +529,116 @@ export default function PaymentConfirmationPage() {
                     <Label className="text-xs text-gray-500 uppercase tracking-wider">
                       Unit
                     </Label>
-                    <div className="font-medium text-gray-900 mt-0.5">
+                    <div className="font-medium text-gray-900">
                       {selectedPayment.unitName}
                     </div>
                   </div>
                 </div>
 
-                <Separator />
-
-                <div className="space-y-2 text-sm">
+                <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Payment Period</span>
-                    <span className="font-medium">{selectedPayment.formattedPaymentPeriod}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Confirm by</span>
-                    <span className={`font-medium ${selectedPayment.isOverdue ? "text-red-600" : ""}`}>
-                      {selectedPayment.formattedConfirmationDeadline || "No deadline set"}
+                    <span className="text-sm text-gray-600">
+                      Payment Period:
+                    </span>
+                    <span className="text-sm font-medium">
+                      {selectedPayment.formattedPaymentPeriod}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Waiting</span>
-                    <span className={`font-medium ${selectedPayment.daysPending >= 2 ? "text-orange-600" : ""}`}>
+                    <span className="text-sm text-gray-600">
+                      Confirmation Deadline:
+                    </span>
+                    <span
+                      className={`text-sm font-medium ${selectedPayment.isOverdue ? "text-red-600" : ""}`}
+                    >
+                      {selectedPayment.formattedConfirmationDeadline ||
+                        "No deadline set"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Days Pending:</span>
+                    <span
+                      className={`text-sm font-medium ${selectedPayment.daysPending >= 2 ? "text-orange-600" : ""}`}
+                    >
                       {selectedPayment.daysPending} day
                       {selectedPayment.daysPending !== 1 ? "s" : ""}
                     </span>
                   </div>
                 </div>
 
-                {/* Partial payment / cycle balance — shown when available */}
-                {showCycleBalance && confirmAction === "accept" && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                        Billing Cycle Balance
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3.5 w-3.5 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-52 text-center">
-                              This shows how much of the full billing cycle has
-                              been paid including this payment if confirmed.
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Full cycle rent</span>
-                        <span>{formatCurrency(cycleAmountDue)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Paid so far</span>
-                        <span className="text-green-700">{formatCurrency(cycleAmountPaid)}</span>
-                      </div>
-                      <div className="flex justify-between font-medium">
-                        <span>After confirming</span>
-                        <span className={willSettle ? "text-green-600" : "text-destructive"}>
-                          {willSettle
-                            ? "Cycle fully paid ✓"
-                            : `${formatCurrency(cycleAmountDue - afterConfirm)} still outstanding`}
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                )}
-
                 {selectedPayment.notes && (
-                  <>
-                    <Separator />
-                    <div>
-                      <Label className="text-xs text-gray-500 uppercase tracking-wider">
-                        Tenant Notes
-                      </Label>
-                      <div className="mt-1.5 text-sm text-gray-700 p-3 bg-blue-50 rounded-md border border-blue-100">
-                        <FileText className="h-4 w-4 inline mr-2 text-blue-600" />
-                        {selectedPayment.notes}
-                      </div>
+                  <div className="border-t pt-4">
+                    <Label className="text-xs text-gray-500 uppercase tracking-wider">
+                      Payment Notes
+                    </Label>
+                    <div className="text-sm text-gray-700 mt-1 p-3 bg-blue-50 rounded border">
+                      <FileText className="h-4 w-4 inline mr-2 text-blue-600" />
+                      {selectedPayment.notes}
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
 
-              {/* Rejection reason */}
               {confirmAction === "reject" && (
-                <div className="space-y-2">
-                  <Label htmlFor="rejection-reason" className="text-sm font-medium">
-                    Reason for Rejection{" "}
-                    <span className="text-red-500">*</span>
+                <div className="space-y-3">
+                  <Label
+                    htmlFor="rejection-reason"
+                    className="text-sm font-medium"
+                  >
+                    Reason for Rejection <span className="text-red-500">*</span>
                   </Label>
                   <Textarea
                     id="rejection-reason"
-                    placeholder="Explain why this payment is being rejected so the tenant can act on it…"
+                    placeholder="Please provide a clear reason for rejecting this payment claim..."
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
-                    rows={3}
+                    rows={4}
                     className="resize-none"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    This will be sent to the tenant.
+                  <p className="text-xs text-gray-500">
+                    This reason will be shared with the tenant to help them
+                    understand why their payment was not confirmed.
                   </p>
                 </div>
               )}
 
-              {/* Overdue warning */}
               {selectedPayment.isOverdue && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    The confirmation window has passed. Please act now to keep
-                    your tenant's records accurate.
-                  </AlertDescription>
-                </Alert>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-red-700">
+                      <p className="font-medium mb-1">
+                        Payment Confirmation Overdue
+                      </p>
+                      <p>
+                        This payment confirmation deadline has passed. Please
+                        handle this immediately to maintain good tenant
+                        relations.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
 
-              {/* Reject advisory */}
               {confirmAction === "reject" && (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    The tenant will be told this payment was not received and
-                    may need to pay again.
-                  </AlertDescription>
-                </Alert>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-amber-700">
+                      <p className="font-medium mb-1">Please Note:</p>
+                      <p>
+                        Rejecting this payment will notify the tenant that their
+                        payment was not received. They may need to make the
+                        payment again through the proper channels.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}
 
-          <DialogFooter className="gap-3 mt-2">
+          <DialogFooter className="gap-3">
             <Button
               variant="outline"
               onClick={closeConfirmDialog}
@@ -669,15 +664,19 @@ export default function PaymentConfirmationPage() {
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   Processing...
                 </>
-              ) : confirmAction === "accept" ? (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Confirm Receipt
-                </>
               ) : (
                 <>
-                  <X className="h-4 w-4 mr-2" />
-                  Reject Payment
+                  {confirmAction === "accept" ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Confirm Receipt
+                    </>
+                  ) : (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      Reject Payment
+                    </>
+                  )}
                 </>
               )}
             </Button>
