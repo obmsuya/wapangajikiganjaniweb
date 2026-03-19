@@ -538,8 +538,9 @@ export default function TenantAssignmentDialog({
         </div>
 
         {/* ── scrollable body — fields + actions all inside here ── */}
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="px-6 pb-6 space-y-5">
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full">
+            <div className="px-6 pb-6 space-y-5">
 
             {/* full name */}
             <Field icon={User} label="Tenant Full Name" error={fieldErrors.full_name}>
@@ -709,8 +710,9 @@ export default function TenantAssignmentDialog({
                   : "The tenant will be registered and their next due date calculated automatically."}
             </p>
 
-          </div>
-        </ScrollArea>
+            </div>
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
