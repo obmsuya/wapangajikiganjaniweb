@@ -7,14 +7,14 @@ import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PropertySetupForm from "@/components/landlord/properties/PropertySetupForm";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 export default function PropertySetupPage() {
   const router = useRouter();
   const [isExiting, setIsExiting] = useState(false);
 
   const handleComplete = (result) => {
-    customToast.success("Property Created Successfully!", {
+    toast.success("Property Created Successfully!", {
       description: "Your property has been set up and is ready for tenant management.",
     });
     

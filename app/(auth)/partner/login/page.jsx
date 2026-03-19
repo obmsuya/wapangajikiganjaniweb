@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
 import { Eye, EyeOff, Moon, Sun, Users, DollarSign, BarChart } from "lucide-react";
 import { useTheme } from "next-themes";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,7 +64,7 @@ export default function PartnerLoginPage() {
     try {
       const user = await AuthService.partnerLogin(formData);
       
-      customToast.success("Welcome back, Partner!", {
+      toast.success("Welcome back, Partner!", {
         description: `Hello ${user.full_name}, redirecting to your partner dashboard...`,
       });
       
@@ -72,7 +72,7 @@ export default function PartnerLoginPage() {
         router.push("/partner");
       }, 500);
     } catch (error) {
-      customToast.error("Partner login failed", {
+      toast.error("Partner login failed", {
         description: error.response?.data?.error || "Invalid credentials."
       });
     } finally {

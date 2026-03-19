@@ -30,7 +30,7 @@ import TenantAssignmentDialog from "@/components/landlord/properties/TenantAssig
 import TenantDetailsDialog from "@/components/landlord/properties/TenantDetailsDialog";
 import TenantVacationDialog from "@/components/landlord/properties/TenantVacationDialog";
 import UnitConfigurationDialog from "@/components/landlord/properties/UnitConfigurationDialog";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 export default function PropertyDetailsPage({ params }) {
   const router = useRouter();
@@ -63,14 +63,14 @@ export default function PropertyDetailsPage({ params }) {
         [floorNumber]: layoutData,
       });
 
-      customToast.success("Floor Updated", {
+      toast.success("Floor Updated", {
         description: `Floor ${floorNumber} layout has been saved successfully`,
       });
 
       refreshProperty();
     } catch (error) {
       console.error("Error saving floor layout:", error);
-      customToast.error("Save Failed", {
+      toast.error("Save Failed", {
         description: error.message || "Failed to save floor layout",
       });
     }
@@ -92,7 +92,7 @@ export default function PropertyDetailsPage({ params }) {
   };
 
   const handleSendReminder = (tenant) => {
-    customToast.info("Feature Coming Soon", {
+    toast.info("Feature Coming Soon", {
       description: "Send reminder functionality will be available soon",
     });
   };

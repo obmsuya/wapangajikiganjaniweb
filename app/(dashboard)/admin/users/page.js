@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAdminStore } from '@/stores/admin/adminStore';
-import { customToast } from '@/components/ui/custom-toast';
+import { toast } from "sonner";
 import { CloudflarePageHeader } from '@/components/cloudflare/PageHeader';
 import { CloudflareTable } from '@/components/cloudflare/Table';
 import {
@@ -37,7 +37,7 @@ export default function AdminUsersPage() {
   const handleDeleteUser = async (userId) => {
     const result = await deleteUser(userId);
     if (result.success) {
-      customToast.success("User Deleted", {
+      toast.success("User Deleted", {
         description: "The user has been successfully deleted."
       });
     }

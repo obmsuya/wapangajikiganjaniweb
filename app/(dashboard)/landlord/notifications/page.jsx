@@ -47,7 +47,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNotifications } from "@/hooks/landlord/useNotifications";
 import NotificationService from "@/services/landlord/notification";
-import { customToast } from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 const NotificationIcon = ({ type, className = "w-5 h-5" }) => {
   const icons = {
@@ -110,7 +110,7 @@ const NotificationPreferences = () => {
         ...response
       }));
     } catch (error) {
-      customToast.error("Failed to Load Preferences", {
+      toast.error("Failed to Load Preferences", {
         description: "Could not load your notification preferences"
       });
     } finally {
@@ -125,13 +125,13 @@ const NotificationPreferences = () => {
 
     try {
       await NotificationService.updateNotificationPreferences(newPreferences);
-      customToast.success("Preferences Updated", {
+      toast.success("Preferences Updated", {
         description: "Your notification preferences have been saved"
       });
     } catch (error) {
       // Revert on error
       setPreferences(preferences);
-      customToast.error("Update Failed", {
+      toast.error("Update Failed", {
         description: "Could not update your preferences. Please try again."
       });
     }

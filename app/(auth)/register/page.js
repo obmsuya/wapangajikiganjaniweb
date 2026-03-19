@@ -20,10 +20,9 @@ import {
   Moon,
   ArrowLeft
 } from "lucide-react";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import AuthService from "@/services/auth";
 import { useTheme } from "@/components/theme-provider";
@@ -159,7 +158,7 @@ export default function RegisterPage() {
 
       const user = await AuthService.register(userData);
 
-      customToast.success("Welcome to Wapangaji Kiganjani!", {
+      toast.success("Welcome to Wapangaji Kiganjani!", {
         description: `Hello ${user.full_name}, setting up your account...`,
       });
 
@@ -167,7 +166,7 @@ export default function RegisterPage() {
         router.push("/landlord/setup");
       }, 500);
     } catch (error) {
-      customToast.error("Registration failed", {
+      toast.error("Registration failed", {
         description: error.response?.data?.error || "Please try again.",
       });
     } finally {
