@@ -13,32 +13,32 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import TenantOverview       from '@/components/tenant/TenantOverview';
-import TenantRentSchedule   from '@/components/tenant/TenantRentSchedule';
+import TenantOverview from '@/components/tenant/TenantOverview';
+import TenantRentSchedule from '@/components/tenant/TenantRentSchedule';
 import TenantPaymentHistory from '@/components/tenant/TenantPaymentHistory';
-import TenantPaymentDialog  from '@/components/tenant/TenantPaymentDialog';
+import TenantPaymentDialog from '@/components/tenant/TenantPaymentDialog';
 import { useTenantDashboardStore } from '@/stores/tenant/useTenantDashboardStore';
-import { useTenantPaymentStore }   from '@/stores/tenant/useTenantPaymentStore';
+import { useTenantPaymentStore } from '@/stores/tenant/useTenantPaymentStore';
 
 const TABS = [
-  { id: 'overview', label: 'Overview',        icon: Home,     component: TenantOverview      },
-  { id: 'schedule', label: 'Rent Schedule',    icon: Calendar, component: TenantRentSchedule  },
-  { id: 'history',  label: 'Payment History',  icon: History,  component: TenantPaymentHistory },
+  { id: 'overview', label: 'Overview', icon: Home, component: TenantOverview },
+  { id: 'schedule', label: 'Rent Schedule', icon: Calendar, component: TenantRentSchedule },
+  { id: 'history', label: 'Payment History', icon: History, component: TenantPaymentHistory },
 ];
 
 const TAB_DESCRIPTIONS = {
   overview: 'Your rental overview and quick actions',
   schedule: 'View your rent payment schedule',
-  history:  'Track all your payment history',
+  history: 'Track all your payment history',
 };
 
 export default function TenantDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [isClient, setIsClient]   = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
-  const { refreshData }                                       = useTenantDashboardStore();
+  const { refreshData } = useTenantDashboardStore();
   const { paymentFlow, resetPaymentFlow,
-          setShowPaymentDialog, setSelectedUnit }             = useTenantPaymentStore();
+    setShowPaymentDialog, setSelectedUnit } = useTenantPaymentStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -64,8 +64,8 @@ export default function TenantDashboard() {
   ];
 
   const ActiveComponent = TABS.find(t => t.id === activeTab)?.component;
-  const activeTabData   = TABS.find(t => t.id === activeTab);
-  const ActiveIcon      = activeTabData?.icon;
+  const activeTabData = TABS.find(t => t.id === activeTab);
+  const ActiveIcon = activeTabData?.icon;
 
   return (
     <div className="space-y-3">
@@ -79,7 +79,7 @@ export default function TenantDashboard() {
       <TooltipProvider delayDuration={200}>
         <div className="flex items-center gap-1 border-b pb-0">
           {TABS.map((tab) => {
-            const Icon     = tab.icon;
+            const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <Tooltip key={tab.id}>

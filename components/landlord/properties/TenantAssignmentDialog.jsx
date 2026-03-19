@@ -265,16 +265,13 @@ function FrequencyPicker({ value, onChange, disabled }) {
 
   return (
     <div className="space-y-2">
-      {/* Use flex-wrap instead of grid for natural button sizing */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
         {COMMON_FREQS.map((opt) => (
           <Button
-            key={opt.value}
-            size="sm"
+            key={opt.value} size="sm"
             variant={value === opt.value ? "default" : "outline"}
-            onClick={() => onChange(opt.value)}
-            disabled={disabled}
-            className="text-xs h-8 px-3 whitespace-nowrap flex-shrink-0"
+            onClick={() => onChange(opt.value)} disabled={disabled}
+            className="text-xs h-8"
             title={opt.fullLabel}
           >
             {opt.label}
@@ -283,15 +280,13 @@ function FrequencyPicker({ value, onChange, disabled }) {
       </div>
 
       {showAll && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
           {EXTENDED_FREQS.map((opt) => (
             <Button
-              key={opt.value}
-              size="sm"
+              key={opt.value} size="sm"
               variant={value === opt.value ? "default" : "outline"}
-              onClick={() => onChange(opt.value)}
-              disabled={disabled}
-              className="text-xs h-8 px-3 whitespace-nowrap flex-shrink-0"
+              onClick={() => onChange(opt.value)} disabled={disabled}
+              className="text-xs h-8"
               title={opt.fullLabel}
             >
               {opt.label}
@@ -302,21 +297,13 @@ function FrequencyPicker({ value, onChange, disabled }) {
 
       <div className="flex items-center justify-between">
         <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowAll((p) => !p)}
-          disabled={disabled}
+          variant="ghost" size="sm"
+          onClick={() => setShowAll((p) => !p)} disabled={disabled}
           className="text-xs h-7 px-2 text-muted-foreground"
         >
-          {showAll ? (
-            <>
-              <ChevronUp className="w-3 h-3 mr-1" /> Show less
-            </>
-          ) : (
-            <>
-              <ChevronDown className="w-3 h-3 mr-1" /> Show all 24
-            </>
-          )}
+          {showAll
+            ? <><ChevronUp className="w-3 h-3 mr-1" /> Show less</>
+            : <><ChevronDown className="w-3 h-3 mr-1" /> Show all 24</>}
         </Button>
         {selected && (
           <span className="text-xs text-muted-foreground">
