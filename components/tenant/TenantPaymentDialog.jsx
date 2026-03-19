@@ -56,29 +56,32 @@ function daysUntilDue(nextDueDate) {
 }
 
 // ── AmountDueCard ─────────────────────────────────────────────────────────────
+// READ-ONLY summary card shown at the top of every payment screen.
+// rent_amount on the occupancy = the FULL cycle amount (monthly × freq).
+// monthly = rent_amount / freq for display only.
 function AmountDueCard({ unit }) {
   if (!unit) return null;
 
-  const freq     = parseInt(unit.payment_frequency) || 1;
-  const total    = parseFloat(unit.rent_amount) || 0;
-  const monthly  = freq > 0 ? total / freq : total;
+  const freq    = parseInt(unit.payment_frequency) || 1;
+  const cycleDue = parseFloat(unit.rent_amount) || 0;          // full cycle
+  const monthly  = freq > 0 ? cycleDue / freq : cycleDue;      // display only
   const early    = isEarlyPayment(unit);
   const days     = daysUntilDue(unit.next_due_date);
   const period   = freq === 1 ? "1 month" : `${freq} months`;
 
-  // cycle_balance is added by the updated backend to the occupancy response
-  const cb             = unit.cycle_balance;
-  const amountPaid     = parseFloat(cb?.amount_paid    || 0);
-  const amountRemaining = parseFloat(cb?.amount_remaining ?? total);
-  const isSettled      = cb?.is_settled ?? false;
-  const hasPartialPaid = amountPaid > 0 && !isSettled;
-  const paidPercent    = total > 0 ? Math.min(100, (amountPaid / total) * 100) : 0;
+  // cycle_balance block — from backend occupancy response
+  const cb              = unit.cycle_balance;
+  const amountPaid      = parseFloat(cb?.amount_paid      || 0);
+  const amountRemaining = parseFloat(cb?.amount_remaining ?? cycleDue);
+  const isSettled       = cb?.is_settled ?? false;
+  const hasPartialPaid  = amountPaid > 0 && !isSettled;
+  const paidPercent     = cycleDue > 0 ? Math.min(100, (amountPaid / cycleDue) * 100) : 0;
 
   return (
     <Card className="border bg-card">
       <CardContent className="p-5 space-y-4">
 
-        {/* Unit + status */}
+        {/* Unit + status badge */}
         <div className="flex items-start justify-between">
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 text-sm font-semibold">
@@ -98,7 +101,7 @@ function AmountDueCard({ unit }) {
 
           {isSettled ? (
             <Badge variant="outline" className="gap-1 text-xs">
-              <BadgeCheck className="w-3 h-3" /> Paid up
+              <BadgeCheck className="w-3 h-3" /> Fully paid
             </Badge>
           ) : early ? (
             <Badge variant="outline" className="gap-1 text-xs">
@@ -117,37 +120,53 @@ function AmountDueCard({ unit }) {
 
         <Separator />
 
-        {/* Big amount */}
-        <div className="text-center space-y-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
-            {hasPartialPaid ? "Still to pay this cycle" : "Amount to pay"}
-          </p>
-          <p className="text-4xl font-bold tracking-tight">
-            {fmt(hasPartialPaid ? amountRemaining : total)}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            covers <span className="font-semibold">{period}</span>
-            {freq > 1 && (
-              <span className="text-muted-foreground/70"> ({fmt(monthly)}/mo)</span>
-            )}
-          </p>
+        {/* Billing breakdown — always shown so tenant knows what the cycle costs */}
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between text-muted-foreground">
+            <span>Full cycle rent ({period})</span>
+            <span className="font-medium text-foreground">{fmt(cycleDue)}</span>
+          </div>
+          {freq > 1 && (
+            <div className="flex justify-between text-muted-foreground text-xs">
+              <span>Monthly equivalent</span>
+              <span>{fmt(monthly)} / month</span>
+            </div>
+          )}
+          {hasPartialPaid && (
+            <>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Already paid this cycle</span>
+                <span className="font-medium text-foreground">{fmt(amountPaid)}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between font-semibold">
+                <span>Still outstanding</span>
+                <span className="text-destructive">{fmt(amountRemaining)}</span>
+              </div>
+            </>
+          )}
+          {!hasPartialPaid && !isSettled && (
+            <>
+              <Separator />
+              <div className="flex justify-between font-semibold">
+                <span>Amount due</span>
+                <span>{fmt(cycleDue)}</span>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Partial progress */}
+        {/* Partial progress bar */}
         {hasPartialPaid && (
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Paid so far</span>
-              <span className="font-medium">{fmt(amountPaid)} of {fmt(total)}</span>
-            </div>
+          <div className="space-y-1">
             <Progress value={paidPercent} className="h-2" />
-            <p className="text-xs text-muted-foreground">
-              {fmt(amountRemaining)} still outstanding this cycle
+            <p className="text-xs text-muted-foreground text-right">
+              {Math.round(paidPercent)}% of this cycle paid
             </p>
           </div>
         )}
 
-        {/* Settled */}
+        {/* Settled notice */}
         {isSettled && (
           <Alert>
             <BadgeCheck className="h-4 w-4" />
@@ -282,12 +301,18 @@ export default function TenantPaymentDialog() {
   const [processingState, setProcessingState] = useState(PROCESSING_STATES.IDLE);
   const [formData, setFormData] = useState({
     notes: "", provider: "Airtel", accountNumber: "", selectedUnitId: "",
+    // partial amount — empty means "pay full remaining"
+    partialAmount: "",
   });
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     if (showPaymentDialog && selectedUnit) {
-      setFormData(prev => ({ ...prev, selectedUnitId: selectedUnit.unit_id?.toString() || "" }));
+      setFormData(prev => ({
+        ...prev,
+        selectedUnitId: selectedUnit.unit_id?.toString() || "",
+        partialAmount:  "",   // reset on each open
+      }));
       setProcessingState(PROCESSING_STATES.IDLE);
       setFormErrors({});
       clearError?.();
@@ -304,14 +329,24 @@ export default function TenantPaymentDialog() {
     ? availableUnits?.find(u => u.unit_id?.toString() === formData.selectedUnitId)
     : selectedUnit;
 
-  const cb        = activeUnit?.cycle_balance;
-  const isSettled = cb?.is_settled ?? false;
-  const payAmount = parseFloat(cb?.amount_remaining ?? activeUnit?.rent_amount ?? 0);
+  // ── Amount derivation ─────────────────────────────────────────────────────
+  // cycle_balance.amount_remaining = what is still owed this billing cycle.
+  // If cycle_balance is absent, fall back to the full rent_amount.
+  const cb              = activeUnit?.cycle_balance;
+  const isSettled       = cb?.is_settled ?? false;
+  const maxPayable      = parseFloat(cb?.amount_remaining ?? activeUnit?.rent_amount ?? 0);
+
+  // What the tenant will actually send — partial input if filled, else full remaining
+  const enteredAmount   = parseFloat(formData.partialAmount) || 0;
+  const payAmount       = enteredAmount > 0 ? enteredAmount : maxPayable;
+
+  // For the MNO/system path the amount is always the full remaining (can't do partial via MNO)
+  const systemPayAmount = maxPayable;
 
   const handleClose = () => {
     setShowPaymentDialog(false);
     resetPaymentFlow();
-    setFormData({ notes: "", provider: "Airtel", accountNumber: "", selectedUnitId: "" });
+    setFormData({ notes: "", provider: "Airtel", accountNumber: "", selectedUnitId: "", partialAmount: "" });
     setFormErrors({});
     setProcessingState(PROCESSING_STATES.IDLE);
   };
@@ -323,8 +358,21 @@ export default function TenantPaymentDialog() {
 
   const validate = () => {
     const errs = {};
-    if (paymentMethod === "record" && !formData.notes?.trim())
-      errs.notes = "Describe how you made the payment";
+
+    if (paymentMethod === "record") {
+      if (!formData.notes?.trim())
+        errs.notes = "Describe how you made the payment";
+
+      // If they entered a partial amount it must be valid and ≤ what's remaining
+      if (formData.partialAmount) {
+        const val = parseFloat(formData.partialAmount);
+        if (isNaN(val) || val <= 0)
+          errs.partialAmount = "Enter a valid amount";
+        else if (val > maxPayable)
+          errs.partialAmount = `Cannot exceed the outstanding balance of ${fmt(maxPayable)}`;
+      }
+    }
+
     if (paymentMethod === "pay") {
       if (!formData.provider) errs.provider = "Select a provider";
       if (!formData.accountNumber?.trim()) {
@@ -333,8 +381,10 @@ export default function TenantPaymentDialog() {
         errs.accountNumber = "Enter a valid Tanzanian number";
       }
     }
+
     if (requiresUnitSelection && !formData.selectedUnitId)
       errs.selectedUnitId = "Select a unit";
+
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -350,9 +400,11 @@ export default function TenantPaymentDialog() {
       let result;
       if (paymentMethod === "record") {
         setProcessingState(PROCESSING_STATES.PROCESSING);
+        // Send the exact amount the tenant typed (partial), or the full remaining
         result = await recordManualPayment(payAmount, unitId, formData.notes.trim());
       } else {
         setProcessingState(PROCESSING_STATES.PROCESSING);
+        // MNO always charges the full outstanding amount
         result = await processSystemPayment(
           unitId,
           formData.accountNumber.replace(/\s/g, ""),
@@ -496,6 +548,7 @@ export default function TenantPaymentDialog() {
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
 
+              {/* Always show cycle breakdown at top of form */}
               <AmountDueCard unit={activeUnit} />
 
               {isProcessing && (
@@ -513,30 +566,104 @@ export default function TenantPaymentDialog() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
+
+                {/* ── RECORD PATH ── */}
                 {paymentMethod === "record" && (
-                  <div className="space-y-1.5">
-                    <Label>How did you pay? *</Label>
-                    <Textarea
-                      value={formData.notes}
-                      onChange={(e) => setField("notes", e.target.value)}
-                      placeholder="e.g. Cash to Mr. Ahmed on 12 March / bank transfer NMB 1234"
-                      rows={3}
-                      disabled={isProcessing}
-                      className={formErrors.notes ? "border-destructive" : ""}
-                    />
-                    {formErrors.notes
-                      ? <p className="text-xs text-destructive flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" /> {formErrors.notes}
+                  <>
+                    {/* Partial payment input — tenant can pay any amount ≤ outstanding */}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium flex items-center gap-1.5">
+                        How much are you paying?
+                        <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Label>
+
+                      {/* Quick-select buttons */}
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          type="button" size="sm" variant="outline"
+                          className={!formData.partialAmount ? "border-primary bg-primary/5" : ""}
+                          onClick={() => setField("partialAmount", "")}
+                        >
+                          Full amount — {fmt(maxPayable)}
+                        </Button>
+                        <Button
+                          type="button" size="sm" variant="outline"
+                          onClick={() => setField("partialAmount", "")}
+                        >
+                          Partial
+                        </Button>
+                      </div>
+
+                      {/* Amount input — only active when tenant wants to enter a custom amount */}
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                          TZS
+                        </div>
+                        <input
+                          type="number"
+                          min={1}
+                          max={maxPayable}
+                          step={1000}
+                          placeholder={`Leave blank to pay full ${fmt(maxPayable)}`}
+                          value={formData.partialAmount}
+                          onChange={(e) => setField("partialAmount", e.target.value)}
+                          disabled={isProcessing}
+                          className={`flex h-10 w-full rounded-md border bg-background pl-10 pr-3 py-2 text-sm
+                            placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
+                            focus-visible:ring-ring disabled:opacity-50
+                            ${formErrors.partialAmount ? "border-destructive" : "border-input"}`}
+                        />
+                      </div>
+
+                      {formErrors.partialAmount ? (
+                        <p className="text-xs text-destructive flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" /> {formErrors.partialAmount}
                         </p>
-                      : <p className="text-xs text-muted-foreground">
-                          This helps your landlord verify and confirm the payment.
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          {formData.partialAmount
+                            ? `You are recording a partial payment of ${fmt(enteredAmount)}. The remaining ${fmt(maxPayable - enteredAmount)} will still be outstanding.`
+                            : `Leave blank to record the full outstanding amount of ${fmt(maxPayable)}.`}
                         </p>
-                    }
-                  </div>
+                      )}
+                    </div>
+
+                    {/* Notes — how did they pay */}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">How did you pay? *</Label>
+                      <Textarea
+                        value={formData.notes}
+                        onChange={(e) => setField("notes", e.target.value)}
+                        placeholder="e.g. Cash to Mr. Ahmed on 12 March / bank transfer NMB 1234"
+                        rows={3}
+                        disabled={isProcessing}
+                        className={formErrors.notes ? "border-destructive" : ""}
+                      />
+                      {formErrors.notes
+                        ? <p className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> {formErrors.notes}
+                          </p>
+                        : <p className="text-xs text-muted-foreground">
+                            This helps your landlord verify and confirm the payment.
+                          </p>
+                      }
+                    </div>
+                  </>
                 )}
 
+                {/* ── PAY NOW PATH (MNO) ── */}
                 {paymentMethod === "pay" && (
                   <div className="space-y-4">
+                    {/* MNO always charges full remaining — note this clearly */}
+                    <Alert>
+                      <Info className="h-4 w-4" />
+                      <AlertDescription className="text-sm">
+                        Mobile money will charge the full outstanding amount of{" "}
+                        <span className="font-semibold">{fmt(systemPayAmount)}</span>.
+                        To pay a partial amount, use the "I already paid" option instead.
+                      </AlertDescription>
+                    </Alert>
+
                     <ProviderPicker
                       value={formData.provider}
                       onChange={(v) => setField("provider", v)}
@@ -544,7 +671,7 @@ export default function TenantPaymentDialog() {
                       error={formErrors.provider}
                     />
                     <div className="space-y-1.5">
-                      <Label>Your Mobile Number *</Label>
+                      <Label className="text-sm font-medium">Your Mobile Number *</Label>
                       <div className="relative">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
                           <span className="text-base">🇹🇿</span>
@@ -552,7 +679,7 @@ export default function TenantPaymentDialog() {
                         </div>
                         <input
                           type="tel"
-                          placeholder="0712 000 000"
+                          placeholder="712 000 000"
                           value={formData.accountNumber}
                           onChange={(e) => setField("accountNumber", e.target.value)}
                           disabled={isProcessing}
@@ -584,8 +711,8 @@ export default function TenantPaymentDialog() {
                     {isProcessing
                       ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{processingMsg}</>
                       : paymentMethod === "record"
-                        ? "Submit for Confirmation"
-                        : `Pay ${fmt(payAmount)}`
+                        ? `Submit ${fmt(payAmount)} for Confirmation`
+                        : `Pay ${fmt(systemPayAmount)}`
                     }
                   </Button>
                 </div>
@@ -613,9 +740,9 @@ export default function TenantPaymentDialog() {
                 <Card>
                   <CardContent className="p-4 space-y-2 text-sm text-left">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Amount</span>
+                      <span className="text-muted-foreground">Amount recorded</span>
                       <span className="font-semibold">
-                        {fmt(currentTransaction.amount || activeUnit?.rent_amount)}
+                        {fmt(currentTransaction.amount || payAmount)}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -624,6 +751,17 @@ export default function TenantPaymentDialog() {
                         {currentTransaction.unit_name || activeUnit?.unit_name}
                       </span>
                     </div>
+                    {/* Show what's left if partial */}
+                    {currentTransaction.amount_remaining_this_cycle !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Still outstanding</span>
+                        <span className={currentTransaction.cycle_fully_paid ? "text-primary" : "text-destructive"}>
+                          {currentTransaction.cycle_fully_paid
+                            ? "Fully paid ✓"
+                            : fmt(currentTransaction.amount_remaining_this_cycle)}
+                        </span>
+                      </div>
+                    )}
                     {currentTransaction.payment_id && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Reference</span>
