@@ -535,7 +535,7 @@ export default function TenantAssignmentDialog({
 
         {/* ── scrollable body — fields + actions all inside here ── */}
 
-          <ScrollArea className="flex-1 min-h-0 w-full">
+          <ScrollArea className="h-[calc(92dvh-180px)] w-full">
             <div className="px-6 pb-6 space-y-5">
 
               {/* full name */}
