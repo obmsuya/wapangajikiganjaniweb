@@ -8,7 +8,7 @@ import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/c
 import { CloudflareTable } from "@/components/cloudflare/Table";
 import MaintenanceResponseForm from "@/components/landlord/MaintenanceResponseForm";
 import { useMaintenanceRequestStore } from "@/stores/maintenance/useMaintenanceRequestStore";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 const CATEGORY_ICONS = {
   plumbing: Droplets,
@@ -29,14 +29,14 @@ const STATUS_ICONS = {
 };
 
 export default function MaintenanceRequestsList({ userType = 'tenant', statusFilter = 'all' }) {
-  const { 
-    requests, 
-    loading, 
-    error, 
-    filters, 
-    updateFilters, 
-    fetchMaintenanceRequests, 
-    refreshData, 
+  const {
+    requests,
+    loading,
+    error,
+    filters,
+    updateFilters,
+    fetchMaintenanceRequests,
+    refreshData,
     getFilteredRequests,
     getMaintenancePriorityColor,
     getMaintenanceStatusColor,
@@ -145,8 +145,8 @@ export default function MaintenanceRequestsList({ userType = 'tenant', statusFil
             <Eye className="h-4 w-4" />
           </Button>
           {userType === 'landlord' && row.status === 'pending' && (
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="outline"
               onClick={() => handleRespond(row)}
               className="text-blue-600 hover:text-blue-700"
@@ -216,8 +216,8 @@ export default function MaintenanceRequestsList({ userType = 'tenant', statusFil
             data={filteredRequests}
             columns={getColumns()}
             emptyMessage={
-              requests.length === 0 
-                ? "No maintenance requests found" 
+              requests.length === 0
+                ? "No maintenance requests found"
                 : "No requests match your current filters"
             }
             pagination={true}

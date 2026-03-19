@@ -3,7 +3,7 @@
 
 import { useState, useCallback } from 'react';
 import TenantService from '@/services/landlord/tenant';
-import customToast from '@/components/ui/custom-toast';
+import toast from '@/components/ui/custom-toast';
 
 
 export function useTenantAssignment() {
@@ -16,7 +16,7 @@ export function useTenantAssignment() {
       setError(null);
 
       const validation = TenantService.validateTenantAssignment(assignmentData);
-      
+
       if (!validation.isValid) {
         throw new Error(validation.errors.join(', '));
       }
@@ -27,21 +27,21 @@ export function useTenantAssignment() {
         phone_number: String(assignmentData.phone_number).trim(),
         rent_amount: parseFloat(assignmentData.rent_amount),
         payment_frequency: assignmentData.payment_frequency,
-        
+
         start_date: assignmentData.start_date || new Date().toISOString().split('T')[0]
       };
 
       console.log('Assigning tenant with simplified data:', formattedData);
-      
+
       const result = await TenantService.assignTenantToUnit(formattedData);
-      customToast.success('Tenant added successfully', {
+      toast.success('Tenant added successfully', {
         description: `${assignmentData.full_name} has been assigned and an SMS was sent.`,
       });
       return result;
     } catch (err) {
       console.error('Assignment error:', err);
       setError(err.message || 'Failed to assign tenant');
-      customToast.error("Failed to assign tenant", {description: err.message});
+      toast.error("Failed to assign tenant", { description: err.message });
       throw err;
     } finally {
       setLoading(false);
@@ -77,24 +77,24 @@ export function useExistingTenantRegistration() {
       setError(null);
 
       const payload = {
-        unit_id:               parseInt(data.unit_id),
-        full_name:             String(data.full_name).trim(),
-        phone_number:          String(data.phone_number).trim(),
-        rent_amount:           parseFloat(data.rent_amount),
-        payment_frequency:     parseInt(data.payment_frequency),
+        unit_id: parseInt(data.unit_id),
+        full_name: String(data.full_name).trim(),
+        phone_number: String(data.phone_number).trim(),
+        rent_amount: parseFloat(data.rent_amount),
+        payment_frequency: parseInt(data.payment_frequency),
         original_move_in_date: data.original_move_in_date,
-        last_payment_amount:   parseFloat(data.last_payment_amount),
+        last_payment_amount: parseFloat(data.last_payment_amount),
       };
 
       const result = await TenantService.registerExistingTenant(payload);
-      customToast.success('Existing tenant registered', {
+      toast.success('Existing tenant registered', {
         description: `${data.full_name} has been added. Next due date calculated automatically.`,
       });
       return result;
     } catch (err) {
       console.error('Existing tenant registration error:', err);
       setError(err.message || 'Failed to register existing tenant');
-      customToast.error('Failed to register existing tenant', { description: err.message });
+      toast.error('Failed to register existing tenant', { description: err.message });
       throw err;
     } finally {
       setLoading(false);
@@ -109,21 +109,21 @@ export function useExistingTenantRegistration() {
       // Only send fields the backend PATCH endpoint accepts.
       // phone_number is intentionally excluded — cannot be changed.
       const payload = {
-        rent_amount:           parseFloat(data.rent_amount),
-        payment_frequency:     parseInt(data.payment_frequency),
+        rent_amount: parseFloat(data.rent_amount),
+        payment_frequency: parseInt(data.payment_frequency),
         original_move_in_date: data.original_move_in_date,
-        last_payment_amount:   parseFloat(data.last_payment_amount),
+        last_payment_amount: parseFloat(data.last_payment_amount),
       };
 
       const result = await TenantService.updateExistingTenant(occupancyId, payload);
-      customToast.success('Tenant updated', {
+      toast.success('Tenant updated', {
         description: `${data.full_name}'s details have been saved.`,
       });
       return result;
     } catch (err) {
       console.error('Existing tenant update error:', err);
       setError(err.message || 'Failed to update tenant');
-      customToast.error('Failed to update tenant', { description: err.message });
+      toast.error('Failed to update tenant', { description: err.message });
       throw err;
     } finally {
       setLoading(false);
@@ -229,19 +229,19 @@ export function usePropertyTenants(property) {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await TenantService.getPropertyTenants(property.id);
-      
+
       if (response && response.tenants && Array.isArray(response.tenants)) {
         // Format tenants for display
-        const formattedTenants = response.tenants.map(tenant => 
+        const formattedTenants = response.tenants.map(tenant =>
           TenantService.formatTenantForDisplay(tenant)
         );
         setTenants(formattedTenants);
       } else {
         setTenants([]);
       }
-      
+
     } catch (err) {
       console.error('Error fetching tenants:', err);
       setError(err.message || 'Failed to load tenants');

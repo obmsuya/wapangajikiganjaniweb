@@ -2,15 +2,15 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, 
-  CreditCard, 
-  Smartphone, 
-  Building2, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  ArrowLeft,
+  CreditCard,
+  Smartphone,
+  Building2,
+  AlertTriangle,
+  CheckCircle,
   Clock,
-  Loader2 
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useSubscriptionStore } from '@/stores/landlord/useSubscriptionStore';
-import { customToast } from '@/components/ui/custom-toast';
+import { toast } from '@/components/ui/custom-toast';
 
 const ERROR_MESSAGES = {
   NETWORK_ERROR: "Unable to connect to payment services. Please check your internet connection.",
@@ -42,10 +42,10 @@ const PROCESSING_STATES = {
 };
 
 export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }) {
-  const { 
-    loading, 
-    processMNOPayment, 
-    processBankPayment, 
+  const {
+    loading,
+    processMNOPayment,
+    processBankPayment,
     formatCurrency,
     clearError
   } = useSubscriptionStore();
@@ -92,9 +92,9 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
 
   const formatUserFriendlyError = (errorMessage) => {
     if (!errorMessage) return ERROR_MESSAGES.UNKNOWN_ERROR;
-    
+
     const lowerError = errorMessage.toLowerCase();
-    
+
     if (lowerError.includes('network') || lowerError.includes('connection')) {
       return ERROR_MESSAGES.NETWORK_ERROR;
     }
@@ -113,7 +113,7 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
     if (lowerError.includes('validation') || lowerError.includes('required')) {
       return ERROR_MESSAGES.VALIDATION_ERROR;
     }
-    
+
     return errorMessage.length > 100 ? ERROR_MESSAGES.UNKNOWN_ERROR : errorMessage;
   };
 
@@ -144,17 +144,17 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
-      customToast.error("Please fix the errors below");
+      toast.error("Please fix the errors below");
       return;
     }
 
     setProcessingState(PROCESSING_STATES.INITIATING);
-    
+
     try {
       let result;
-      
+
       if (paymentMethod === 'mobile') {
         result = await processMNOPayment(
           selectedPlan.id,
@@ -176,22 +176,22 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
           router.push('/landlord/properties'); // Navigate only after polling confirms
         } else {
           setProcessingState(PROCESSING_STATES.FAILED);
-          customToast.error("Payment Failed", {
+          toast.error("Payment Failed", {
             description: formatUserFriendlyError(result.message)
           });
         }
       } else {
         const userError = formatUserFriendlyError(result.error);
         setProcessingState(PROCESSING_STATES.FAILED);
-        customToast.error("Payment Failed", {
+        toast.error("Payment Failed", {
           description: userError
         });
       }
     } catch (error) {
       const userError = formatUserFriendlyError(error.message);
       setProcessingState(PROCESSING_STATES.FAILED);
-      
-      customToast.error("Payment Error", {
+
+      toast.error("Payment Error", {
         description: userError
       });
     }
@@ -241,24 +241,24 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
           <p className="text-gray-600">
             Your payment has been initiated. Complete the transaction on your phone to activate your subscription.
           </p>
-          
+
           {transactionId && (
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="text-sm text-gray-600">Transaction ID:</p>
               <p className="font-mono text-sm">{transactionId}</p>
             </div>
           )}
-          
+
           <div className="space-y-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={resetForm}
               className="w-full"
             >
               Start New Payment
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={onBack}
               className="w-full"
             >
@@ -298,12 +298,11 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
                 <div className="space-y-4">
                   <Label>Select Payment Method</Label>
                   <div className="grid grid-cols-2 gap-4">
-                    <Card 
-                      className={`cursor-pointer border-2 transition-colors ${
-                        paymentMethod === 'mobile' 
-                          ? 'border-blue-500 bg-blue-50' 
+                    <Card
+                      className={`cursor-pointer border-2 transition-colors ${paymentMethod === 'mobile'
+                          ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                       onClick={() => {
                         setPaymentMethod('mobile');
                         handleInputChange('bankName', '');
@@ -316,12 +315,11 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
                       </CardContent>
                     </Card>
 
-                    <Card 
-                      className={`cursor-pointer border-2 transition-colors ${
-                        paymentMethod === 'bank' 
-                          ? 'border-blue-500 bg-blue-50' 
+                    <Card
+                      className={`cursor-pointer border-2 transition-colors ${paymentMethod === 'bank'
+                          ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                       onClick={() => {
                         setPaymentMethod('bank');
                         handleInputChange('provider', '');
@@ -343,8 +341,8 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="provider">Mobile Money Provider</Label>
-                      <Select 
-                        value={formData.provider} 
+                      <Select
+                        value={formData.provider}
                         onValueChange={(value) => handleInputChange('provider', value)}
                       >
                         <SelectTrigger>
@@ -383,8 +381,8 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="bankName">Bank</Label>
-                      <Select 
-                        value={formData.bankName} 
+                      <Select
+                        value={formData.bankName}
                         onValueChange={(value) => handleInputChange('bankName', value)}
                       >
                         <SelectTrigger>
@@ -419,9 +417,9 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
                   </div>
                 )}
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+                <Button
+                  type="submit"
+                  className="w-full"
                   size="lg"
                   disabled={isProcessing || !paymentMethod}
                 >
@@ -452,19 +450,19 @@ export default function SubscriptionCheckout({ selectedPlan, onBack, onSuccess }
                 <span>Plan</span>
                 <span className="font-medium">{selectedPlan.name}</span>
               </div>
-              
+
               <div className="flex justify-between">
                 <span>Duration</span>
                 <span>{selectedPlan.durationDisplay}</span>
               </div>
-              
+
               <div className="flex justify-between">
                 <span>Property Limit</span>
                 <span>{selectedPlan.propertyLimit} properties</span>
               </div>
-              
+
               <Separator />
-              
+
               <div className="flex justify-between font-semibold text-lg">
                 <span>Total</span>
                 <span>{formatCurrency(selectedPlan.price)}</span>

@@ -31,7 +31,7 @@ import { CloudflareCard } from "@/components/cloudflare/Card";
 import { CloudflareTable } from "@/components/cloudflare/Table";
 import { useTenantManagement } from "@/hooks/landlord/useTenantManagement";
 import TenantVacationDialog from "./TenantVacationDialog";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantUpdated, onTenantVacated }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -81,13 +81,13 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
     try {
       await updateTenant(tenant.id, editedTenant);
       setIsEditing(false);
-      customToast.success("Tenant Updated", {
+      toast.success("Tenant Updated", {
         description: "Tenant information has been updated successfully"
       });
       onTenantUpdated?.();
     } catch (err) {
       console.error('Error updating tenant:', err);
-      customToast.error("Update Failed", {
+      toast.error("Update Failed", {
         description: err.message || "Failed to update tenant information"
       });
     }
@@ -95,7 +95,7 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
 
   const handleSendReminder = async () => {
     if (!reminderText.trim()) {
-      customToast.error("Message Required", {
+      toast.error("Message Required", {
         description: "Please enter a message to send"
       });
       return;
@@ -104,12 +104,12 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
     try {
       await sendTenantReminder(tenant.id, { message: reminderText });
       setReminderText("");
-      customToast.success("Reminder Sent", {
+      toast.success("Reminder Sent", {
         description: "Reminder message has been sent to the tenant"
       });
     } catch (err) {
       console.error('Error sending reminder:', err);
-      customToast.error("Send Failed", {
+      toast.error("Send Failed", {
         description: err.message || "Failed to send reminder"
       });
     }
@@ -117,7 +117,7 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
 
   const handleAddNote = async () => {
     if (!noteText.trim()) {
-      customToast.error("Note Required", {
+      toast.error("Note Required", {
         description: "Please enter a note to add"
       });
       return;
@@ -126,12 +126,12 @@ export default function TenantDetailsDialog({ tenant, isOpen, onClose, onTenantU
     try {
       await addTenantNote(tenant.id, { note: noteText });
       setNoteText("");
-      customToast.success("Note Added", {
+      toast.success("Note Added", {
         description: "Note has been added to tenant record"
       });
     } catch (err) {
       console.error('Error adding note:', err);
-      customToast.error("Add Note Failed", {
+      toast.error("Add Note Failed", {
         description: err.message || "Failed to add note"
       });
     }

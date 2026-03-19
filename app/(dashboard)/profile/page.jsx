@@ -34,7 +34,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { CloudflareBreadcrumbs } from "@/components/cloudflare/Breadcrumbs";
 import { useProfileStore } from "@/stores/useProfileStore";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import AuthService from "@/services/auth";
@@ -149,23 +149,23 @@ export default function ProfilePage() {
   const handleEditSubmit = async () => {
     const result = await updateProfile(editForm);
     if (result.success) {
-      customToast.success("Profile Updated", {
+      toast.success("Profile Updated", {
         description: "Your profile has been updated successfully",
       });
     } else {
-      customToast.error("Update Failed", { description: result.message });
+      toast.error("Update Failed", { description: result.message });
     }
   };
 
   const handlePasswordSubmit = async () => {
     if (passwordForm.new_password !== passwordForm.confirm_password) {
-      customToast.error("Password Mismatch", {
+      toast.error("Password Mismatch", {
         description: "New passwords do not match",
       });
       return;
     }
     if (passwordForm.new_password.length < 6) {
-      customToast.error("Password Too Short", {
+      toast.error("Password Too Short", {
         description: "Password must be at least 6 characters long",
       });
       return;
@@ -175,7 +175,7 @@ export default function ProfilePage() {
       new_password: passwordForm.new_password,
     });
     if (result.success) {
-      customToast.success("Password Changed", {
+      toast.success("Password Changed", {
         description: "Your password has been changed successfully",
       });
       setPasswordForm({
@@ -185,7 +185,7 @@ export default function ProfilePage() {
       });
       setShowPasswordDialog(false);
     } else {
-      customToast.error("Password Change Failed", {
+      toast.error("Password Change Failed", {
         description: result.message,
       });
     }
@@ -207,20 +207,20 @@ export default function ProfilePage() {
     const file = event.target.files[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      customToast.error("File Too Large", {
+      toast.error("File Too Large", {
         description: "Please select an image smaller than 5MB",
       });
       return;
     }
     if (!file.type.startsWith("image/")) {
-      customToast.error("Invalid File Type", {
+      toast.error("Invalid File Type", {
         description: "Please select an image file",
       });
       return;
     }
     const result = await uploadProfilePicture(file);
     if (result.success) {
-      customToast.success("Profile Picture Updated", {
+      toast.success("Profile Picture Updated", {
         description: "Your profile picture has been updated",
       });
     }

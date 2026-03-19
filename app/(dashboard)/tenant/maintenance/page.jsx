@@ -10,7 +10,7 @@ import MaintenanceRequestForm from "@/components/tenant/MaintenanceRequestForm";
 import MaintenanceRequestsList from "@/components/shared/MaintenanceRequestsList";
 import TenantPaymentService from "@/services/tenant/payment";
 import { useMaintenanceRequestStore } from "@/stores/maintenance/useMaintenanceRequestStore";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 export default function TenantMaintenancePage() {
   const [activeTab, setActiveTab] = useState("submit");
@@ -38,7 +38,7 @@ export default function TenantMaintenancePage() {
         }
       } catch (err) {
         setError("Failed to load your property information");
-        customToast.error("Loading Error", {
+        toast.error("Loading Error", {
           description: "Failed to load your property information"
         });
       } finally {
@@ -67,7 +67,7 @@ export default function TenantMaintenancePage() {
   const handleRequestSuccess = () => {
     setActiveTab("requests");
     refreshData();
-    customToast.success("Request Submitted", {
+    toast.success("Request Submitted", {
       description: "Your maintenance request has been sent to your landlord"
     });
   };

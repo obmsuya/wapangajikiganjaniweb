@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useMaintenanceRequestStore } from "@/stores/maintenance/useMaintenanceRequestStore";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 const STATUS_OPTIONS = [
   { 
@@ -48,7 +48,7 @@ export default function MaintenanceResponseForm({ maintenanceRequest, isOpen, on
     e.preventDefault();
     
     if (!formData.response.trim()) {
-      customToast.error("Missing Response", {
+      toast.error("Missing Response", {
         description: "Please provide a response message"
       });
       return;
@@ -61,7 +61,7 @@ export default function MaintenanceResponseForm({ maintenanceRequest, isOpen, on
     });
 
     if (result.success) {
-      customToast.success("Response Sent", {
+      toast.success("Response Sent", {
         description: "Your response has been sent to the tenant"
       });
       
@@ -74,7 +74,7 @@ export default function MaintenanceResponseForm({ maintenanceRequest, isOpen, on
       if (onSuccess) onSuccess(result);
       onClose();
     } else {
-      customToast.error("Response Failed", {
+      toast.error("Response Failed", {
         description: result.error || "Failed to send response"
       });
     }

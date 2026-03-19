@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/components/cloudflare/Card";
 import { useMaintenanceRequestStore } from "@/stores/maintenance/useMaintenanceRequestStore";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 const MAINTENANCE_CATEGORIES = [
   { value: 'plumbing', label: 'Plumbing', icon: Droplets, color: 'text-blue-600' },
@@ -41,9 +41,9 @@ export default function MaintenanceRequestForm({ occupancy, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim() || !formData.description.trim() || !formData.category) {
-      customToast.error("Missing Information", {
+      toast.error("Missing Information", {
         description: "Please fill in all required fields"
       });
       return;
@@ -58,20 +58,20 @@ export default function MaintenanceRequestForm({ occupancy, onSuccess }) {
     });
 
     if (result.success) {
-      customToast.success("Request Submitted", {
+      toast.success("Request Submitted", {
         description: "Your maintenance request has been sent to your landlord"
       });
-      
+
       setFormData({
         title: '',
         description: '',
         category: '',
         priority: 'medium'
       });
-      
+
       if (onSuccess) onSuccess(result);
     } else {
-      customToast.error("Submission Failed", {
+      toast.error("Submission Failed", {
         description: result.error || "Failed to submit maintenance request"
       });
     }
@@ -99,7 +99,7 @@ export default function MaintenanceRequestForm({ occupancy, onSuccess }) {
           </div>
         </div>
       </CloudflareCardHeader>
-      
+
       <CloudflareCardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -188,7 +188,7 @@ export default function MaintenanceRequestForm({ occupancy, onSuccess }) {
                 <div>
                   <h4 className="text-sm font-medium text-red-800">Urgent Request</h4>
                   <p className="text-sm text-red-700">
-                    Urgent requests are for safety issues or problems that could cause damage if not addressed immediately. 
+                    Urgent requests are for safety issues or problems that could cause damage if not addressed immediately.
                     Your landlord will be notified via SMS.
                   </p>
                 </div>
@@ -200,8 +200,8 @@ export default function MaintenanceRequestForm({ occupancy, onSuccess }) {
             <p className="text-sm text-gray-600">
               Your landlord will be notified immediately
             </p>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={loading || !formData.title.trim() || !formData.description.trim() || !formData.category}
               className="flex items-center gap-2"
             >

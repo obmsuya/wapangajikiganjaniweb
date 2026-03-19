@@ -69,15 +69,15 @@ import {
   CloudflareCardContent,
 } from "@/components/cloudflare/Card";
 import { usePaymentTabStore } from "@/stores/landlord/UsePaymentTabStore";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tiny shadcn-style DataTable — sorts client-side, no external dep needed
 // ─────────────────────────────────────────────────────────────────────────────
 function DataTable({ columns, data, emptyMessage = "No data found" }) {
   const [sortField, setSortField] = useState(null);
-  const [sortDir, setSortDir]     = useState("asc");
-  const [page, setPage]           = useState(1);
+  const [sortDir, setSortDir] = useState("asc");
+  const [page, setPage] = useState(1);
   const pageSize = 10;
 
   const sorted = useMemo(() => {
@@ -94,7 +94,7 @@ function DataTable({ columns, data, emptyMessage = "No data found" }) {
   }, [data, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const paginated  = sorted.slice((page - 1) * pageSize, page * pageSize);
+  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
 
   const toggleSort = (field) => {
     if (sortField === field) {
@@ -109,7 +109,7 @@ function DataTable({ columns, data, emptyMessage = "No data found" }) {
   const SortIcon = ({ field }) => {
     if (sortField !== field) return <ChevronsUpDown className="ml-1 h-3.5 w-3.5 text-muted-foreground" />;
     return sortDir === "asc"
-      ? <ChevronUp   className="ml-1 h-3.5 w-3.5" />
+      ? <ChevronUp className="ml-1 h-3.5 w-3.5" />
       : <ChevronDown className="ml-1 h-3.5 w-3.5" />;
   };
 
@@ -210,9 +210,9 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId }) 
     formatCurrency,
   } = usePaymentTabStore();
 
-  const [unitId, setUnitId]             = useState("");
-  const [amount, setAmount]             = useState("");
-  const [notes, setNotes]               = useState("");
+  const [unitId, setUnitId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [notes, setNotes] = useState("");
   const [notifyTenant, setNotifyTenant] = useState(false);
 
   // Reset on close
@@ -238,15 +238,15 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId }) 
 
   const selectedUnit = occupiedUnits.find((u) => String(u.unit_id) === String(unitId));
 
-  const amountNum  = parseFloat(amount) || 0;
-  const amountDue  = parseFloat(cycleBalance?.amount_due    || 0);
-  const amountPaid = parseFloat(cycleBalance?.amount_paid   || 0);
-  const remaining  = parseFloat(cycleBalance?.amount_remaining || 0);
-  const isSettled  = cycleBalance?.is_settled;
-  const isEarly    = cycleBalance?.is_early;
+  const amountNum = parseFloat(amount) || 0;
+  const amountDue = parseFloat(cycleBalance?.amount_due || 0);
+  const amountPaid = parseFloat(cycleBalance?.amount_paid || 0);
+  const remaining = parseFloat(cycleBalance?.amount_remaining || 0);
+  const isSettled = cycleBalance?.is_settled;
+  const isEarly = cycleBalance?.is_early;
 
-  const newTotal    = amountPaid + amountNum;
-  const willSettle  = amountNum > 0 && newTotal >= amountDue;
+  const newTotal = amountPaid + amountNum;
+  const willSettle = amountNum > 0 && newTotal >= amountDue;
   const amountValid = amountNum > 0 && amountNum <= remaining;
 
   const handleSubmit = async () => {
@@ -261,14 +261,14 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId }) 
 
     if (result.success) {
       const cs = result.data?.cycle_summary;
-      customToast.success("Payment recorded", {
+      toast.success("Payment recorded", {
         description: cs?.is_settled
           ? "This billing cycle is now fully settled."
           : `${formatCurrency(cs?.amount_remaining)} still outstanding this cycle.`,
       });
       onOpenChange(false);
     } else {
-      customToast.error("Could not record payment", { description: result.error });
+      toast.error("Could not record payment", { description: result.error });
     }
   };
 
@@ -447,7 +447,7 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId }) 
               <div className="space-y-0.5">
                 <div className="flex items-center gap-1.5 text-sm font-medium">
                   {notifyTenant
-                    ? <Bell    className="h-4 w-4" />
+                    ? <Bell className="h-4 w-4" />
                     : <BellOff className="h-4 w-4 text-muted-foreground" />
                   }
                   Let the tenant know
@@ -520,9 +520,8 @@ function ConfirmPaymentDialog({ open, onOpenChange, payment, action, onSubmit, l
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div
-              className={`p-1.5 rounded-lg ${
-                action === "accept" ? "bg-green-100" : "bg-red-100"
-              }`}
+              className={`p-1.5 rounded-lg ${action === "accept" ? "bg-green-100" : "bg-red-100"
+                }`}
             >
               {action === "accept" ? (
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -756,11 +755,11 @@ function PaymentDetailDialog({ open, onOpenChange, payment }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function PropertyPaymentsTab({ property, floorData }) {
   // ── Dialog state ──────────────────────────────────────────────────────────
-  const [showRecordDialog,  setShowRecordDialog]  = useState(false);
+  const [showRecordDialog, setShowRecordDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showDetailDialog,  setShowDetailDialog]  = useState(false);
-  const [selectedPayment,   setSelectedPayment]   = useState(null);
-  const [confirmAction,     setConfirmAction]     = useState("");
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [confirmAction, setConfirmAction] = useState("");
 
   const {
     loading,
@@ -791,10 +790,10 @@ export default function PropertyPaymentsTab({ property, floorData }) {
       (floor.units || []).forEach((unit) => {
         if (unit.current_tenant) {
           result.push({
-            unit_id:     unit.id,
-            unit_name:   unit.unit_name,
+            unit_id: unit.id,
+            unit_name: unit.unit_name,
             floor_number: parseInt(floorNum, 10),
-            floor_name:  `Floor ${floorNum}`,
+            floor_name: `Floor ${floorNum}`,
             tenant_name: unit.current_tenant.full_name,
             rent_amount: unit.rent_amount,
           });
@@ -813,7 +812,7 @@ export default function PropertyPaymentsTab({ property, floorData }) {
   const handleConfirmSubmit = async (paymentId, action, rejectionReason) => {
     const success = await confirmPayment(paymentId, action, rejectionReason);
     if (success) {
-      customToast.success(
+      toast.success(
         action === "accept" ? "Payment confirmed" : "Payment rejected",
         {
           description:
@@ -828,7 +827,7 @@ export default function PropertyPaymentsTab({ property, floorData }) {
   };
 
   const filteredPayments = getFilteredPayments();
-  const pendingPayments  = getPendingPayments();
+  const pendingPayments = getPendingPayments();
 
   // ── DataTable columns ─────────────────────────────────────────────────────
   const columns = [

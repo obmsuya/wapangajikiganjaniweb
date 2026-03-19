@@ -2,10 +2,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { 
-  Save, 
-  Trash2, 
-  Eye, 
+import {
+  Save,
+  Trash2,
+  Eye,
   RefreshCw,
   AlertCircle,
   Check,
@@ -17,14 +17,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useFloorPlan } from "@/hooks/properties/useProperties";
 import PropertyService from "@/services/landlord/property";
 import FloorPlanGrid from "./FloorPlanGrid";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
-export default function FloorLayoutEditor({ 
-  propertyId, 
-  floorNumber, 
+export default function FloorLayoutEditor({
+  propertyId,
+  floorNumber,
   existingLayout,
   onSave,
-  onCancel 
+  onCancel
 }) {
   const {
     selectedUnits,
@@ -34,7 +34,7 @@ export default function FloorLayoutEditor({
     validateUnitDeletion,
     saveFloorPlan
   } = useFloorPlan(
-    () => {}, // updateFloorData callback
+    () => { }, // updateFloorData callback
     existingLayout ? { [floorNumber]: existingLayout } : {},
     { id: propertyId } // existingProperty
   );
@@ -59,7 +59,7 @@ export default function FloorLayoutEditor({
 
   const handleCellClick = useCallback(async (cellIndex) => {
     if (previewMode) return;
-    
+
     // Check if unit has tenant before allowing deletion
     if (selectedUnits.includes(cellIndex) && existingLayout?.units) {
       const existingUnit = existingLayout.units.find(unit => unit.svg_id === cellIndex);
@@ -67,28 +67,28 @@ export default function FloorLayoutEditor({
         try {
           const validation = await validateUnitDeletion(floorNumber, cellIndex);
           if (validation && validation.has_tenant) {
-            customToast.error("Cannot Remove Unit", {
+            toast.error("Cannot Remove Unit", {
               description: `${validation.message}. Please vacate the tenant first.`
             });
             return;
           }
         } catch (error) {
           console.error('Error validating unit deletion:', error);
-          customToast.error("Validation Error", {
+          toast.error("Validation Error", {
             description: "Unable to validate unit deletion. Please try again."
           });
           return;
         }
       }
     }
-    
+
     toggleUnit(cellIndex);
     setHasChanges(true);
   }, [selectedUnits, existingLayout, floorNumber, previewMode, toggleUnit, validateUnitDeletion]);
 
   const handlePreview = useCallback(() => {
     if (selectedUnits.length === 0) {
-      customToast.error("No Units Selected", {
+      toast.error("No Units Selected", {
         description: "Please select at least one unit to preview the layout."
       });
       return;
@@ -98,12 +98,12 @@ export default function FloorLayoutEditor({
       const preview = generateLayoutPreview(selectedUnits, floorNumber);
       if (preview) {
         setPreviewMode(true);
-        customToast.success("Preview Generated", {
+        toast.success("Preview Generated", {
           description: `Floor ${floorNumber} layout preview ready`
         });
       }
     } catch (error) {
-      customToast.error("Preview Failed", {
+      toast.error("Preview Failed", {
         description: "Unable to generate layout preview"
       });
     }
@@ -111,7 +111,7 @@ export default function FloorLayoutEditor({
 
   const handleSave = useCallback(async () => {
     if (selectedUnits.length === 0) {
-      customToast.error("No Units Selected", {
+      toast.error("No Units Selected", {
         description: "Please select at least one unit before saving."
       });
       return;
@@ -123,7 +123,7 @@ export default function FloorLayoutEditor({
     try {
       // Use the hook's save function
       await saveFloorPlan(propertyId, floorNumber, selectedUnits);
-      
+
       // Prepare layout data for parent component
       const layoutData = {
         floor_no: floorNumber - 1,
@@ -149,14 +149,14 @@ export default function FloorLayoutEditor({
 
       onSave?.(layoutData);
       setHasChanges(false);
-      
-      customToast.success("Layout Saved", {
+
+      toast.success("Layout Saved", {
         description: `Floor ${floorNumber} layout has been saved successfully`
       });
     } catch (error) {
       console.error('Error saving floor layout:', error);
       setError(error.message || 'Failed to save floor layout');
-      customToast.error("Save Failed", {
+      toast.error("Save Failed", {
         description: error.message || "Failed to save floor layout"
       });
     } finally {
@@ -193,7 +193,7 @@ export default function FloorLayoutEditor({
         {/* Floor Plan Grid */}
         <div className="lg:col-span-2">
           <CloudflareCard>
-            <CloudflareCardHeader 
+            <CloudflareCardHeader
               title={`Floor ${floorNumber} Layout Editor`}
               actions={
                 <div className="flex gap-2">
@@ -362,7 +362,7 @@ export default function FloorLayoutEditor({
                 <div className="flex justify-between">
                   <span className="text-gray-600">Last Modified:</span>
                   <span>
-                    {existingLayout?.updated_at 
+                    {existingLayout?.updated_at
                       ? new Date(existingLayout.updated_at).toLocaleDateString()
                       : 'Never'
                     }

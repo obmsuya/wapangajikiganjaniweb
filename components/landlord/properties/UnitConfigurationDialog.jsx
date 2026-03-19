@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PropertyService from "@/services/landlord/property";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveSuccess }) {
   const [formData, setFormData] = useState({});
@@ -31,10 +31,10 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
     if (unit) {
       setFormData({
         unit_name: unit.unit_name || "",
-        rooms: unit.rooms || 1,                       
+        rooms: unit.rooms || 1,
         rent_amount: unit.rent_amount || 0,
-        payment_freq: unit.payment_freq || "1",       
-        status: unit.status || "available",          
+        payment_freq: unit.payment_freq || "1",
+        status: unit.status || "available",
       });
     }
   }, [unit]);
@@ -61,13 +61,13 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
 
       // Check if this is a real database unit or a temporary one
       const isRealUnit = unit.id && typeof unit.id === 'number' && unit.id > 0;
-      
+
       if (isRealUnit) {
         // Update existing unit via API
         const { ...dataToSend } = formData;
         const updatedUnit = await PropertyService.updateUnitDetails(unit.id, dataToSend);
-        
-        customToast.success("Unit Updated", {
+
+        toast.success("Unit Updated", {
           description: `Unit ${formData.unit_name} has been updated successfully.`,
         });
 
@@ -78,8 +78,8 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
         // For units that are just configured during setup (not yet saved to DB)
         // Just update the local state
         const updatedUnit = { ...unit, ...formData };
-        
-        customToast.success("Unit Configured", {
+
+        toast.success("Unit Configured", {
           description: `Unit ${formData.unit_name} configuration saved.`,
         });
 
@@ -87,11 +87,11 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
           onSaveSuccess(updatedUnit);
         }
       }
-      
+
       onClose();
     } catch (error) {
       console.error("Failed to update unit:", error);
-      customToast.error("Update Failed", {
+      toast.error("Update Failed", {
         description: error.message || "Could not update unit details.",
       });
     } finally {

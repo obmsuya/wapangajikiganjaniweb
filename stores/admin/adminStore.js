@@ -1,7 +1,7 @@
 // stores/admin/adminStore.js
 import { create } from 'zustand';
 import api from '@/lib/api/api-client';
-import { customToast } from '@/components/ui/custom-toast';
+import { toast } from '@/components/ui/custom-toast';
 
 const ERROR_TYPES = {
   NETWORK: 'network_error',
@@ -12,9 +12,9 @@ const ERROR_TYPES = {
 
 const classifyError = (error) => {
   if (!error) return { type: ERROR_TYPES.SERVER, message: 'Unknown error occurred' };
-  
+
   const errorMessage = error.message || error.toString().toLowerCase();
-  
+
   if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
     return { type: ERROR_TYPES.NETWORK, message: 'Network connection failed' };
   }
@@ -24,7 +24,7 @@ const classifyError = (error) => {
   if (errorMessage.includes('timeout')) {
     return { type: ERROR_TYPES.TIMEOUT, message: 'Request timed out' };
   }
-  
+
   return { type: ERROR_TYPES.SERVER, message: errorMessage };
 };
 
@@ -42,9 +42,9 @@ export const useAdminStore = create((set, get) => ({
   fetchDashboard: async () => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.get('/api/v1/auth/admin/dashboard/');
-      
+
       if (response && !response.error) {
         set({
           dashboard: response,
@@ -59,8 +59,8 @@ export const useAdminStore = create((set, get) => ({
         error: classified.message,
         loading: false
       });
-      
-      customToast.error("Dashboard Error", {
+
+      toast.error("Dashboard Error", {
         description: classified.message
       });
     }
@@ -69,9 +69,9 @@ export const useAdminStore = create((set, get) => ({
   fetchUsers: async (sortBy = '-date_joined') => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.get(`/api/v1/auth/admin/users/?sort_by=${sortBy}`);
-      
+
       if (response && !response.error) {
         set({
           users: response,
@@ -86,8 +86,8 @@ export const useAdminStore = create((set, get) => ({
         error: classified.message,
         loading: false
       });
-      
-      customToast.error("Users Error", {
+
+      toast.error("Users Error", {
         description: classified.message
       });
     }
@@ -96,9 +96,9 @@ export const useAdminStore = create((set, get) => ({
   fetchUser: async (userId) => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.get(`/api/v1/auth/admin/users/${userId}/`);
-      
+
       if (response && !response.error) {
         set({
           currentUser: response,
@@ -113,8 +113,8 @@ export const useAdminStore = create((set, get) => ({
         error: classified.message,
         loading: false
       });
-      
-      customToast.error("User Error", {
+
+      toast.error("User Error", {
         description: classified.message
       });
     }
@@ -123,14 +123,14 @@ export const useAdminStore = create((set, get) => ({
   deleteUser: async (userId) => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.delete(`/api/v1/auth/admin/users/${userId}/`);
-      
+
       if (response && !response.error) {
-        customToast.success("User Deleted", {
+        toast.success("User Deleted", {
           description: "The user has been successfully deleted."
         });
-        
+
         set({ loading: false });
         // Refetch users after delete
         get().fetchUsers();
@@ -144,11 +144,11 @@ export const useAdminStore = create((set, get) => ({
         error: classified.message,
         loading: false
       });
-      
-      customToast.error("Delete Failed", {
+
+      toast.error("Delete Failed", {
         description: classified.message
       });
-      
+
       return { success: false, error: classified.message };
     }
   },
@@ -156,16 +156,16 @@ export const useAdminStore = create((set, get) => ({
   resetPassword: async (userId, newPassword) => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.post(`/api/v1/auth/admin/users/${userId}/reset-password/`, {
         new_password: newPassword
       });
-      
+
       if (response && !response.error) {
-        customToast.success("Password Reset", {
+        toast.success("Password Reset", {
           description: "The user's password has been successfully reset."
         });
-        
+
         set({ loading: false });
         return { success: true };
       } else {
@@ -177,11 +177,11 @@ export const useAdminStore = create((set, get) => ({
         error: classified.message,
         loading: false
       });
-      
-      customToast.error("Reset Failed", {
+
+      toast.error("Reset Failed", {
         description: classified.message
       });
-      
+
       return { success: false, error: classified.message };
     }
   },

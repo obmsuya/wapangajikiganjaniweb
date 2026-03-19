@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTenantVacation } from "@/hooks/landlord/useTenantManagement";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 export default function TenantVacationDialog({ tenant, isOpen, onClose, onSuccess }) {
   const [vacationData, setVacationData] = useState({
@@ -76,7 +76,7 @@ export default function TenantVacationDialog({ tenant, isOpen, onClose, onSucces
       
       await vacateTenant(tenant.id, vacationData);
       
-      customToast.success("Tenant Vacated Successfully", {
+      toast.success("Tenant Vacated Successfully", {
         description: `${tenant.full_name} has been vacated`
       });
       
@@ -85,7 +85,7 @@ export default function TenantVacationDialog({ tenant, isOpen, onClose, onSucces
       
     } catch (err) {
       console.error('Error vacating tenant:', err);
-      customToast.error("Vacation Failed", {
+      toast.error("Vacation Failed", {
         description: err.message || "Failed to vacate tenant"
       });
     } finally {

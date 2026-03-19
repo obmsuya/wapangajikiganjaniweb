@@ -1,7 +1,7 @@
 // stores/landlord/useSubscriptionStore.js
 import { create } from 'zustand';
 import api from '@/lib/api/api-client';
-import { customToast } from '@/components/ui/custom-toast';
+import { toast } from '@/components/ui/custom-toast';
 
 const ERROR_TYPES = {
   NETWORK: 'network_error',
@@ -13,9 +13,9 @@ const ERROR_TYPES = {
 
 const classifyError = (error) => {
   if (!error) return { type: ERROR_TYPES.SERVER, message: 'Unknown error occurred' };
-  
+
   const errorMessage = error.message || error.toString().toLowerCase();
-  
+
   if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
     return { type: ERROR_TYPES.NETWORK, message: 'Network connection failed' };
   }
@@ -28,7 +28,7 @@ const classifyError = (error) => {
   if (errorMessage.includes('timeout')) {
     return { type: ERROR_TYPES.TIMEOUT, message: 'Request timed out' };
   }
-  
+
   return { type: ERROR_TYPES.SERVER, message: errorMessage };
 };
 
@@ -44,12 +44,12 @@ export const useSubscriptionStore = create((set, get) => ({
   processingPayment: false,
   lastTransactionId: null,
 
-   extractTokenSubscriptionData: () => {
+  extractTokenSubscriptionData: () => {
     if (typeof window === 'undefined') return null;
-    
+
     const token = localStorage.getItem('access_token');
     if (!token) return null;
-    
+
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       if (payload.user_type === 'landlord') {
@@ -73,14 +73,14 @@ export const useSubscriptionStore = create((set, get) => ({
     const tokenData = get().extractTokenSubscriptionData();
     set({ tokenSubscriptionData: tokenData });
   },
-  
+
   canAddProperties: () => {
     const tokenData = get().tokenSubscriptionData || get().extractTokenSubscriptionData();
     const apiData = get().subscriptionStatus;
 
     return apiData?.canAddProperties ?? tokenData?.canAddProperties ?? false;
   },
-  
+
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
@@ -89,9 +89,9 @@ export const useSubscriptionStore = create((set, get) => ({
   fetchPlans: async () => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.get('/api/v1/payments/subscription/plans/');
-      
+
       if (response && !response.error) {
         const formattedPlans = (response || []).map(plan => ({
           id: plan.id,
@@ -104,7 +104,7 @@ export const useSubscriptionStore = create((set, get) => ({
           description: plan.description || '',
           features: plan.features || {}
         }));
-        
+
         set({
           plans: formattedPlans,
           loading: false
@@ -118,8 +118,8 @@ export const useSubscriptionStore = create((set, get) => ({
         error: classified.message,
         loading: false
       });
-      
-      customToast.error("Plans Error", {
+
+      toast.error("Plans Error", {
         description: classified.message
       });
     }
@@ -131,24 +131,24 @@ export const useSubscriptionStore = create((set, get) => ({
       if (!refreshToken) {
         throw new Error('No refresh token found');
       }
-      
+
       const response = await api.post('/api/v1/auth/token/refresh/', {
         refresh: refreshToken,
       });
 
       if (response && response.access) {
         localStorage.setItem('access_token', response.access);
-        get().initializeTokenData(); 
+        get().initializeTokenData();
         get().fetchCurrentSubscription();
         get().fetchPropertyVisibility();
-        customToast.success("Account Updated", {
+        toast.success("Account Updated", {
           description: "Your subscription has been successfully upgraded!"
         });
         return { success: true };
       }
     } catch (error) {
       console.error("Failed to refresh token:", error);
-      customToast.error("Update Failed", {
+      toast.error("Update Failed", {
         description: "Could not update your session. Please log out and log back in."
       });
       return { success: false };
@@ -158,9 +158,9 @@ export const useSubscriptionStore = create((set, get) => ({
   fetchCurrentSubscription: async () => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.get('/api/v1/payments/subscription/current/');
-      
+
       if (response && !response.error) {
         const formattedSubscription = {
           id: response.id,
@@ -181,7 +181,7 @@ export const useSubscriptionStore = create((set, get) => ({
           createdAt: response.created_at,
           isFreePlan: response.is_free_plan
         };
-        
+
         set({
           currentSubscription: formattedSubscription,
           loading: false
@@ -199,8 +199,8 @@ export const useSubscriptionStore = create((set, get) => ({
         loading: false,
         currentSubscription: null
       });
-      
-      customToast.error("Subscription Error", {
+
+      toast.error("Subscription Error", {
         description: classified.message
       });
     }
@@ -209,9 +209,9 @@ export const useSubscriptionStore = create((set, get) => ({
   fetchSubscriptionStatus: async () => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.get('/api/v1/payments/subscription/status/');
-      
+
       if (response && !response.error) {
         const formattedStatus = {
           hasActiveSubscription: response.has_active_subscription,
@@ -233,7 +233,7 @@ export const useSubscriptionStore = create((set, get) => ({
           },
           features: response.features || {}
         };
-        
+
         set({
           subscriptionStatus: formattedStatus,
           loading: false
@@ -247,8 +247,8 @@ export const useSubscriptionStore = create((set, get) => ({
         error: classified.message,
         loading: false
       });
-      
-      customToast.error("Status Error", {
+
+      toast.error("Status Error", {
         description: classified.message
       });
     }
@@ -257,9 +257,9 @@ export const useSubscriptionStore = create((set, get) => ({
   fetchSubscriptionHistory: async () => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.get('/api/v1/payments/subscription/history/');
-      
+
       if (response && !response.error) {
         const formattedHistory = (response || []).map(sub => ({
           id: sub.id,
@@ -273,7 +273,7 @@ export const useSubscriptionStore = create((set, get) => ({
           createdAt: sub.created_at,
           isCurrent: sub.is_current
         }));
-        
+
         set({
           subscriptionHistory: formattedHistory,
           loading: false
@@ -287,8 +287,8 @@ export const useSubscriptionStore = create((set, get) => ({
         error: classified.message,
         loading: false
       });
-      
-      customToast.error("History Error", {
+
+      toast.error("History Error", {
         description: classified.message
       });
     }
@@ -297,9 +297,9 @@ export const useSubscriptionStore = create((set, get) => ({
   fetchPropertyVisibility: async () => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.get('/api/v1/payments/subscription/property-visibility/');
-      
+
       if (response && !response.error) {
         const formattedVisibility = {
           properties: (response.properties || []).map(prop => ({
@@ -322,7 +322,7 @@ export const useSubscriptionStore = create((set, get) => ({
           visibleProperties: response.visible_properties || 0,
           invisibleProperties: response.invisible_properties || 0
         };
-        
+
         set({
           propertyVisibility: formattedVisibility,
           loading: false
@@ -336,8 +336,8 @@ export const useSubscriptionStore = create((set, get) => ({
         error: classified.message,
         loading: false
       });
-      
-      customToast.error("Visibility Error", {
+
+      toast.error("Visibility Error", {
         description: classified.message
       });
     }
@@ -349,19 +349,19 @@ export const useSubscriptionStore = create((set, get) => ({
       const interval = setInterval(async () => {
         try {
           const response = await api.get(`/api/v1/payments/subscription/transaction-status/${transactionId}/`);
-          
+
           if (response && response.status === 'completed') {
             clearInterval(interval);
             set({ processingPayment: false });
             await get().refreshToken(); // Refresh token to update plan
-            customToast.success("Payment Successful", {
+            toast.success("Payment Successful", {
               description: "Your subscription has been activated!"
             });
             resolve({ success: true });
           } else if (response && response.status === 'failed') {
             clearInterval(interval);
             set({ processingPayment: false });
-            customToast.error("Payment Failed", {
+            toast.error("Payment Failed", {
               description: "Your payment could not be processed."
             });
             resolve({ success: false, error: "Payment failed" });
@@ -369,7 +369,7 @@ export const useSubscriptionStore = create((set, get) => ({
         } catch (error) {
           clearInterval(interval);
           set({ processingPayment: false });
-          customToast.error("Polling Error", {
+          toast.error("Polling Error", {
             description: "Failed to check payment status. Please refresh."
           });
           reject(error);
@@ -379,27 +379,27 @@ export const useSubscriptionStore = create((set, get) => ({
       setTimeout(() => {
         clearInterval(interval);
         set({ processingPayment: false });
-        customToast.info("Payment Processing", {
+        toast.info("Payment Processing", {
           description: "Your payment is still processing. We will update your account once confirmed."
         });
         resolve({ success: false, error: "Payment timeout" });
       }, 300000); // 5 minutes
     });
   },
-  
+
   // Update processMNOPayment
   processMNOPayment: async (planId, accountNumber, provider) => {
     try {
       set({ processingPayment: true, error: null });
-      
+
       const response = await api.post('/api/v1/payments/subscription/mno/checkout/', {
         plan_id: planId,
         accountNumber,
         provider
       });
-      
+
       if (response && response.transaction_id) {
-        customToast.info("Processing Payment", {
+        toast.info("Processing Payment", {
           description: "Please complete the payment on your phone. Waiting for confirmation...",
           duration: Infinity // Keep toast until polling resolves
         });
@@ -419,30 +419,30 @@ export const useSubscriptionStore = create((set, get) => ({
         error: classified.message,
         processingPayment: false
       });
-      customToast.error("Payment Error", {
+      toast.error("Payment Error", {
         description: classified.message
       });
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: classified.message,
-        type: classified.type 
+        type: classified.type
       };
     }
   },
-  
+
   // Update processBankPayment (similar)
   processBankPayment: async (planId, accountNumber, bankName) => {
     try {
       set({ processingPayment: true, error: null });
-      
+
       const response = await api.post('/api/v1/payments/subscription/bank/checkout/', {
         plan_id: planId,
         accountNumber,
         bankName
       });
-      
+
       if (response && response.transaction_id) {
-        customToast.info("Processing Payment", {
+        toast.info("Processing Payment", {
           description: "Please complete the bank transfer. Waiting for confirmation...",
           duration: Infinity // Keep toast until polling resolves
         });
@@ -462,13 +462,13 @@ export const useSubscriptionStore = create((set, get) => ({
         error: classified.message,
         processingPayment: false
       });
-      customToast.error("Payment Error", {
+      toast.error("Payment Error", {
         description: classified.message
       });
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: classified.message,
-        type: classified.type 
+        type: classified.type
       };
     }
   },
@@ -476,17 +476,17 @@ export const useSubscriptionStore = create((set, get) => ({
   cancelSubscription: async () => {
     try {
       set({ loading: true, error: null });
-      
+
       const response = await api.post('/api/v1/payments/subscription/cancel/');
-      
+
       if (response && !response.error) {
-        customToast.success("Subscription Cancelled", {
+        toast.success("Subscription Cancelled", {
           description: "Your subscription has been cancelled. Reverted to free plan."
         });
-        
+
         set({ loading: false });
         get().fetchCurrentSubscription();
-        
+
         return { success: true };
       } else {
         throw new Error(response?.error || 'Failed to cancel subscription');
@@ -497,11 +497,11 @@ export const useSubscriptionStore = create((set, get) => ({
         error: classified.message,
         loading: false
       });
-      
-      customToast.error("Cancellation Failed", {
+
+      toast.error("Cancellation Failed", {
         description: classified.message
       });
-      
+
       return { success: false, error: classified.message };
     }
   },

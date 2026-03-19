@@ -2,12 +2,12 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Users, 
-  UserPlus, 
-  Phone, 
-  Home, 
-  Calendar, 
+import {
+  Users,
+  UserPlus,
+  Phone,
+  Home,
+  Calendar,
   DollarSign,
   MessageSquare,
   UserX,
@@ -21,7 +21,7 @@ import { CloudflareCard } from "@/components/cloudflare/Card";
 import { usePropertyTenants } from "@/hooks/landlord/useTenantAssignment";
 import { useTenantManagement } from "@/hooks/landlord/useTenantAssignment";
 import TenantAssignmentDialog from "../TenantAssignmentDialog";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 
 
 export default function PropertyTenantsTab({ property }) {
@@ -32,7 +32,7 @@ export default function PropertyTenantsTab({ property }) {
   const { tenants, loading, error, refreshTenants } = usePropertyTenants(property);
   const { sendReminder, vacateTenant, loading: actionLoading } = useTenantManagement();
 
-  const filteredTenants = tenants.filter(tenant => 
+  const filteredTenants = tenants.filter(tenant =>
     tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     tenant.unit_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     tenant.phone.includes(searchTerm)
@@ -41,11 +41,11 @@ export default function PropertyTenantsTab({ property }) {
   const handleSendReminder = async (tenantId, tenantName) => {
     try {
       await sendReminder(tenantId);
-      customToast.success("Reminder Sent", {
+      toast.success("Reminder Sent", {
         description: `Payment reminder sent to ${tenantName}`
       });
     } catch (error) {
-      customToast.error("Failed to Send Reminder", {
+      toast.error("Failed to Send Reminder", {
         description: "Please try again"
       });
     }
@@ -55,15 +55,15 @@ export default function PropertyTenantsTab({ property }) {
     if (!confirm(`Are you sure you want to remove ${tenantName}? This action cannot be undone.`)) {
       return;
     }
-    
+
     try {
       await vacateTenant(tenantId);
-      customToast.success("Tenant Removed", {
+      toast.success("Tenant Removed", {
         description: `${tenantName} has been successfully removed`
       });
       refreshTenants();
     } catch (error) {
-      customToast.error("Failed to Remove Tenant", {
+      toast.error("Failed to Remove Tenant", {
         description: "Please try again"
       });
     }
@@ -137,12 +137,12 @@ export default function PropertyTenantsTab({ property }) {
           </div>
           <div>
             <h3 className="text-xl sm:text-2xl font-bold text-slate-900">Tenants</h3>
-            <Badge  className="mt-1 bg-slate-200 text-slate-700 text-xs">
+            <Badge className="mt-1 bg-slate-200 text-slate-700 text-xs">
               {tenants.length} tenant{tenants.length !== 1 ? 's' : ''}
             </Badge>
           </div>
         </div>
-        
+
         <Button
           onClick={refreshTenants}
           disabled={loading}
@@ -178,8 +178,8 @@ export default function PropertyTenantsTab({ property }) {
             {searchTerm ? 'No tenants found' : 'No tenants yet'}
           </h4>
           <p className="text-slate-600 text-sm">
-            {searchTerm 
-              ? 'Try adjusting your search terms' 
+            {searchTerm
+              ? 'Try adjusting your search terms'
               : 'Add tenants to start managing your property'
             }
           </p>
@@ -200,7 +200,7 @@ export default function PropertyTenantsTab({ property }) {
                     {tenant.status === 'active' ? 'Active' : 'Former'}
                   </Badge>
                 </div>
-                
+
                 {/* Info Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Contact Info */}
@@ -210,7 +210,7 @@ export default function PropertyTenantsTab({ property }) {
                       <span className="text-slate-600">Phone:</span>
                       <span className="font-medium text-slate-900 truncate">{tenant.phone}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
                       <Home className="w-4 h-4 text-blue-500 flex-shrink-0" />
                       <span className="text-slate-600">Unit:</span>
@@ -219,7 +219,7 @@ export default function PropertyTenantsTab({ property }) {
                       </span>
                     </div>
                   </div>
-                  
+
                   {/* Payment Info */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
@@ -229,7 +229,7 @@ export default function PropertyTenantsTab({ property }) {
                         {formatCurrency(tenant.rent_amount)}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
                       <Calendar className="w-4 h-4 text-amber-500 flex-shrink-0" />
                       <span className="text-slate-600">Moved in:</span>
@@ -246,7 +246,7 @@ export default function PropertyTenantsTab({ property }) {
                       {getPaymentFrequencyLabel(tenant.payment_frequency)}
                     </span>
                   </div>
-                  
+
                   {tenant.next_payment_date && (
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
                       <Calendar className="w-4 h-4 text-amber-500 flex-shrink-0" />
@@ -268,7 +268,7 @@ export default function PropertyTenantsTab({ property }) {
                     <span className="hidden sm:inline">Send Reminder</span>
                     <span className="sm:hidden">Reminder</span>
                   </Button>
-                  
+
                   <Button
                     onClick={() => handleVacateTenant(tenant.id, tenant.name)}
                     disabled={actionLoading}

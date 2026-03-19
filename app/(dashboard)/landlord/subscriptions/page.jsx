@@ -41,7 +41,6 @@ import { CloudflareTable } from "@/components/cloudflare/Table";
 
 import { useSubscriptionStore } from "@/stores/landlord/useSubscriptionStore";
 import { toast } from "sonner";
-import customToast from "@/components/ui/custom-toast";
 
 /* --------------------------------------------------------------
    Mobile providers – only the ones that work
@@ -110,7 +109,7 @@ export default function SubscriptionPage() {
   /* ------------------------------------------------------------------ */
   const handlePayment = async () => {
     if (!selectedPlan || !paymentData.provider || !paymentData.accountNumber) {
-      customToast.error("Please complete all required fields");
+      toast.error("Please complete all required fields");
       return;
     }
 
