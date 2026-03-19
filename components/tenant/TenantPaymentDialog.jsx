@@ -577,36 +577,42 @@ export default function TenantPaymentDialog() {
                         <Info className="w-3.5 h-3.5 text-muted-foreground" />
                       </Label>
 
-                      {/* Quick-select buttons */}
+                      {/* Quick-select: full or partial toggle */}
                       <div className="flex gap-2 flex-wrap">
                         <Button
                           type="button" size="sm" variant="outline"
                           className={!formData.partialAmount ? "border-primary bg-primary/5" : ""}
                           onClick={() => setField("partialAmount", "")}
                         >
-                          Full amount — {fmt(maxPayable)}
+                          Full — {fmt(maxPayable)}
                         </Button>
                         <Button
                           type="button" size="sm" variant="outline"
-                          onClick={() => setField("partialAmount", "")}
+                          className={formData.partialAmount ? "border-primary bg-primary/5" : ""}
+                          onClick={() => {
+                            // Focus the input when "Partial" is clicked
+                            if (!formData.partialAmount) setField("partialAmount", "");
+                          }}
                         >
-                          Partial
+                          Pay partial amount
                         </Button>
                       </div>
 
-                      {/* Amount input — only active when tenant wants to enter a custom amount */}
+                      {/* Amount input — text input to avoid browser step validation popup */}
                       <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none select-none">
                           TZS
                         </div>
                         <input
-                          type="number"
-                          min={1}
-                          max={maxPayable}
-                          step={1000}
-                          placeholder={`Leave blank to pay full ${fmt(maxPayable)}`}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder={`e.g. ${fmt(Math.round(maxPayable / 2))}`}
                           value={formData.partialAmount}
-                          onChange={(e) => setField("partialAmount", e.target.value)}
+                          onChange={(e) => {
+                            // Allow only digits — no browser step validation
+                            const raw = e.target.value.replace(/[^\d]/g, "");
+                            setField("partialAmount", raw);
+                          }}
                           disabled={isProcessing}
                           className={`flex h-10 w-full rounded-md border bg-background pl-10 pr-3 py-2 text-sm
                             placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2

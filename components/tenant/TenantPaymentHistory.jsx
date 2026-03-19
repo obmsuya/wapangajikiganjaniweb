@@ -104,7 +104,8 @@ function PaymentDetailDialog({ payment, open, onOpenChange, getColor }) {
             {payment.floor_number != null && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Floor</span>
-                <span>Floor {payment.floor_number}</span>
+                {/* floor_number from backend is 0-indexed — Floor 0 = Floor 1 */}
+                <span>Floor {payment.floor_number + 1}</span>
               </div>
             )}
             <Separator />
@@ -157,10 +158,7 @@ function PaymentDetailDialog({ payment, open, onOpenChange, getColor }) {
             </Alert>
           )}
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-        </DialogFooter>
+        {/* No Close button — the ✕ in the dialog header is sufficient */}
       </DialogContent>
     </Dialog>
   );

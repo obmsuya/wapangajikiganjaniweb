@@ -53,7 +53,16 @@ export default function TenantOverview({ onPayNow }) {
   const overdueRent  = getOverdueRent();
   const stats        = getOccupancyStats();
 
-  const hasUrgent = overdueRent.length > 0 || upcomingRent.length > 0;
+  // Also catch units that have a partial payment outstanding this cycle —
+  // these may not appear in overdueRent/upcomingRent if the schedule store
+  // hasn't picked them up yet, but cycle_balance tells us directly.
+  const partialUnits = occupancies.filter((occ) => {
+    const cb = occ.cycle_balance;
+    return cb && !cb.is_settled && parseFloat(cb.amount_remaining || 0) > 0;
+  });
+
+  const hasUrgent      = overdueRent.length > 0 || upcomingRent.length > 0;
+  const hasOutstanding = hasUrgent || partialUnits.length > 0;
 
   if (loading) {
     return (
@@ -181,8 +190,55 @@ export default function TenantOverview({ onPayNow }) {
         </div>
       )}
 
-      {/* All clear — no amount due */}
-      {!hasUrgent && stats.hasActiveRentals && (
+      {/* Partial payments outstanding — units with some balance still owed
+          that don't appear in overdue/upcoming because schedule status may lag */}
+      {!hasUrgent && partialUnits.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Balance outstanding this cycle
+            </h3>
+          </div>
+          {partialUnits.map((occ) => {
+            const cb         = occ.cycle_balance;
+            const amountDue  = parseFloat(cb?.amount_due    || occ.rent_amount || 0);
+            const amountPaid = parseFloat(cb?.amount_paid   || 0);
+            const amountLeft = parseFloat(cb?.amount_remaining ?? amountDue);
+            const paidPct    = amountDue > 0 ? Math.min(100, (amountPaid / amountDue) * 100) : 0;
+
+            return (
+              <Card key={occ.unit_id} className="border">
+                <CardContent className="p-4 flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <div>
+                      <p className="font-semibold">{occ.unit_name}</p>
+                      <p className="text-sm text-muted-foreground">{occ.property_name}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Paid {fmt(amountPaid)} of {fmt(amountDue)}</span>
+                        <span className="font-medium">{fmt(amountLeft)} left</span>
+                      </div>
+                      <Progress value={paidPct} className="h-1.5" />
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 space-y-2">
+                    <p className="font-bold">{fmt(amountLeft)}</p>
+                    <Button size="sm" onClick={() => handleQuickPay(occ)}>
+                      <CreditCard className="h-3.5 w-3.5 mr-1.5" />
+                      Pay remaining
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* All clear — only show when truly nothing is owed anywhere */}
+      {!hasOutstanding && stats.hasActiveRentals && (
         <Card className="border">
           <CardContent className="p-5 flex items-center gap-4">
             <div className="p-3 rounded-full bg-primary/10">
@@ -232,8 +288,10 @@ export default function TenantOverview({ onPayNow }) {
                         <div>
                           <p className="font-semibold">{occupancy.unit_name}</p>
                           <p className="text-xs text-muted-foreground">{occupancy.property_name}</p>
-                          {occupancy.floor_number && (
-                            <p className="text-xs text-muted-foreground">Floor {occupancy.floor_number}</p>
+                        {occupancy.floor_number != null && (
+                            <p className="text-xs text-muted-foreground">
+                              Floor {occupancy.floor_number}
+                            </p>
                           )}
                         </div>
                         {isSettled
