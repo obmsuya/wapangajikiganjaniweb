@@ -7,6 +7,12 @@ import {
   CloudflareBreadcrumbs,
   CloudflarePageHeader,
 } from '@/components/cloudflare/Breadcrumbs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import TenantOverview       from '@/components/tenant/TenantOverview';
 import TenantRentSchedule   from '@/components/tenant/TenantRentSchedule';
 import TenantPaymentHistory from '@/components/tenant/TenantPaymentHistory';
@@ -62,69 +68,64 @@ export default function TenantDashboard() {
   const ActiveIcon      = activeTabData?.icon;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <CloudflareBreadcrumbs items={breadcrumbItems} />
       <CloudflarePageHeader
         title="Tenant Dashboard"
         description="Manage your rent payments and property information"
       />
 
-      <div className="flex flex-col lg:flex-row gap-4">
-
-        {/* ── Compact sidebar navigation ─────────────────────────────── */}
-        <nav className="lg:w-48 flex-shrink-0">
-          {/* Mobile: horizontal scrollable row */}
-          {/* Desktop: vertical list */}
-          <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible
-                          pb-1 lg:pb-0 rounded-lg border bg-card p-2">
-            {TABS.map((tab) => {
-              const Icon     = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`
-                    flex items-center gap-2.5 px-3 py-2.5 rounded-md text-sm font-medium
-                    transition-all whitespace-nowrap flex-shrink-0
-                    ${isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'}
-                  `}
-                >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
+      {/* ── Icon-only tab bar — sits above content, takes no column space ── */}
+      <TooltipProvider delayDuration={200}>
+        <div className="flex items-center gap-1 border-b pb-0">
+          {TABS.map((tab) => {
+            const Icon     = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <Tooltip key={tab.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`
+                      relative flex items-center justify-center w-10 h-10 rounded-t-md
+                      transition-colors
+                      ${isActive
+                        ? 'text-primary bg-primary/8 border border-b-0 border-border -mb-px'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}
+                    `}
+                    aria-label={tab.label}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {/* Active indicator dot */}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
                   {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+      </TooltipProvider>
 
-        {/* ── Content area ───────────────────────────────────────────── */}
-        <div className="flex-1 min-w-0">
-          <div className="rounded-lg border bg-card">
-            {/* Tab header */}
-            <div className="flex items-center gap-3 px-5 py-4 border-b">
-              {ActiveIcon && (
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <ActiveIcon className="h-4 w-4 text-primary" />
-                </div>
-              )}
-              <div>
-                <h2 className="text-base font-semibold">{activeTabData?.label}</h2>
-                <p className="text-xs text-muted-foreground">
-                  {TAB_DESCRIPTIONS[activeTab]}
-                </p>
-              </div>
-            </div>
+      {/* ── Content — full width, no sidebar ──────────────────────────── */}
+      <div className="rounded-lg border bg-card">
+        {/* Subtle active tab context line */}
+        <div className="flex items-center gap-2 px-5 py-3 border-b">
+          {ActiveIcon && <ActiveIcon className="h-4 w-4 text-primary" />}
+          <span className="text-sm font-medium">{activeTabData?.label}</span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            — {TAB_DESCRIPTIONS[activeTab]}
+          </span>
+        </div>
 
-            {/* Content */}
-            <div className="p-5">
-              {isClient && ActiveComponent && (
-                <ActiveComponent onPayNow={handlePayNow} />
-              )}
-            </div>
-          </div>
+        <div className="p-5">
+          {isClient && ActiveComponent && (
+            <ActiveComponent onPayNow={handlePayNow} />
+          )}
         </div>
       </div>
 
