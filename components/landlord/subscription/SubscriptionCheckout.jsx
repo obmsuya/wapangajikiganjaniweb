@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useSubscriptionStore } from '@/stores/landlord/useSubscriptionStore';
-import { toast } from '@/components/ui/custom-toast';
+import { toast } from 'sonner';
 
 const ERROR_MESSAGES = {
   NETWORK_ERROR: "Unable to connect to payment services. Please check your internet connection.",

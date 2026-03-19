@@ -1,7 +1,7 @@
 // stores/admin/adminStore.js
 import { create } from 'zustand';
 import api from '@/lib/api/api-client';
-import { toast } from '@/components/ui/custom-toast';
+import { toast } from 'sonner';
 
 const ERROR_TYPES = {
   NETWORK: 'network_error',
