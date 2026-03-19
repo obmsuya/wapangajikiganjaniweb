@@ -8,11 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
 import { Eye, EyeOff, ArrowLeft, Building2, Shield, Zap } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
-import customToast from "@/components/ui/custom-toast";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import AuthService from "@/services/auth";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -66,7 +64,7 @@ export default function LoginPage() {
     try {
       const user = await AuthService.login(formData);
 
-      customToast.success("Welcome back!", {
+      toast.success("Welcome back!", {
         description: `Hello ${user.full_name}, redirecting to your dashboard...`,
       });
 
@@ -98,7 +96,7 @@ export default function LoginPage() {
         }
       }, 500);
     } catch (error) {
-      customToast.error("Login failed", {
+      toast.error("Login failed", {
         description: error.response?.data?.error || "Invalid credentials.",
       });
     } finally {

@@ -1,19 +1,52 @@
-// services/auth.js - Updated with referral support
+// services/auth.js
 import api from '@/lib/api/api-client';
 
+// ------------------------------------------------------------------
+// Helper: decide storage based on "remember me" preference.
+// - rememberMe = true  → localStorage  (survives browser close)
+// - rememberMe = false → sessionStorage (cleared on tab/window close)
+// ------------------------------------------------------------------
+const getStorage = (rememberMe) =>
+  rememberMe ? localStorage : sessionStorage;
+
+const storeTokens = (tokens, rememberMe) => {
+  if (typeof window === 'undefined') return;
+  const storage = getStorage(rememberMe);
+  storage.setItem('access_token', tokens.access);
+  storage.setItem('refresh_token', tokens.refresh);
+  // Remember which storage we used so logout/refresh can find it
+  localStorage.setItem('remember_me', rememberMe ? 'true' : 'false');
+};
+
+const clearTokens = () => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('remember_me');
+  sessionStorage.removeItem('access_token');
+  sessionStorage.removeItem('refresh_token');
+};
+
+// Read a token from whichever storage was used at login time
+const readToken = (key) => {
+  if (typeof window === 'undefined') return null;
+  const usedLocalStorage = localStorage.getItem('remember_me') !== 'false';
+  return usedLocalStorage
+    ? localStorage.getItem(key)
+    : sessionStorage.getItem(key);
+};
+
+// ------------------------------------------------------------------
 const AuthService = {
+
   // Login user
-  login: async (credentials) => {
+  // rememberMe: boolean — passed from the checkbox on the login page
+  login: async (credentials, rememberMe = false) => {
     try {
       const response = await api.post('/api/v1/auth/login/', credentials);
       const { user, tokens } = response;
-      
-      // Store tokens
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('access_token', tokens.access);
-        localStorage.setItem('refresh_token', tokens.refresh);
-      }
-      
+
+      storeTokens(tokens, rememberMe);
       return user;
     } catch (error) {
       console.error('Login error:', error);
@@ -26,13 +59,8 @@ const AuthService = {
     try {
       const response = await api.post('/api/v1/auth/register/', credentials);
       const { user, tokens } = response;
-      
-      // Store tokens
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('access_token', tokens.access);
-        localStorage.setItem('refresh_token', tokens.refresh);
-      }
-      
+      // New registrations always remember (they just signed up)
+      storeTokens(tokens, true);
       return user;
     } catch (error) {
       console.error('Registration error:', error);
@@ -41,21 +69,53 @@ const AuthService = {
   },
 
   // Partner login
-  partnerLogin: async (credentials) => {
+  partnerLogin: async (credentials, rememberMe = false) => {
     try {
       const response = await api.post('/api/v1/auth/partner/login/', credentials);
       const { user, tokens } = response;
-      
-      // Store tokens
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('access_token', tokens.access);
-        localStorage.setItem('refresh_token', tokens.refresh);
-      }
-      
+      storeTokens(tokens, rememberMe);
       return user;
     } catch (error) {
       console.error('Partner login error:', error);
       throw error;
+    }
+  },
+
+  // Reset password — no auth required
+  // Payload: { phone_number, new_password, confirm_password }
+  // Backend: PasswordResetView → PasswordResetSerializer
+  resetPassword: async (resetData) => {
+    try {
+      const response = await api.post('/api/v1/auth/password-reset/', resetData);
+      return response;
+    } catch (error) {
+      console.error('Password reset error:', error);
+      throw error;
+    }
+  },
+
+  // Change password (authenticated user)
+  changePassword: async (changeData) => {
+    try {
+      const response = await api.put('/api/v1/auth/password/change/', changeData);
+      return response;
+    } catch (error) {
+      console.error('Password change error:', error);
+      throw error;
+    }
+  },
+
+  // Log out — blacklist refresh token on backend, then clear local storage
+  logout: async () => {
+    try {
+      const refreshToken = AuthService.getRefreshToken();
+      if (refreshToken) {
+        await api.post('/api/v1/auth/logout/', { refresh: refreshToken });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      clearTokens();
     }
   },
 
@@ -103,85 +163,39 @@ const AuthService = {
     }
   },
 
-  // Get partner profile (for partners)
+  // Partner profile methods
   getPartnerProfile: async () => {
     try {
-      const response = await api.get('/api/v1/auth/partner/profile/');
-      return response;
+      return await api.get('/api/v1/auth/partner/profile/');
     } catch (error) {
       console.error('Get partner profile error:', error);
       throw error;
     }
   },
 
-  // Update partner profile
   updatePartnerProfile: async (profileData) => {
     try {
-      const response = await api.put('/api/v1/auth/partner/profile/', profileData);
-      return response;
+      return await api.put('/api/v1/auth/partner/profile/', profileData);
     } catch (error) {
       console.error('Update partner profile error:', error);
       throw error;
     }
   },
 
-  // Get partner referrals
   getPartnerReferrals: async () => {
     try {
-      const response = await api.get('/api/v1/auth/partner/referrals/');
-      return response;
+      return await api.get('/api/v1/auth/partner/referrals/');
     } catch (error) {
       console.error('Get partner referrals error:', error);
       throw error;
     }
   },
 
-  // Get partner statistics
   getPartnerStatistics: async () => {
     try {
-      const response = await api.get('/api/v1/auth/partner/statistics/');
-      return response;
+      return await api.get('/api/v1/auth/partner/statistics/');
     } catch (error) {
       console.error('Get partner statistics error:', error);
-      throw error;
-    }
-  },
-
-  // Log out user
-  logout: async () => {
-    try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        await api.post('/api/v1/auth/logout/', { refresh: refreshToken });
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-      }
-    }
-  },
-
-  // Reset password
-  resetPassword: async (resetData) => {
-    try {
-      const response = await api.post('/api/v1/auth/password-reset/', resetData);
-      return response;
-    } catch (error) {
-      console.error('Password reset error:', error);
-      throw error;
-    }
-  },
-
-  // Change password
-  changePassword: async (changeData) => {
-    try {
-      const response = await api.put('/api/v1/auth/password/change/', changeData);
-      return response;
-    } catch (error) {
-      console.error('Password change error:', error);
       throw error;
     }
   },
@@ -189,31 +203,24 @@ const AuthService = {
   // Get current user data
   getCurrentUser: async () => {
     try {
-      const response = await api.get('/api/v1/auth/me/');
-      return response;
+      return await api.get('/api/v1/auth/me/');
     } catch (error) {
       console.error('Get user info error:', error);
       return null;
     }
   },
 
-  // Check if user is authenticated
+  // Check if user is authenticated (token present in either storage)
   isAuthenticated: () => {
     if (typeof window === 'undefined') return false;
-    return !!localStorage.getItem('access_token');
+    return !!(
+      localStorage.getItem('access_token') ||
+      sessionStorage.getItem('access_token')
+    );
   },
 
-  // Get stored access token
-  getAccessToken: () => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('access_token');
-  },
-
-  // Get stored refresh token
-  getRefreshToken: () => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('refresh_token');
-  },
+  getAccessToken: () => readToken('access_token'),
+  getRefreshToken: () => readToken('refresh_token'),
 };
 
 export default AuthService;
