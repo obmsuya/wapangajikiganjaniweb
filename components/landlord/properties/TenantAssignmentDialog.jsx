@@ -25,6 +25,7 @@ import {
   useExistingTenantRegistration,
 } from "@/hooks/landlord/useTenantAssignment";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -143,12 +144,12 @@ function PhoneInput({ value, onChange, disabled, error }) {
     <div className="space-y-1.5">
       <div className="relative">
         {/* Fixed +255 prefix */}
-        <div className="absolute left-0 top-0 bottom-0 flex items-center pl-3 pointer-events-none select-none">
-          <span className="text-base leading-none">🇹🇿</span>
+        <div className="absolute left-0 top-0 bottom-0 flex items-center pl-4 pointer-events-none select-none justify-center">
+          <span className="text-base mb-1">🇹🇿</span>
           <span className="ml-1.5 text-sm font-medium text-foreground">+255</span>
           <span className="ml-1.5 h-5 w-px bg-border" />
         </div>
-        <input
+        <Input
           type="tel"
           inputMode="numeric"
           placeholder="712 433 665"
@@ -156,9 +157,9 @@ function PhoneInput({ value, onChange, disabled, error }) {
           onChange={handleChange}
           onBlur={() => setTouched(true)}
           disabled={disabled}
+          variant="outline"
           maxLength={11} /* 9 digits + 2 spaces */
-          className={`flex h-10 w-full rounded-md border bg-background pl-[5.5rem] pr-3 py-2 text-sm
-                      placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
+          className={`flex w-full border bg-background pl-[5.5rem] pr-3
                       focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50
                       ${displayError ? "border-destructive focus-visible:ring-destructive" : "border-input"}`}
         />
@@ -187,7 +188,7 @@ function RentInput({ id, placeholder, value, onChange, disabled, error }) {
   };
 
   return (
-    <input
+    <Input
       id={id}
       type="text"
       inputMode="numeric"
@@ -195,26 +196,7 @@ function RentInput({ id, placeholder, value, onChange, disabled, error }) {
       value={value}
       onChange={handleChange}
       disabled={disabled}
-      className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm
-                  placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
-                  focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50
-                  ${error ? "border-destructive focus-visible:ring-destructive" : "border-input"}`}
-    />
-  );
-}
-
-// ─── plain text / date input ──────────────────────────────────────────────────
-
-function TextInput({ id, type = "text", placeholder, value, onChange, disabled, error }) {
-  return (
-    <input
-      id={id} type={type} placeholder={placeholder}
-      value={value} onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-      className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm
-                  placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
-                  focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50
-                  ${error ? "border-destructive focus-visible:ring-destructive" : "border-input"}`}
+      className={`px-4 ${error ? "border-destructive focus-visible:ring-destructive" : "border-input"}`}
     />
   );
 }
@@ -229,7 +211,7 @@ function RentCalculator({ monthlyRent, frequency, mode }) {
   if (!total) return null;
 
   return (
-    <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 space-y-2">
+    <div className="rounded-3xl border border-blue-200 bg-blue-50 px-6 py-4 space-y-2">
       <p className="text-xs font-semibold text-blue-800 flex items-center gap-1.5">
         <Calculator className="w-3.5 h-3.5" />
         {mode === "new" ? "Rent summary" : "Rent summary (pre-system)"}
@@ -305,12 +287,7 @@ function FrequencyPicker({ value, onChange, disabled }) {
             ? <><ChevronUp className="w-3 h-3 mr-1" /> Show less</>
             : <><ChevronDown className="w-3 h-3 mr-1" /> Show all 24</>}
         </Button>
-        {selected && (
-          <span className="text-xs text-muted-foreground">
-            Selected:{" "}
-            <span className="font-medium text-foreground">{selected.fullLabel}</span>
-          </span>
-        )}
+        
       </div>
     </div>
   );
@@ -540,7 +517,7 @@ export default function TenantAssignmentDialog({
 
               {/* full name */}
               <Field icon={User} label="Tenant Full Name" error={fieldErrors.full_name}>
-                <TextInput
+                <Input
                   id="full_name" placeholder="e.g. Amina Juma"
                   value={sharedName} disabled={loading}
                   error={!!fieldErrors.full_name}
@@ -616,7 +593,7 @@ export default function TenantAssignmentDialog({
                   error={fieldErrors.start_date}
                   hint="The date the tenant is starting their lease."
                 >
-                  <TextInput
+                  <Input
                     id="start_date" type="date"
                     value={newForm.start_date} disabled={loading}
                     error={!!fieldErrors.start_date}
@@ -643,7 +620,7 @@ export default function TenantAssignmentDialog({
                     error={fieldErrors.original_move_in_date}
                     hint="The date the tenant first moved in — even if years ago."
                   >
-                    <TextInput
+                    <Input
                       id="original_move_in_date" type="date"
                       value={exForm.original_move_in_date} disabled={loading}
                       error={!!fieldErrors.original_move_in_date}
