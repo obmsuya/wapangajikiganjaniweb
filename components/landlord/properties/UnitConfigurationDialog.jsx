@@ -45,7 +45,7 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
         setOccupancyForm({
           rent_amount: unit.rent_amount || 0,
           payment_frequency: Number(unit.payment_frequency || unit.payment_freq || 1),
-          original_move_in_date: unit.move_in_date || unit.current_tenant?.move_in_date|| "",
+          original_move_in_date: unit.move_in_date || unit.current_tenant?.move_in_date || "",
         });
       }
     }
@@ -117,7 +117,7 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Edit {unit.unit_name}</DialogTitle>
           <DialogDescription>
@@ -127,7 +127,7 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
 
           {/* ── Unit name — always editable ─────────────────────── */}
           <div>
@@ -183,7 +183,7 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
                   <SelectContent>
                     {Array.from({ length: 24 }, (_, i) => String(i + 1)).map((v) => (
                       <SelectItem key={v} value={v}>
-                        {v === "1" ? "1 month" : `${v} months`}
+                        {v === "1" ? "Monthly (1 month)" : `${v} months`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -205,11 +205,20 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>
+        <DialogFooter className="flex flex-row gap-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isSaving}
+            className="flex-1"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex-1"
+          >
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
