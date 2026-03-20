@@ -1039,7 +1039,6 @@ export default function PropertyPaymentsTab({ property, floorData }) {
                 <Button
                   onClick={() => setShowRecordDialog(true)}
                   className="flex-1 sm:flex-none"
-                  disabled={occupiedUnits.length === 0}
                 >
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Record Payment
