@@ -114,31 +114,29 @@ function CategoryIcon({ category }) {
 // occupancies = all units the tenant has across all properties
 // The tenant picks which unit this request is for INSIDE the dialog.
 
-function SubmitDialog({ open, onOpenChange, occupancies, onSuccess }) {
+function SubmitDialog({ open, onOpenChange, occupancies, defaultUnitId, onSuccess }) {
   const { submitMaintenanceRequest, loading } = useMaintenanceRequestStore();
 
-  const defaultUnitId = occupancies[0]?.unit_id ?? "";
-
   const [form, setForm] = useState({
-    unit_id:     String(defaultUnitId),
+    unit_id:     String(defaultUnitId ?? occupancies[0]?.unit_id ?? ""),
     title:       "",
     description: "",
     category:    "",
     priority:    "medium",
   });
 
-  // Reset on open — default to first unit
+  // Reset on open — seed unit from whichever unit tab was active
   useEffect(() => {
     if (open) {
       setForm({
-        unit_id:     String(occupancies[0]?.unit_id ?? ""),
+        unit_id:     String(defaultUnitId ?? occupancies[0]?.unit_id ?? ""),
         title:       "",
         description: "",
         category:    "",
         priority:    "medium",
       });
     }
-  }, [open, occupancies]);
+  }, [open, occupancies, defaultUnitId]);
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -324,69 +322,120 @@ function SubmitDialog({ open, onOpenChange, occupancies, onSuccess }) {
 }
 
 // ─── Detail dialog ─────────────────────────────────────────────────────────────
+// Fetches full request detail (including all landlord responses) when opened.
 
 function DetailDialog({ request, open, onOpenChange }) {
-  if (!request) return null;
+  const { fetchMaintenanceRequestDetail } = useMaintenanceRequestStore();
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch full detail including responses when dialog opens
+  useEffect(() => {
+    if (open && request?.id) {
+      setLoading(true);
+      fetchMaintenanceRequestDetail(request.id)
+        .then(d => setDetail(d ?? request))
+        .catch(() => setDetail(request))
+        .finally(() => setLoading(false));
+    }
+    if (!open) setDetail(null);
+  }, [open, request?.id]);
+
+  // Use fetched detail, fall back to the row data while loading
+  const r = detail ?? request;
+  if (!r) return null;
+
+  // responses is an array from the detail endpoint
+  const responses = Array.isArray(r.responses) ? r.responses : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <CategoryIcon category={request.category} />
-            {request.title}
-          </DialogTitle>
-          <DialogDescription>
-            {request.property_info?.unit_name} · {request.property_info?.property_name ?? ""}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-md max-h-[90dvh] flex flex-col overflow-hidden p-0">
 
-        <div className="space-y-4 text-sm mt-1">
-          {/* Status + priority row */}
-          <div className="flex items-center gap-3">
-            <StatusBadge status={request.status} />
-            <PriorityBadge priority={request.priority} />
+        {/* Pinned header */}
+        <div className="px-5 pt-5 pb-3 flex-shrink-0 border-b">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base leading-snug">
+              <CategoryIcon category={r.category} />
+              {r.title}
+            </DialogTitle>
+            <DialogDescription>
+              {r.property_info?.unit_name} · {r.property_info?.property_name ?? ""}
+            </DialogDescription>
+          </DialogHeader>
+          {/* Status + priority always visible */}
+          <div className="flex items-center gap-2 mt-3">
+            <StatusBadge status={r.status} />
+            <PriorityBadge priority={r.priority} />
           </div>
+        </div>
 
-          <Separator />
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 text-sm">
 
-          {/* Description */}
+          {loading && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              <span className="text-xs">Loading details…</span>
+            </div>
+          )}
+
+          {/* Original description */}
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-            <p className="leading-relaxed">{request.message || request.description}</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
+              Your report
+            </p>
+            <p className="leading-relaxed text-foreground">{r.message || r.description}</p>
           </div>
 
-          <Separator />
-
-          {/* Meta */}
-          <div className="grid grid-cols-2 gap-3 text-xs">
+          {/* Meta grid */}
+          <div className="grid grid-cols-2 gap-3 text-xs rounded-lg bg-muted/40 border p-3">
             <div>
               <p className="text-muted-foreground">Submitted</p>
-              <p className="font-medium">{fmtDate(request.created_at)}</p>
+              <p className="font-medium">{fmtDate(r.created_at)}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Category</p>
-              <p className="font-medium capitalize">{request.category}</p>
+              <p className="font-medium capitalize">{r.category}</p>
             </div>
-            {request.updated_at && request.updated_at !== request.created_at && (
+            {r.updated_at && r.updated_at !== r.created_at && (
               <div>
                 <p className="text-muted-foreground">Last updated</p>
-                <p className="font-medium">{fmtDate(request.updated_at)}</p>
+                <p className="font-medium">{fmtDate(r.updated_at)}</p>
               </div>
             )}
+            <div>
+              <p className="text-muted-foreground">Unit</p>
+              <p className="font-medium">{r.property_info?.unit_name ?? "—"}</p>
+            </div>
           </div>
 
-          {/* Landlord response */}
-          {request.response && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                  Response from landlord
-                </p>
-                <p className="leading-relaxed">{request.response}</p>
-              </div>
-            </>
+          {/* Responses thread — each landlord reply shown as a card */}
+          {responses.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Landlord {responses.length === 1 ? "reply" : `replies (${responses.length})`}
+              </p>
+              {responses.map((resp, i) => (
+                <div key={resp.id ?? i}
+                  className="rounded-lg border-l-2 border-primary bg-primary/5 pl-3 pr-3 py-2.5 space-y-1">
+                  <p className="text-xs text-muted-foreground">{fmtDate(resp.created_at)}</p>
+                  <p className="leading-relaxed">{resp.message}</p>
+                  {resp.status && resp.status !== r.status && (
+                    <div className="pt-1">
+                      <StatusBadge status={resp.status} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* No response yet */}
+          {!loading && responses.length === 0 && (
+            <div className="rounded-lg border border-dashed px-4 py-3 text-xs text-muted-foreground text-center">
+              No reply from your landlord yet. You'll be notified when they respond.
+            </div>
           )}
         </div>
       </DialogContent>
@@ -396,7 +445,7 @@ function DetailDialog({ request, open, onOpenChange }) {
 
 // ─── Compact DataTable ────────────────────────────────────────────────────────
 
-function RequestsTable({ data, onRowClick }) {
+function RequestsTable({ data, onRowClick, showUnitColumn = false }) {
   const [sortField, setSortField] = useState("created_at");
   const [sortDir,   setSortDir]   = useState("desc");
   const [search,    setSearch]    = useState("");
@@ -458,7 +507,9 @@ function RequestsTable({ data, onRowClick }) {
                   Issue <SortIcon field="title" />
                 </button>
               </TableHead>
-              <TableHead className="hidden sm:table-cell text-xs font-medium">Unit</TableHead>
+              {showUnitColumn && (
+                <TableHead className="hidden sm:table-cell text-xs font-medium">Unit</TableHead>
+              )}
               <TableHead className="hidden sm:table-cell">
                 <button className="flex items-center font-medium text-xs"
                   onClick={() => toggleSort("priority")}>
@@ -482,9 +533,10 @@ function RequestsTable({ data, onRowClick }) {
           <TableBody>
             {paged.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-28 text-center text-muted-foreground text-sm">
+                <TableCell colSpan={showUnitColumn ? 6 : 5}
+                  className="h-28 text-center text-muted-foreground text-sm">
                   {data.length === 0
-                    ? "No maintenance requests yet. Use the button above to report an issue."
+                    ? "No requests yet. Use the button above to report an issue."
                     : "Nothing matches your search."}
                 </TableCell>
               </TableRow>
@@ -503,12 +555,20 @@ function RequestsTable({ data, onRowClick }) {
                     <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                       {row.message || row.description}
                     </p>
+                    {/* Show response indicator when there's a landlord reply */}
+                    {(row.has_responses || row.responses_count > 0) && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-primary mt-0.5">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Landlord replied
+                      </span>
+                    )}
                   </TableCell>
-                  {/* Which unit this request belongs to */}
-                  <TableCell className="hidden sm:table-cell">
-                    <p className="text-xs font-medium">{row.property_info?.unit_name ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground">{row.property_info?.property_name ?? ""}</p>
-                  </TableCell>
+                  {showUnitColumn && (
+                    <TableCell className="hidden sm:table-cell">
+                      <p className="text-xs font-medium">{row.property_info?.unit_name ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground">{row.property_info?.property_name ?? ""}</p>
+                    </TableCell>
+                  )}
                   <TableCell className="hidden sm:table-cell">
                     <PriorityBadge priority={row.priority} />
                   </TableCell>
@@ -547,12 +607,14 @@ function RequestsTable({ data, onRowClick }) {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function TenantMaintenancePage() {
-  const [occupancies,   setOccupancies]   = useState([]);
-  const [pageLoading,   setPageLoading]   = useState(true);
-  const [pageError,     setPageError]     = useState(null);
-  const [showSubmit,    setShowSubmit]    = useState(false);
-  const [detailRequest, setDetailRequest] = useState(null);
-  const [showDetail,    setShowDetail]    = useState(false);
+  const [occupancies,     setOccupancies]     = useState([]);
+  // selectedUnitId = null means "all units"; a string means filter to that unit
+  const [selectedUnitId,  setSelectedUnitId]  = useState(null);
+  const [pageLoading,     setPageLoading]     = useState(true);
+  const [pageError,       setPageError]       = useState(null);
+  const [showSubmit,      setShowSubmit]      = useState(false);
+  const [detailRequest,   setDetailRequest]   = useState(null);
+  const [showDetail,      setShowDetail]      = useState(false);
 
   const {
     requests,
@@ -569,6 +631,8 @@ export default function TenantMaintenancePage() {
         const res = await TenantPaymentService.getCurrentOccupancy();
         if (res.success && res.occupancies?.length > 0) {
           setOccupancies(res.occupancies);
+          // Default: show all units
+          setSelectedUnitId(null);
         }
       } catch {
         setPageError("Could not load your property information.");
@@ -578,7 +642,7 @@ export default function TenantMaintenancePage() {
     })();
   }, []);
 
-  // Load ALL requests across all units on mount
+  // Reload requests whenever unit filter changes
   useEffect(() => {
     fetchMaintenanceRequests("all");
   }, [fetchMaintenanceRequests]);
@@ -590,18 +654,29 @@ export default function TenantMaintenancePage() {
     setShowDetail(true);
   };
 
+  // Filter requests by selected unit (client-side — requests for all units are loaded once)
+  const visibleRequests = useMemo(() => {
+    if (!selectedUnitId) return requests;
+    return requests.filter(r => {
+      // The API returns property_info with unit_id in metadata
+      const uid = r.property_info?.unit_id ?? r.metadata?.unit_id;
+      return uid != null && String(uid) === String(selectedUnitId);
+    });
+  }, [requests, selectedUnitId]);
+
   const counts = useMemo(() => ({
-    total:       requests.length,
-    pending:     requests.filter(r => r.status === "pending").length,
-    in_progress: requests.filter(r => r.status === "in_progress").length,
-    completed:   requests.filter(r => r.status === "completed").length,
-  }), [requests]);
+    total:       visibleRequests.length,
+    pending:     visibleRequests.filter(r => r.status === "pending").length,
+    in_progress: visibleRequests.filter(r => r.status === "in_progress").length,
+    completed:   visibleRequests.filter(r => r.status === "completed").length,
+  }), [visibleRequests]);
 
   const breadcrumbItems = [
     { label: "Dashboard", href: "/tenant" },
     { label: "Maintenance" },
   ];
 
+  // ── loading ──
   if (pageLoading) {
     return (
       <div className="space-y-6">
@@ -615,6 +690,7 @@ export default function TenantMaintenancePage() {
     );
   }
 
+  // ── no unit ──
   if (pageError || !occupancies.length) {
     return (
       <div className="space-y-6">
@@ -634,14 +710,10 @@ export default function TenantMaintenancePage() {
     <div className="space-y-5">
       <CloudflareBreadcrumbs items={breadcrumbItems} />
 
-      {/* Header — no unit selector here; unit selection belongs in the submit dialog */}
+      {/* ── Header ─────────────────────────────────────────────────── */}
       <CloudflarePageHeader
         title="Maintenance"
-        description={
-          occupancies.length === 1
-            ? `${occupancies[0].unit_name} · ${occupancies[0].property_name}`
-            : `${occupancies.length} units across your properties`
-        }
+        description="Report issues and track repairs for your units"
         actions={
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={() => setShowSubmit(true)}>
@@ -656,7 +728,49 @@ export default function TenantMaintenancePage() {
         }
       />
 
-      {/* Stats */}
+      {/* ── Unit tabs — only shown when tenant has multiple units ──── */}
+      {/* This is the core navigation: tenant switches between units to
+          see requests per unit, and can see "All" across all units.   */}
+      {occupancies.length > 1 && (
+        <div className="flex items-center gap-1 flex-wrap">
+          <button
+            onClick={() => setSelectedUnitId(null)}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border
+              ${!selectedUnitId
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}
+          >
+            All units
+          </button>
+          {occupancies.map(o => (
+            <button
+              key={o.unit_id}
+              onClick={() => setSelectedUnitId(String(o.unit_id))}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium
+                transition-colors border
+                ${String(selectedUnitId) === String(o.unit_id)
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              {o.unit_name}
+              <span className="text-xs opacity-70">· {o.property_name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Single unit — show as a simple context line, no tabs needed */}
+      {occupancies.length === 1 && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Building2 className="h-4 w-4" />
+          <span className="font-medium text-foreground">{occupancies[0].unit_name}</span>
+          <span>·</span>
+          <span>{occupancies[0].property_name}</span>
+        </div>
+      )}
+
+      {/* ── Stats — scoped to selected unit view ─────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Total",       value: counts.total       },
@@ -671,25 +785,34 @@ export default function TenantMaintenancePage() {
         ))}
       </div>
 
-      {/* Requests table — all units, all requests */}
+      {/* ── Requests DataTable ─────────────────────────────────────── */}
       <div className="rounded-lg border bg-card">
         <div className="flex items-center justify-between px-5 py-3 border-b">
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <Wrench className="h-4 w-4 text-muted-foreground" />
-            All Requests
+            {selectedUnitId
+              ? `Requests — ${occupancies.find(o => String(o.unit_id) === selectedUnitId)?.unit_name ?? "Unit"}`
+              : "All Requests"}
           </h3>
-          <span className="text-xs text-muted-foreground">Click any row to see details</span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            Click any row to see details
+          </span>
         </div>
         <div className="p-5">
-          <RequestsTable data={requests} onRowClick={handleRowClick} />
+          <RequestsTable
+            data={visibleRequests}
+            onRowClick={handleRowClick}
+            showUnitColumn={!selectedUnitId && occupancies.length > 1}
+          />
         </div>
       </div>
 
-      {/* Dialogs */}
+      {/* ── Dialogs ───────────────────────────────────────────────── */}
       <SubmitDialog
         open={showSubmit}
         onOpenChange={setShowSubmit}
         occupancies={occupancies}
+        defaultUnitId={selectedUnitId}
         onSuccess={handleRequestSuccess}
       />
 
