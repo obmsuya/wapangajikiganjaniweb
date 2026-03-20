@@ -567,18 +567,11 @@ const PropertyService = {
       }
 
       const formattedData = {
-        unit_name: unitData.unit_name,
-        rooms: unitData.rooms || 1,           
-        rent_amount: parseFloat(unitData.rent_amount) || 0,
-        payment_freq: unitData.payment_freq || '1',  
-        status: unitData.status || 'available'       
+        unit_name: unitData.unit_name,   
       };
-
-      console.log(`Updating unit ${unitId} with data:`, formattedData);
       
       const response = await api.patch(`/api/v1/svg_properties/units/${unitId}/`, formattedData);
       
-      console.log('Unit updated successfully:', response);
       return response;
     } catch (error) {
       console.error(`Error updating unit ${unitId}:`, error);
