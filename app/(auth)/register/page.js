@@ -1,7 +1,7 @@
 // app/(auth)/register/page.jsx - Simplified & Fixed
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
