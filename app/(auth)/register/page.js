@@ -61,6 +61,8 @@ export default function RegisterPage() {
     referral_code: "",
   });
   const [errors, setErrors] = useState({});
+  const [referralStatus, setReferralStatus] = useState(null);
+  const [referralPartnerName, setReferralPartnerName] = useState("");
   const referralCodeDigitsRef = useRef(Array(8).fill(""));
   const referralInputsRef = useRef([]);
 
@@ -120,6 +122,13 @@ export default function RegisterPage() {
     for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
     setReferralDigits(next);
     referralInputsRef.current[Math.min(pasted.length, 7)]?.focus();
+  };
+
+  const referralBoxClass = () => {
+    const base = "h-12 w-10 text-center text-lg font-semibold uppercase tracking-widest rounded-md border focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100 transition-colors";
+    if (referralStatus === "valid")   return `${base} border-green-500`;
+    if (referralStatus === "invalid") return `${base} border-red-400`;
+    return `${base} border-gray-300 dark:border-gray-700`;
   };
 
   const handleChange = (e) => {
