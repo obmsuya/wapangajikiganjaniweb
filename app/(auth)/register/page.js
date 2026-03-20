@@ -64,65 +64,68 @@ export default function RegisterPage() {
   const referralCodeDigitsRef = useRef(Array(8).fill(""));
   const referralInputsRef = useRef([]);
 
+// Auto-validate when all 8 boxes are filled
+  useEffect(() => {
+    const code = referralCodeDigitsRef.current.join("");
+
+    // Reset if not fully filled yet
+    if (code.length < 8) {
+      setReferralStatus(null);
+      setReferralPartnerName("");
+      return;
+    }
+
+    setReferralStatus("checking");
+    AuthService.validateReferralCode(code)
+      .then((res) => {
+        if (res.valid) {
+          setReferralStatus("valid");
+          setReferralPartnerName(res.partner?.full_name || "");
+        } else {
+          setReferralStatus("invalid");
+          setReferralPartnerName("");
+        }
+      })
+      .catch(() => {
+        setReferralStatus("invalid");
+        setReferralPartnerName("");
+      });
+  }, [formData.referral_code]); // runs every time the joined code string changes
+
   const setReferralDigits = (nextDigits) => {
     referralCodeDigitsRef.current = nextDigits;
-    const joined = nextDigits.join("");
-    setFormData((prev) => ({ ...prev, referral_code: joined }));
+    setFormData(prev => ({ ...prev, referral_code: nextDigits.join("") }));
   };
 
   const handleReferralChange = (index, value) => {
-    const char = value
-      .replace(/[^a-zA-Z]/g, "")
-      .slice(0, 1)
-      .toUpperCase();
-    const nextDigits = [...referralCodeDigitsRef.current];
-    nextDigits[index] = char;
-    setReferralDigits(nextDigits);
+    const char = value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 1).toUpperCase();
+    const next  = [...referralCodeDigitsRef.current];
+    next[index] = char;
+    setReferralDigits(next);
     if (char && index < referralInputsRef.current.length - 1) {
       referralInputsRef.current[index + 1]?.focus();
     }
   };
 
   const handleReferralKeyDown = (index, e) => {
-    if (
-      e.key === "Backspace" &&
-      !referralCodeDigitsRef.current[index] &&
-      index > 0
-    ) {
-      referralInputsRef.current[index - 1]?.focus();
-    }
-    if (e.key === "ArrowLeft" && index > 0) {
-      referralInputsRef.current[index - 1]?.focus();
-    }
-    if (
-      e.key === "ArrowRight" &&
-      index < referralInputsRef.current.length - 1
-    ) {
-      referralInputsRef.current[index + 1]?.focus();
-    }
+    if (e.key === "Backspace" && !referralCodeDigitsRef.current[index] && index > 0)     referralInputsRef.current[index - 1]?.focus();
+    if (e.key === "ArrowLeft"  && index > 0)                                             referralInputsRef.current[index - 1]?.focus();
+    if (e.key === "ArrowRight" && index < referralInputsRef.current.length - 1)         referralInputsRef.current[index + 1]?.focus();
   };
 
   const handleReferralPaste = (e) => {
-    const pasted = e.clipboardData
-      .getData("text")
-      .replace(/[^a-zA-Z]/g, "")
-      .slice(0, 8)
-      .toUpperCase();
+    const pasted = e.clipboardData.getData("text").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase();
     if (!pasted) return;
-    const nextDigits = Array(8).fill("");
-    for (let i = 0; i < pasted.length; i++) {
-      nextDigits[i] = pasted[i];
-    }
-    setReferralDigits(nextDigits);
+    const next = Array(8).fill("");
+    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
+    setReferralDigits(next);
     referralInputsRef.current[Math.min(pasted.length, 7)]?.focus();
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: null }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const validateForm = () => {
@@ -397,33 +400,43 @@ export default function RegisterPage() {
                       )}
                   </div>
 
-                  {/* Referral Code (optional) */}
+                         {/* Referral Code */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
-                      Referral Code (optional)
+                      Referral Code <span className="text-muted-foreground font-normal">(optional)</span>
                     </label>
-                    <div
-                      className="flex items-center gap-2 justify-between"
-                      onPaste={handleReferralPaste}
-                    >
+
+                    <div className="flex items-center gap-3" onPaste={handleReferralPaste}>
                       {Array.from({ length: 8 }).map((_, i) => (
-                        <Input
+                        <input
                           key={i}
                           inputMode="text"
                           maxLength={1}
                           value={referralCodeDigitsRef.current[i]}
-                          onChange={(e) =>
-                            handleReferralChange(i, e.target.value)
-                          }
+                          onChange={(e) => handleReferralChange(i, e.target.value)}
                           onKeyDown={(e) => handleReferralKeyDown(i, e)}
                           ref={(el) => (referralInputsRef.current[i] = el)}
-                          className="text-center md:text-lg uppercase tracking-widest w-8 h-8 md:h-12 md:w-12"
+                          className={referralBoxClass()}
                         />
                       ))}
+
+                      {/* Status icon — appears once all 8 are filled */}
+                      {referralStatus === "checking" && <Loader2     className="w-5 h-5 text-muted-foreground animate-spin flex-shrink-0" />}
+                      {referralStatus === "valid"    && <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />}
+                      {referralStatus === "invalid"  && <XCircle     className="w-5 h-5 text-red-400 flex-shrink-0" />}
                     </div>
-                    {formData.referral_code && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Code: {formData.referral_code}
+
+                    {/* Status message */}
+                    {referralStatus === "valid" && (
+                      <p className="mt-2 text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Valid code{referralPartnerName ? ` — referred by ${referralPartnerName}` : ""}
+                      </p>
+                    )}
+                    {referralStatus === "invalid" && (
+                      <p className="mt-2 text-xs text-red-500 flex items-center gap-1">
+                        <XCircle className="w-3 h-3" />
+                        This referral code does not exist. Please double-check and try again.
                       </p>
                     )}
                   </div>
