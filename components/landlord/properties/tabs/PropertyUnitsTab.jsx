@@ -57,12 +57,14 @@ export default function PropertyUnitsTab({
             unique_unit_id: `${floor.floor_number}-${unit.unit_name}`,
             floor_name: `Floor ${floor.floor_number}`,
             floor_number: floor.floor_number,
-            current_tenant: associatedTenant || null,
+            current_tenant: associatedTenant || unit.current_tenant || null,
+            occupancy_id: associatedTenant?.occupancy_id || unit.occupancy_id || null,
+            payment_frequency: associatedTenant?.payment_frequency || unit.payment_frequency || unit.payment_freq || "1",
+            move_in_date: associatedTenant?.move_in_date || unit.move_in_date || null,
+            payment_status: associatedTenant?.payment_status || unit.payment_status || null,
             occupancy_status: associatedTenant ? "Occupied" : "Vacant",
             status: associatedTenant ? "occupied" : unit.status || "available",
-            rent_amount: associatedTenant
-              ? associatedTenant.rent_amount
-              : unit.rent_amount,
+            rent_amount: associatedTenant?.rent_amount || unit.rent_amount,
           });
         });
       }

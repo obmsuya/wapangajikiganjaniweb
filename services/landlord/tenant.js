@@ -30,9 +30,9 @@ const TenantService = {
     return api.get(`/api/v1/tenants/tenant-unit/${unitId}/`);
   },
 
-  getRentDue:       () => api.get("/api/v1/tenants/rent/due/"),
-  getLandlordInfo:  () => api.get("/api/v1/tenants/landlord/info/"),
-  getPaymentHistory:() => api.get("/api/v1/tenants/payment/history/"),
+  getRentDue: () => api.get("/api/v1/tenants/rent/due/"),
+  getLandlordInfo: () => api.get("/api/v1/tenants/landlord/info/"),
+  getPaymentHistory: () => api.get("/api/v1/tenants/payment/history/"),
 
   // ── assign new tenant ───────────────────────────────────────────────────────
 
@@ -86,31 +86,37 @@ const TenantService = {
 
   validateTenantAssignment: (data) => {
     const errors = [];
-    if (!data.unit_id)                              errors.push("Unit selection is required");
-    if (!data.full_name?.trim())                    errors.push("Tenant name is required");
-    if (!data.phone_number?.trim())                 errors.push("Phone number is required");
+    if (!data.unit_id) errors.push("Unit selection is required");
+    if (!data.full_name?.trim()) errors.push("Tenant name is required");
+    if (!data.phone_number?.trim()) errors.push("Phone number is required");
     if (!data.rent_amount || data.rent_amount <= 0) errors.push("Rent amount is required");
-    if (!data.payment_frequency)                    errors.push("Payment schedule is required");
+    if (!data.payment_frequency) errors.push("Payment schedule is required");
     return { isValid: errors.length === 0, errors };
   },
 
   // ── display helpers ─────────────────────────────────────────────────────────
 
   formatTenantForDisplay: (t) => ({
-    id:               t.id,
-    // support both nested tenant object and flat structure
-    name:             t.tenant?.full_name     || t.full_name    || "No Name",
-    phone:            t.tenant?.phone_number  || t.phone_number || "No Phone",
-    status:           t.tenant?.status        || t.status       || "active",
-    unit_name:        t.unit_name             || "No Unit",
-    floor_name:       t.floor_name            || `Floor ${t.floor_number || 1}`,
-    rent_amount:      t.rent_amount           || 0,
-    payment_frequency:t.payment_frequency     || "1",
-    move_in_date:     t.move_in_date          || t.tenant?.move_in_date || null,
-    next_payment_date:t.next_payment_date     || null,
-    // include occupancy id so the edit dialog can PATCH
-    occupancy_id:     t.occupancy_id          || null,
+    id: t.id,
+    tenant: t.tenant,                              // keep full nested object
+    name: t.tenant?.full_name || t.full_name || "No Name",
+    phone: t.tenant?.phone_number || t.phone_number || "No Phone",
+    status: t.tenant?.status || t.status || "active",
+    unit_id: t.unit_id || null,
+    unit_name: t.unit_name || "No Unit",
+    unit_svg_id: t.unit_svg_id || null,
+    floor_number: t.floor_number || 1,
+    floor_name: t.floor_name || `Floor ${t.floor_number || 1}`,
+    rent_amount: t.rent_amount || 0,
+    payment_frequency: t.payment_frequency || "1",
+    move_in_date: t.move_in_date || t.tenant?.move_in_date || null,
+    next_payment_date: t.next_payment_date || null,
+    occupancy_id: t.occupancy_id || null,
+    occupancy_status: t.occupancy_status || null,
+    payment_status: t.payment_status || null,      
+    payment_details: t.payment_details || null,
   }),
+
 };
 
 export default TenantService;
