@@ -169,19 +169,19 @@ export default function PropertyDetailsPage({ params }) {
             // Ensure current_tenant is properly formatted
             current_tenant: unit.current_tenant
               ? {
-                  id: unit.current_tenant.id,
-                  full_name: unit.current_tenant.full_name,
-                  phone_number: unit.current_tenant.phone_number,
-                  email: unit.current_tenant.email,
-                  move_in_date: unit.current_tenant.move_in_date,
-                  status: unit.current_tenant.status || "active",
-                  emergency_contact_name:
-                    unit.current_tenant.emergency_contact_name,
-                  emergency_contact_phone:
-                    unit.current_tenant.emergency_contact_phone,
-                  emergency_contact_relationship:
-                    unit.current_tenant.emergency_contact_relationship,
-                }
+                id: unit.current_tenant.id,
+                full_name: unit.current_tenant.full_name,
+                phone_number: unit.current_tenant.phone_number,
+                email: unit.current_tenant.email,
+                move_in_date: unit.current_tenant.move_in_date,
+                status: unit.current_tenant.status || "active",
+                emergency_contact_name:
+                  unit.current_tenant.emergency_contact_name,
+                emergency_contact_phone:
+                  unit.current_tenant.emergency_contact_phone,
+                emergency_contact_relationship:
+                  unit.current_tenant.emergency_contact_relationship,
+              }
               : null,
             // Ensure unit status is correct based on tenant presence
             status: unit.current_tenant
@@ -227,13 +227,13 @@ export default function PropertyDetailsPage({ params }) {
               floor.grid_configuration ||
               (floor.layout_data
                 ? {
-                    grid_size: 8,
-                    cell_size: 40,
-                    selected_cells: processedUnits
-                      .map((unit) => unit.svg_id)
-                      .filter((id) => id !== undefined),
-                    layout_type: "manual_grid",
-                  }
+                  grid_size: 8,
+                  cell_size: 40,
+                  selected_cells: processedUnits
+                    .map((unit) => unit.svg_id)
+                    .filter((id) => id !== undefined),
+                  layout_type: "manual_grid",
+                }
                 : null),
 
             // Units details for editing
@@ -248,8 +248,10 @@ export default function PropertyDetailsPage({ params }) {
               svg_geom: unit.svg_geom,
               floor_number: unit.floor_number,
               utilities: unit.utilities || {},
-              payment_freq: unit.payment_freq || "1",
               occupancy_id: unit.occupancy_id || null,
+              payment_frequency: unit.payment_freq || "1",   // occupancy freq for dialog
+              move_in_date: unit.current_tenant?.move_in_date || null,
+              payment_status: unit.payment_status || null,
             })),
           };
         }

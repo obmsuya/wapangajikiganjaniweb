@@ -43,11 +43,9 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
       // Occupancy fields — sourced from occupancy, NOT from the unit table
       if (isOccupied) {
         setOccupancyForm({
-          rent_amount:           unit.rent_amount         || 0,
-          payment_frequency:     Number(unit.payment_frequency || unit.payment_freq || 1),
-          original_move_in_date: unit.move_in_date
-                                 || unit.current_tenant?.move_in_date
-                                 || "",
+          rent_amount: unit.rent_amount || 0,
+          payment_frequency: Number(unit.payment_frequency || unit.payment_freq || 1),
+          original_move_in_date: unit.move_in_date || unit.current_tenant?.move_in_date|| "",
         });
       }
     }
@@ -81,7 +79,7 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
         // If occupied, patch the occupancy record — nothing else touches the unit table
         if (isOccupied && unit.occupancy_id) {
           const occupancyPayload = {
-            rent_amount:           parseFloat(occupancyForm.rent_amount) || 0,
+            rent_amount: parseFloat(occupancyForm.rent_amount) || 0,
             original_move_in_date: occupancyForm.original_move_in_date || undefined,
           };
 
