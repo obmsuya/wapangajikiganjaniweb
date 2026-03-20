@@ -248,7 +248,8 @@ export default function PropertyDetailsPage({ params }) {
               svg_geom: unit.svg_geom,
               floor_number: unit.floor_number,
               utilities: unit.utilities || {},
-              payment_freq: unit.payment_freq || "monthly",
+              payment_freq: unit.payment_freq || "1",
+              occupancy_id: unit.occupancy_id || null,
             })),
           };
         }

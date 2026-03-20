@@ -209,7 +209,7 @@ const PropertyService = {
             utilities: unit.utilities || {},
             rent_amount: unit.rent_amount || 0,
             unit_name: unit.unit_name || `Unit ${unit.unit_number || 1}`,
-            payment_freq: unit.payment_freq || 'monthly'
+            payment_freq: unit.payment_freq || '1'
           }))
         };
       });
