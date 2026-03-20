@@ -53,10 +53,10 @@ const CATEGORIES = [
 ];
 
 const PRIORITIES = [
-  { value: "low",    label: "Low",    variant: "outline"    },
-  { value: "medium", label: "Medium", variant: "secondary"  },
-  { value: "high",   label: "High",   variant: "destructive" },
-  { value: "urgent", label: "Urgent", variant: "destructive" },
+  { value: "low",    label: "Low",    dot: "bg-green-500",  variant: "outline"     },
+  { value: "medium", label: "Medium", dot: "bg-yellow-500", variant: "secondary"   },
+  { value: "high",   label: "High",   dot: "bg-orange-500", variant: "destructive" },
+  { value: "urgent", label: "Urgent", dot: "bg-red-600",    variant: "destructive" },
 ];
 
 const STATUSES = {
@@ -88,7 +88,8 @@ function StatusBadge({ status }) {
 function PriorityBadge({ priority }) {
   const p = PRIORITIES.find(x => x.value === priority) ?? PRIORITIES[1];
   return (
-    <Badge variant={p.variant} className="text-xs capitalize">
+    <Badge variant={p.variant} className="text-xs gap-1.5 capitalize">
+      <span className={`inline-block w-1.5 h-1.5 rounded-full ${p.dot}`} />
       {p.label}
     </Badge>
   );
@@ -110,27 +111,46 @@ function CategoryIcon({ category }) {
 }
 
 // ─── Submit dialog ─────────────────────────────────────────────────────────────
+// occupancies = all units the tenant has across all properties
+// The tenant picks which unit this request is for INSIDE the dialog.
 
-function SubmitDialog({ open, onOpenChange, occupancy, onSuccess }) {
+function SubmitDialog({ open, onOpenChange, occupancies, onSuccess }) {
   const { submitMaintenanceRequest, loading } = useMaintenanceRequestStore();
+
+  const defaultUnitId = occupancies[0]?.unit_id ?? "";
+
   const [form, setForm] = useState({
-    title: "", description: "", category: "", priority: "medium",
+    unit_id:     String(defaultUnitId),
+    title:       "",
+    description: "",
+    category:    "",
+    priority:    "medium",
   });
 
-  // Reset on open
+  // Reset on open — default to first unit
   useEffect(() => {
-    if (open) setForm({ title: "", description: "", category: "", priority: "medium" });
-  }, [open]);
+    if (open) {
+      setForm({
+        unit_id:     String(occupancies[0]?.unit_id ?? ""),
+        title:       "",
+        description: "",
+        category:    "",
+        priority:    "medium",
+      });
+    }
+  }, [open, occupancies]);
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
-  const canSubmit = form.title.trim() && form.description.trim() && form.category && !loading;
+
+  const selectedOcc = occupancies.find(o => String(o.unit_id) === form.unit_id);
+  const canSubmit   = form.unit_id && form.title.trim() && form.description.trim() && form.category && !loading;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
 
     const result = await submitMaintenanceRequest({
-      unit_id:     occupancy.unit_id,
+      unit_id:     parseInt(form.unit_id),
       title:       form.title.trim(),
       description: form.description.trim(),
       category:    form.category,
@@ -148,28 +168,68 @@ function SubmitDialog({ open, onOpenChange, occupancy, onSuccess }) {
     }
   };
 
-  if (!occupancy) return null;
+  if (!occupancies.length) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wrench className="h-5 w-5 text-primary" />
-            Report an Issue
-          </DialogTitle>
-          <DialogDescription>
-            {occupancy.unit_name} · {occupancy.property_name}
-          </DialogDescription>
-        </DialogHeader>
+      {/*
+        max-h keeps the dialog from overflowing even with long text.
+        The form body scrolls; header and footer are pinned.
+      */}
+      <DialogContent className="max-w-lg flex flex-col max-h-[90dvh] overflow-hidden p-0">
+        {/* Pinned header */}
+        <div className="px-6 pt-6 pb-4 flex-shrink-0">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5 text-primary" />
+              Report an Issue
+            </DialogTitle>
+            <DialogDescription>
+              Your landlord will be notified once you submit.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-1">
+        {/* Scrollable form body */}
+        <form id="submit-maintenance" onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto px-6 space-y-4 pb-2">
 
-          {/* Title */}
+          {/* Unit selector — the reason the dropdown exists */}
+          {occupancies.length > 1 ? (
+            <div className="space-y-1.5">
+              <Label>Which unit is this for? *</Label>
+              <Select value={form.unit_id} onValueChange={v => set("unit_id", v)} disabled={loading}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {occupancies.map(o => (
+                    <SelectItem key={o.unit_id} value={String(o.unit_id)}>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-medium">{o.unit_name}</span>
+                        <span className="text-muted-foreground text-xs">· {o.property_name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            /* Single unit — show as read-only context, no selector needed */
+            <div className="flex items-center gap-2 text-sm text-muted-foreground rounded-md bg-muted/40 border px-3 py-2">
+              <Building2 className="h-4 w-4 flex-shrink-0" />
+              <span className="font-medium text-foreground">{selectedOcc?.unit_name}</span>
+              <span>·</span>
+              <span>{selectedOcc?.property_name}</span>
+            </div>
+          )}
+
+          {/* Problem title */}
           <div className="space-y-1.5">
-            <Label htmlFor="title">What's the problem? *</Label>
+            <Label htmlFor="m-title">What's the problem? *</Label>
             <Input
-              id="title"
+              id="m-title"
               placeholder="e.g. Leaking tap in kitchen"
               value={form.title}
               onChange={e => set("title", e.target.value)}
@@ -207,18 +267,23 @@ function SubmitDialog({ open, onOpenChange, occupancy, onSuccess }) {
                 </SelectTrigger>
                 <SelectContent>
                   {PRIORITIES.map(p => (
-                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                    <SelectItem key={p.value} value={p.value}>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${p.dot}`} />
+                        {p.label}
+                      </div>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Description */}
+          {/* Details */}
           <div className="space-y-1.5">
-            <Label htmlFor="description">Details *</Label>
+            <Label htmlFor="m-desc">Details *</Label>
             <Textarea
-              id="description"
+              id="m-desc"
               placeholder="Describe the issue — when it started, how often it happens, anything else useful."
               value={form.description}
               onChange={e => set("description", e.target.value)}
@@ -229,7 +294,7 @@ function SubmitDialog({ open, onOpenChange, occupancy, onSuccess }) {
             />
           </div>
 
-          {/* Urgent warning */}
+          {/* Urgent warning — inline, not blocking */}
           {form.priority === "urgent" && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -238,20 +303,21 @@ function SubmitDialog({ open, onOpenChange, occupancy, onSuccess }) {
               </AlertDescription>
             </Alert>
           )}
-
-          <div className="flex gap-3 pt-1">
-            <Button type="button" variant="outline" className="flex-1"
-              onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" className="flex-1" disabled={!canSubmit}>
-              {loading
-                ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Sending…</>
-                : <><Send className="h-4 w-4 mr-2" />Send Request</>
-              }
-            </Button>
-          </div>
         </form>
+
+        {/* Pinned footer — always visible even with long text */}
+        <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0">
+          <Button type="button" variant="outline" className="flex-1"
+            onClick={() => onOpenChange(false)} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" form="submit-maintenance" className="flex-1" disabled={!canSubmit}>
+            {loading
+              ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Sending…</>
+              : <><Send className="h-4 w-4 mr-2" />Send Request</>
+            }
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -392,6 +458,7 @@ function RequestsTable({ data, onRowClick }) {
                   Issue <SortIcon field="title" />
                 </button>
               </TableHead>
+              <TableHead className="hidden sm:table-cell text-xs font-medium">Unit</TableHead>
               <TableHead className="hidden sm:table-cell">
                 <button className="flex items-center font-medium text-xs"
                   onClick={() => toggleSort("priority")}>
@@ -437,6 +504,11 @@ function RequestsTable({ data, onRowClick }) {
                       {row.message || row.description}
                     </p>
                   </TableCell>
+                  {/* Which unit this request belongs to */}
+                  <TableCell className="hidden sm:table-cell">
+                    <p className="text-xs font-medium">{row.property_info?.unit_name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">{row.property_info?.property_name ?? ""}</p>
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <PriorityBadge priority={row.priority} />
                   </TableCell>
@@ -475,13 +547,12 @@ function RequestsTable({ data, onRowClick }) {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function TenantMaintenancePage() {
-  const [occupancies,        setOccupancies]        = useState([]);
-  const [selectedOccupancy,  setSelectedOccupancy]  = useState(null);
-  const [pageLoading,        setPageLoading]        = useState(true);
-  const [pageError,          setPageError]          = useState(null);
-  const [showSubmit,         setShowSubmit]         = useState(false);
-  const [detailRequest,      setDetailRequest]      = useState(null);
-  const [showDetail,         setShowDetail]         = useState(false);
+  const [occupancies,   setOccupancies]   = useState([]);
+  const [pageLoading,   setPageLoading]   = useState(true);
+  const [pageError,     setPageError]     = useState(null);
+  const [showSubmit,    setShowSubmit]    = useState(false);
+  const [detailRequest, setDetailRequest] = useState(null);
+  const [showDetail,    setShowDetail]    = useState(false);
 
   const {
     requests,
@@ -490,7 +561,7 @@ export default function TenantMaintenancePage() {
     refreshData,
   } = useMaintenanceRequestStore();
 
-  // Load occupancies once
+  // Load all occupancies for this tenant once
   useEffect(() => {
     (async () => {
       try {
@@ -498,9 +569,6 @@ export default function TenantMaintenancePage() {
         const res = await TenantPaymentService.getCurrentOccupancy();
         if (res.success && res.occupancies?.length > 0) {
           setOccupancies(res.occupancies);
-          setSelectedOccupancy(res.occupancies[0]);
-        } else {
-          setOccupancies([]);
         }
       } catch {
         setPageError("Could not load your property information.");
@@ -510,21 +578,18 @@ export default function TenantMaintenancePage() {
     })();
   }, []);
 
-  // Load requests whenever occupancy changes
+  // Load ALL requests across all units on mount
   useEffect(() => {
-    if (selectedOccupancy) fetchMaintenanceRequests("all");
-  }, [selectedOccupancy, fetchMaintenanceRequests]);
+    fetchMaintenanceRequests("all");
+  }, [fetchMaintenanceRequests]);
 
-  const handleRequestSuccess = () => {
-    refreshData("all");
-  };
+  const handleRequestSuccess = () => refreshData("all");
 
   const handleRowClick = (request) => {
     setDetailRequest(request);
     setShowDetail(true);
   };
 
-  // ── stat counts ──
   const counts = useMemo(() => ({
     total:       requests.length,
     pending:     requests.filter(r => r.status === "pending").length,
@@ -537,12 +602,11 @@ export default function TenantMaintenancePage() {
     { label: "Maintenance" },
   ];
 
-  // ── loading ──
   if (pageLoading) {
     return (
       <div className="space-y-6">
         <CloudflareBreadcrumbs items={breadcrumbItems} />
-        <CloudflarePageHeader title="Maintenance" description="Loading your unit…" />
+        <CloudflarePageHeader title="Maintenance" description="Loading…" />
         <div className="flex items-center justify-center py-16 gap-2 text-muted-foreground">
           <RefreshCw className="h-5 w-5 animate-spin" />
           <span className="text-sm">Loading…</span>
@@ -551,8 +615,7 @@ export default function TenantMaintenancePage() {
     );
   }
 
-  // ── no unit ──
-  if (pageError || !selectedOccupancy) {
+  if (pageError || !occupancies.length) {
     return (
       <div className="space-y-6">
         <CloudflareBreadcrumbs items={breadcrumbItems} />
@@ -571,39 +634,20 @@ export default function TenantMaintenancePage() {
     <div className="space-y-5">
       <CloudflareBreadcrumbs items={breadcrumbItems} />
 
-      {/* ── Page header — unit context inline, action in header ───── */}
+      {/* Header — no unit selector here; unit selection belongs in the submit dialog */}
       <CloudflarePageHeader
         title="Maintenance"
-        description={`${selectedOccupancy.unit_name} · ${selectedOccupancy.property_name}`}
+        description={
+          occupancies.length === 1
+            ? `${occupancies[0].unit_name} · ${occupancies[0].property_name}`
+            : `${occupancies.length} units across your properties`
+        }
         actions={
           <div className="flex items-center gap-2">
-            {/* Multi-unit selector — only shown when needed */}
-            {occupancies.length > 1 && (
-              <Select
-                value={String(selectedOccupancy.unit_id)}
-                onValueChange={(v) => {
-                  const occ = occupancies.find(o => o.unit_id === parseInt(v));
-                  if (occ) setSelectedOccupancy(occ);
-                }}
-              >
-                <SelectTrigger className="w-44 h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {occupancies.map(o => (
-                    <SelectItem key={o.unit_id} value={String(o.unit_id)}>
-                      {o.unit_name} · {o.property_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
             <Button size="sm" onClick={() => setShowSubmit(true)}>
               <Plus className="h-4 w-4 mr-1.5" />
               Report Issue
             </Button>
-
             <Button size="icon" variant="outline" className="h-9 w-9"
               onClick={() => refreshData("all")} disabled={requestsLoading}>
               <RefreshCw className={`h-4 w-4 ${requestsLoading ? "animate-spin" : ""}`} />
@@ -612,13 +656,13 @@ export default function TenantMaintenancePage() {
         }
       />
 
-      {/* ── Quick stats — 4 small tiles, no heavy cards ──────────── */}
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total",       value: counts.total,       },
-          { label: "Pending",     value: counts.pending,     },
-          { label: "In progress", value: counts.in_progress, },
-          { label: "Completed",   value: counts.completed,   },
+          { label: "Total",       value: counts.total       },
+          { label: "Pending",     value: counts.pending     },
+          { label: "In progress", value: counts.in_progress },
+          { label: "Completed",   value: counts.completed   },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-lg border bg-card px-4 py-3">
             <p className="text-2xl font-bold">{value}</p>
@@ -627,27 +671,25 @@ export default function TenantMaintenancePage() {
         ))}
       </div>
 
-      {/* ── Requests DataTable ────────────────────────────────────── */}
+      {/* Requests table — all units, all requests */}
       <div className="rounded-lg border bg-card">
         <div className="flex items-center justify-between px-5 py-3 border-b">
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <Wrench className="h-4 w-4 text-muted-foreground" />
-            Your Requests
+            All Requests
           </h3>
-          <span className="text-xs text-muted-foreground">
-            Click any row to see details
-          </span>
+          <span className="text-xs text-muted-foreground">Click any row to see details</span>
         </div>
         <div className="p-5">
           <RequestsTable data={requests} onRowClick={handleRowClick} />
         </div>
       </div>
 
-      {/* ── Dialogs ──────────────────────────────────────────────── */}
+      {/* Dialogs */}
       <SubmitDialog
         open={showSubmit}
         onOpenChange={setShowSubmit}
-        occupancy={selectedOccupancy}
+        occupancies={occupancies}
         onSuccess={handleRequestSuccess}
       />
 
