@@ -85,7 +85,7 @@ function PaymentDetailDialog({ payment, open, onOpenChange, getColor }) {
         </DialogHeader>
 
         <div className="space-y-4 text-sm">
-          <div className="rounded-lg border bg-card p-4 space-y-3">
+          <div className="rounded-3xl border bg-card p-4 space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Status</span>
               {statusBadge(payment.status, getColor)}

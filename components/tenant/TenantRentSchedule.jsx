@@ -133,11 +133,12 @@ function ScheduleDetailDialog({ schedule, open, onOpenChange, onPayNow }) {
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          <Button variant="outline" className="w-fit" onClick={() => onOpenChange(false)}>Close</Button>
           {!isPaid && (
             <Button
               onClick={() => { onPayNow(schedule); onOpenChange(false); }}
               variant={isOverdue ? "destructive" : "default"}
+              className="flex-1"
             >
               <CreditCard className="h-4 w-4 mr-2" />
               Pay Now
