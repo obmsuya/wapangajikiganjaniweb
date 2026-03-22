@@ -277,7 +277,7 @@ export default function PropertiesPage() {
               Get started by adding your first property. You can manage tenants, 
               collect rent, and track everything in one place.
             </p>
-            <Button onClick={handleNavigateToSetup} size="lg">
+            <Button onClick={handleNavigateToSetup} className="w-fit">
               <Plus className="w-5 h-5 mr-2" />
               Add Your First Property
             </Button>
