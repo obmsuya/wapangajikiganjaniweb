@@ -1,4 +1,3 @@
-// hooks/properties/useProperties.js
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -30,35 +29,32 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
       const memory = {};
       existingProperty.property_floor.forEach(floor => {
         const floorNumber = floor.floor_no + 1;
-        
         const units_ids = [];
         if (floor.units_floor && Array.isArray(floor.units_floor)) {
           floor.units_floor.forEach(unit => {
-            if (unit.svg_id !== undefined) {
-              units_ids.push(unit.svg_id);
-            }
+            if (unit.svg_id !== undefined) units_ids.push(unit.svg_id);
           });
         }
-        
         memory[floorNumber] = {
           floor_number: floorNumber,
-          units_ids: units_ids,
+          units_ids,
           units_total: floor.units_total || units_ids.length,
           layout_data: floor.layout_data,
           layout_type: floor.layout_type || 'manual_grid',
           creation_method: floor.layout_creation_method || 'manual',
           configured: units_ids.length > 0,
-          units_with_tenants: floor.units_floor ? floor.units_floor
-            .filter(unit => unit.current_tenant)
-            .map(unit => ({
-              svg_id: unit.svg_id,
-              tenant_name: unit.current_tenant.full_name,
-              tenant_id: unit.current_tenant.id,
-              unit_name: unit.unit_name
-            })) : []
+          units_with_tenants: floor.units_floor
+            ? floor.units_floor
+                .filter(unit => unit.current_tenant)
+                .map(unit => ({
+                  svg_id: unit.svg_id,
+                  tenant_name: unit.current_tenant.full_name,
+                  tenant_id: unit.current_tenant.id,
+                  unit_name: unit.unit_name
+                }))
+            : []
         };
       });
-      
       setFloorMemory(memory);
     }
   }, [existingProperty]);
@@ -86,11 +82,8 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
       setFloorMemory(prev => {
         const currentFloors = Object.keys(prev).length;
         const newFloorCount = propertyData.total_floors;
-        
         if (currentFloors === newFloorCount) return prev;
-        
         const updated = { ...prev };
-        
         if (newFloorCount > currentFloors) {
           for (let i = currentFloors + 1; i <= newFloorCount; i++) {
             updated[i] = {
@@ -111,7 +104,6 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
             setCurrentFloor(1);
           }
         }
-        
         return updated;
       });
     }
@@ -119,7 +111,6 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
 
   const loadFloorData = useCallback(async (floorNumber) => {
     setIsLoading(true);
-    
     try {
       if (selectedUnits.length > 0 && currentFloor !== floorNumber) {
         const currentFloorData = {
@@ -128,25 +119,18 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
           units_total: selectedUnits.length,
           configured: true
         };
-        
         setFloorMemory(prev => ({
           ...prev,
-          [currentFloor]: {
-            ...prev[currentFloor],
-            ...currentFloorData
-          }
+          [currentFloor]: { ...prev[currentFloor], ...currentFloorData }
         }));
       }
-      
       const floorData = floorMemory[floorNumber];
       if (floorData && floorData.units_ids) {
         setSelectedUnits([...floorData.units_ids]);
       } else {
         setSelectedUnits([]);
       }
-      
       setCurrentFloor(floorNumber);
-      
     } catch (error) {
       throw error;
     } finally {
@@ -156,10 +140,9 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
 
   const toggleUnit = useCallback((unitId) => {
     setSelectedUnits(prev => {
-      const newUnits = prev.includes(unitId) 
+      const newUnits = prev.includes(unitId)
         ? prev.filter(id => id !== unitId)
         : [...prev, unitId];
-      
       setFloorMemory(prevMemory => ({
         ...prevMemory,
         [currentFloor]: {
@@ -170,7 +153,6 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
           configured: newUnits.length > 0
         }
       }));
-      
       return newUnits;
     });
   }, [currentFloor]);
@@ -202,18 +184,14 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
 
   const generateSVGString = useCallback((units) => {
     if (!units || units.length === 0) return '';
-    
     const GRID_SIZE = 8;
     const CELL_SIZE = 40;
-    
     const svgElements = units.map((cellIndex, idx) => {
       const x = (cellIndex % GRID_SIZE) * CELL_SIZE;
       const y = Math.floor(cellIndex / GRID_SIZE) * CELL_SIZE;
-      
       return `<rect width="${CELL_SIZE}" height="${CELL_SIZE}" x="${x}" y="${y}" id="unit_${cellIndex}" fill="#3b82f6" stroke="#1e40af" stroke-width="2" />
               <text x="${x + CELL_SIZE/2}" y="${y + CELL_SIZE/2}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="12" font-weight="bold">${idx + 1}</text>`;
     }).join('\n');
-    
     return `<svg width="${GRID_SIZE * CELL_SIZE}" height="${GRID_SIZE * CELL_SIZE}" xmlns="http://www.w3.org/2000/svg">
               ${svgElements}
             </svg>`;
@@ -221,25 +199,20 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
 
   const generateLayoutPreview = useCallback((units) => {
     if (!units || units.length === 0) return null;
-    
     const GRID_SIZE = 8;
     const CELL_SIZE = 40;
-    
     const positions = units.map(cellIndex => ({
       x: cellIndex % GRID_SIZE,
       y: Math.floor(cellIndex / GRID_SIZE),
       cellIndex
     }));
-    
     const sortedUnits = [...units].sort((a, b) => a - b);
     const minX = Math.min(...positions.map(p => p.x));
     const maxX = Math.max(...positions.map(p => p.x));
     const minY = Math.min(...positions.map(p => p.y));
     const maxY = Math.max(...positions.map(p => p.y));
-    
     const width = maxX - minX + 1;
     const height = maxY - minY + 1;
-    
     let layoutType = 'custom';
     if (width === 1) layoutType = 'vertical_line';
     else if (height === 1) layoutType = 'horizontal_line';
@@ -247,9 +220,7 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
     else if (width > height * 1.5) layoutType = 'wide_rectangle';
     else if (height > width * 1.5) layoutType = 'tall_rectangle';
     else layoutType = 'rectangle';
-    
     const compactSVG = generateSVGString(units);
-    
     return {
       svg: compactSVG,
       units_count: units.length,
@@ -300,16 +271,10 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
         };
       })
     };
-    
-    setFloorMemory(prev => ({
-      ...prev,
-      [floor]: floorPlanData
-    }));
-    
+    setFloorMemory(prev => ({ ...prev, [floor]: floorPlanData }));
     if (updateFloorData) {
       updateFloorData(floor, floorPlanData);
     }
-    
     return floorPlanData;
   }, [selectedUnits, updateFloorData, generateLayoutPreview]);
 
@@ -319,14 +284,11 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
 
   const validateUnitDeletion = useCallback(async (floorNumber, cellIndex) => {
     if (!existingProperty) return false;
-    
     try {
       const floor = existingProperty.property_floor?.find(f => f.floor_no === floorNumber - 1);
       if (!floor || !floor.units_floor) return false;
-      
       const unit = floor.units_floor.find(u => u.svg_id === cellIndex);
       if (!unit) return false;
-      
       if (unit.current_tenant) {
         return {
           has_tenant: true,
@@ -336,7 +298,6 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
           message: `This unit is currently occupied by ${unit.current_tenant.full_name}. Please vacate the tenant before removing this unit.`
         };
       }
-      
       if (unit.id) {
         try {
           const tenantCheck = await TenantService.checkUnitTenant(unit.id);
@@ -353,7 +314,6 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
           console.error('Error checking unit tenant:', error);
         }
       }
-      
       return false;
     } catch (error) {
       console.error('Error validating unit deletion:', error);
@@ -363,7 +323,6 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
 
   const exportAllFloorsLayout = useCallback(() => {
     const allFloorsData = {};
-    
     Object.entries(floorMemory).forEach(([floorNum, floorData]) => {
       if (floorData && floorData.units_ids && floorData.units_ids.length > 0) {
         allFloorsData[floorNum] = {
@@ -376,7 +335,6 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
         };
       }
     });
-    
     return allFloorsData;
   }, [floorMemory]);
 
@@ -398,7 +356,6 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
   const validateFloorPlan = useCallback((floorNumber) => {
     const floorData = floorMemory[floorNumber];
     if (!floorData) return { valid: false, errors: ['Floor not configured'] };
-    
     const errors = [];
     if (!floorData.units_ids || floorData.units_ids.length === 0) {
       errors.push('No units selected for this floor');
@@ -409,7 +366,6 @@ export function useFloorPlan(updateFloorData, existingFloorData = {}, existingPr
     if (!floorData.layout_preview) {
       errors.push('Layout preview not generated');
     }
-    
     return { valid: errors.length === 0, errors };
   }, [floorMemory]);
 
@@ -449,9 +405,7 @@ export function usePropertyCreation() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  
   const saveInProgress = useRef(false);
-  
   const [propertyData, setPropertyData] = useState({
     name: '',
     location: '',
@@ -468,29 +422,20 @@ export function usePropertyCreation() {
   });
 
   const updatePropertyData = useCallback((updates) => {
-    setPropertyData(prev => ({
-      ...prev,
-      ...updates
-    }));
+    setPropertyData(prev => ({ ...prev, ...updates }));
   }, []);
 
   const updateFloorData = useCallback((floorNumber, floorData) => {
     setPropertyData(prev => ({
       ...prev,
-      floors: {
-        ...prev.floors,
-        [floorNumber]: floorData
-      }
+      floors: { ...prev.floors, [floorNumber]: floorData }
     }));
   }, []);
 
   const addUnitData = useCallback((unitData) => {
     setPropertyData(prev => ({
       ...prev,
-      units: {
-        ...prev.units,
-        [unitData.id]: unitData
-      }
+      units: { ...prev.units, [unitData.id]: unitData }
     }));
   }, []);
 
@@ -500,35 +445,22 @@ export function usePropertyCreation() {
 
   const getTotalUnits = useCallback(() => {
     return Object.values(propertyData.floors).reduce(
-      (total, floor) => total + (floor.units_total || 0), 
+      (total, floor) => total + (floor.units_total || 0),
       0
     );
   }, [propertyData.floors]);
 
-  const nextStep = useCallback(() => {
-    setCurrentStep(prev => prev + 1);
-  }, []);
-
-  const prevStep = useCallback(() => {
-    setCurrentStep(prev => prev - 1);
-  }, []);
-
-  const goToStep = useCallback((step) => {
-    setCurrentStep(step);
-  }, []);
+  const nextStep = useCallback(() => setCurrentStep(prev => prev + 1), []);
+  const prevStep = useCallback(() => setCurrentStep(prev => prev - 1), []);
+  const goToStep = useCallback((step) => setCurrentStep(step), []);
 
   const saveProperty = useCallback(async () => {
-    if (saveInProgress.current || isLoading) {
-      return;
-    }
-
+    if (saveInProgress.current || isLoading) return;
     saveInProgress.current = true;
     setIsLoading(true);
     setError(null);
-    
     try {
       const configuredUnits = getConfiguredUnits();
-      
       const formattedData = {
         owner: propertyData.owner,
         name: propertyData.name,
@@ -539,12 +471,10 @@ export function usePropertyCreation() {
         total_floors: propertyData.total_floors,
         total_area: propertyData.total_area,
         prop_image: propertyData.prop_image?.base64 || propertyData.prop_image || '',
-        
         floors: Object.keys(propertyData.floors).map((floorKey) => {
           const floor = parseInt(floorKey);
           const floorPlan = propertyData.floors[floor];
           const floorUnits = floorPlan.units_details || [];
-          
           return {
             floor: {
               floor_no: floor - 1,
@@ -557,10 +487,8 @@ export function usePropertyCreation() {
           };
         })
       };
-      
       const response = await PropertyService.saveProperty(formattedData);
       return response;
-      
     } catch (err) {
       console.error('Error saving property:', err);
       setError(err.message || 'Failed to save property');
@@ -620,30 +548,25 @@ export function usePropertiesList(initialFilters = {}) {
     try {
       setLoading(true);
       const response = await PropertyService.getProperties(filters);
-      
       let processedProperties = [];
-      
       if (Array.isArray(response)) {
         processedProperties = response;
       } else if (response.results && Array.isArray(response.results)) {
         processedProperties = response.results;
       }
-      
       processedProperties = processedProperties.map(property => {
         let totalUnits = 0;
         let occupiedUnits = 0;
-        
         if (property.property_floor && Array.isArray(property.property_floor)) {
           property.property_floor.forEach(floor => {
             if (floor.units_floor && Array.isArray(floor.units_floor)) {
               totalUnits += floor.units_floor.length;
-              occupiedUnits += floor.units_floor.filter(unit => 
+              occupiedUnits += floor.units_floor.filter(unit =>
                 unit.status === 'occupied' || unit.current_tenant
               ).length;
             }
           });
         }
-        
         return {
           ...property,
           calculated_total_units: totalUnits,
@@ -651,7 +574,6 @@ export function usePropertiesList(initialFilters = {}) {
           calculated_occupancy_rate: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0
         };
       });
-      
       setProperties(processedProperties);
       setError(null);
     } catch (err) {
@@ -664,10 +586,7 @@ export function usePropertiesList(initialFilters = {}) {
   }, [filters]);
 
   const updateFilters = useCallback((newFilters) => {
-    setFilters(prev => ({
-      ...prev,
-      ...newFilters
-    }));
+    setFilters(prev => ({ ...prev, ...newFilters }));
   }, []);
 
   const refreshProperties = useCallback(() => {
@@ -690,21 +609,39 @@ export function usePropertiesList(initialFilters = {}) {
 
 export function usePropertyDetails(propertyId) {
   const [property, setProperty] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [tenants,  setTenants]  = useState([]);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState(null);
 
   const fetchPropertyDetails = useCallback(async () => {
     if (!propertyId) return;
-
     try {
       setLoading(true);
-      const response = await PropertyService.getPropertyDetails(propertyId);
-      setProperty(response);
+
+      const [propertyResult, tenantsResult] = await Promise.allSettled([
+        PropertyService.getPropertyDetails(propertyId),
+        TenantService.getPropertyTenants(propertyId),
+      ]);
+
+      if (propertyResult.status === 'fulfilled') {
+        setProperty(propertyResult.value);
+      } else {
+        throw propertyResult.reason;
+      }
+
+      if (tenantsResult.status === 'fulfilled') {
+        const raw = tenantsResult.value;
+        setTenants(Array.isArray(raw) ? raw : (raw?.tenants ?? raw?.data?.tenants ?? []));
+      } else {
+        setTenants([]);
+      }
+
       setError(null);
     } catch (err) {
       console.error(`Error fetching property details for ID ${propertyId}:`, err);
       setError(err);
       setProperty(null);
+      setTenants([]);
     } finally {
       setLoading(false);
     }
@@ -722,8 +659,9 @@ export function usePropertyDetails(propertyId) {
 
   return {
     property,
+    tenants,
     loading,
     error,
-    refreshProperty
+    refreshProperty,
   };
 }

@@ -608,7 +608,7 @@ const PropertyService = {
       console.error(`Error updating unit status:`, error);
       throw error;
     }
-  }
+  },
 };
 
 export default PropertyService;

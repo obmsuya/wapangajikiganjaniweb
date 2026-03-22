@@ -35,10 +35,7 @@ import { toast } from "sonner";
 export default function PropertyDetailsPage({ params }) {
   const router = useRouter();
   const unwrappedParams = React.use(params);
-  const { property, loading, error, refreshProperty } = usePropertyDetails(
-    unwrappedParams.id,
-  );
-
+  const { property, tenants, loading, error, refreshProperty } = usePropertyDetails(unwrappedParams.id);
   const [activeTab, setActiveTab] = useState("overview");
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showTenantDetails, setShowTenantDetails] = useState(false);
@@ -425,6 +422,7 @@ export default function PropertyDetailsPage({ params }) {
           <PropertyPaymentsTab
             property={processedProperty}
             floorData={floorData}
+            tenants={tenants}
           />
         </TabsContent>
       </Tabs>
