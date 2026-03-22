@@ -68,7 +68,7 @@ export default function TenantDashboard() {
   const ActiveIcon = activeTabData?.icon;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5 max-w-7xl md:px-4 max-md:pb-20">
       <CloudflareBreadcrumbs items={breadcrumbItems} />
       <CloudflarePageHeader
         title="Tenant Dashboard"
@@ -113,7 +113,7 @@ export default function TenantDashboard() {
       {/* ── Content — full width, no sidebar ──────────────────────────── */}
       <div className="rounded-4xl border bg-card">
         {/* Subtle active tab context line */}
-        <div className="flex items-center gap-2 px-8 py-6 border-b">
+        <div className="flex items-center gap-2 px-4 md:px-8 py-6 border-b">
           {ActiveIcon && <ActiveIcon className="h-4 w-4 text-primary" />}
           <span className="text-base md:text-lg font-medium">{activeTabData?.label}</span>
           <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">
@@ -121,7 +121,7 @@ export default function TenantDashboard() {
           </span>
         </div>
 
-        <div className="p-6">
+        <div className="p-3 md:p-6">
           {isClient && ActiveComponent && (
             <ActiveComponent onPayNow={handlePayNow} />
           )}
