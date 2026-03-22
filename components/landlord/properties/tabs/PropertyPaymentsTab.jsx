@@ -8,9 +8,9 @@ import {
   User, Building2, CalendarDays, Receipt, Coins, CalendarClock,
   BadgeCheck, TrendingDown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Button }    from "@/components/ui/button";
+import { Input }     from "@/components/ui/input";
+import { Badge }     from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -18,9 +18,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Textarea }  from "@/components/ui/textarea";
+import { Label }     from "@/components/ui/label";
+import { Switch }    from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -44,10 +44,10 @@ function derivePaymentType(payment) {
 
 function PaymentTypeBadge({ type }) {
   const cfg = {
-    early: { Icon: CalendarClock, label: "Early", cls: "bg-blue-50   text-blue-700   border-blue-200" },
-    partial: { Icon: Coins, label: "Partial", cls: "bg-orange-50 text-orange-700 border-orange-200" },
-    full: { Icon: BadgeCheck, label: "Full", cls: "bg-green-50  text-green-700  border-green-200" },
-    landlord_entry: { Icon: Receipt, label: "Recorded", cls: "bg-purple-50 text-purple-700 border-purple-200" },
+    early:          { Icon: CalendarClock, label: "Early",    cls: "bg-blue-50   text-blue-700   border-blue-200"   },
+    partial:        { Icon: Coins,         label: "Partial",  cls: "bg-orange-50 text-orange-700 border-orange-200" },
+    full:           { Icon: BadgeCheck,    label: "Full",     cls: "bg-green-50  text-green-700  border-green-200"  },
+    landlord_entry: { Icon: Receipt,       label: "Recorded", cls: "bg-purple-50 text-purple-700 border-purple-200" },
   }[type];
   if (!cfg) return null;
   const { Icon, label, cls } = cfg;
@@ -60,10 +60,10 @@ function PaymentTypeBadge({ type }) {
 
 function PaymentStatusBadge({ status }) {
   const cfg = {
-    paid: { Icon: BadgeCheck, label: "Paid", cls: "bg-green-50  text-green-700  border-green-200" },
-    overdue: { Icon: AlertTriangle, label: "Overdue", cls: "bg-red-50    text-red-700    border-red-200" },
-    partial: { Icon: Coins, label: "Partial", cls: "bg-orange-50 text-orange-700 border-orange-200" },
-    due: { Icon: Clock, label: "Due", cls: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+    paid:    { Icon: BadgeCheck,    label: "Paid",    cls: "bg-green-50  text-green-700  border-green-200"  },
+    overdue: { Icon: AlertTriangle, label: "Overdue", cls: "bg-red-50    text-red-700    border-red-200"    },
+    partial: { Icon: Coins,         label: "Partial", cls: "bg-orange-50 text-orange-700 border-orange-200" },
+    due:     { Icon: Clock,         label: "Due",     cls: "bg-yellow-50 text-yellow-700 border-yellow-200" },
   }[status];
   if (!cfg) return <span className="text-xs text-muted-foreground">{status ?? "—"}</span>;
   const { Icon, label, cls } = cfg;
@@ -76,7 +76,7 @@ function PaymentStatusBadge({ status }) {
 
 function CycleProgressBar({ paid, total }) {
   if (!total || total <= 0) return null;
-  const pct = Math.min(100, Math.round((paid / total) * 100));
+  const pct   = Math.min(100, Math.round((paid / total) * 100));
   const color = pct === 100 ? "bg-green-500" : pct >= 50 ? "bg-orange-400" : "bg-red-400";
   return (
     <div className="space-y-1">
@@ -93,8 +93,8 @@ function CycleProgressBar({ paid, total }) {
 
 function PaymentHistoryTable({ columns, data, emptyMessage = "No payments found." }) {
   const [sortField, setSortField] = useState(null);
-  const [sortDir, setSortDir] = useState("asc");
-  const [page, setPage] = useState(1);
+  const [sortDir,   setSortDir]   = useState("asc");
+  const [page,      setPage]      = useState(1);
   const PAGE_SIZE = 10;
 
   const sorted = useMemo(() => {
@@ -111,7 +111,7 @@ function PaymentHistoryTable({ columns, data, emptyMessage = "No payments found.
   }, [data, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function handleSort(field) {
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -123,7 +123,7 @@ function PaymentHistoryTable({ columns, data, emptyMessage = "No payments found.
     if (sortField !== field)
       return <ChevronsUpDown className="ml-1 h-3.5 w-3.5 text-muted-foreground" />;
     return sortDir === "asc"
-      ? <ChevronUp className="ml-1 h-3.5 w-3.5" />
+      ? <ChevronUp   className="ml-1 h-3.5 w-3.5" />
       : <ChevronDown className="ml-1 h-3.5 w-3.5" />;
   }
 
@@ -175,7 +175,7 @@ function PaymentHistoryTable({ columns, data, emptyMessage = "No payments found.
             {Math.min(page * PAGE_SIZE, sorted.length)} of {sorted.length}
           </span>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+            <Button variant="outline" size="sm" disabled={page === 1}         onClick={() => setPage((p) => p - 1)}>Previous</Button>
             <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
           </div>
         </div>
@@ -191,7 +191,7 @@ function TenantStatusCard({ tenant, formatCurrency, onRecord }) {
   const borderBg = {
     overdue: "border-red-200    bg-red-50/40",
     partial: "border-orange-200 bg-orange-50/40",
-    due: "border-yellow-200 bg-yellow-50/40",
+    due:     "border-yellow-200 bg-yellow-50/40",
   }[status] ?? "border-border bg-muted/20";
 
   return (
@@ -248,7 +248,20 @@ function TenantStatusCard({ tenant, formatCurrency, onRecord }) {
   );
 }
 
-
+// ─────────────────────────────────────────────────────────────────────────────
+// RecordPaymentDialog
+//
+// FIX 1 — Dialog clipping:
+//   DialogContent gets overflow-hidden + p-0 so nothing bleeds outside the
+//   rounded border. Inside we build a flex column capped at 90dvh.
+//   Header and footer are flex-shrink-0 (never scroll).
+//   The body between them gets flex-1 + min-h-0 + overflow-y-auto so it
+//   scrolls without pushing the footer off-screen.
+//
+// FIX 2 — Dropdown width:
+//   SelectContent gets position="popper" and a min-w that matches the trigger
+//   but can grow wider to fit long unit names.
+// ─────────────────────────────────────────────────────────────────────────────
 function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, preselectedUnitId }) {
   const {
     fetchCycleBalance, clearCycleBalance,
@@ -257,9 +270,9 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
     formatCurrency,
   } = usePaymentTabStore();
 
-  const [unitId, setUnitId] = useState("");
-  const [amount, setAmount] = useState("");
-  const [notes, setNotes] = useState("");
+  const [unitId,       setUnitId]       = useState("");
+  const [amount,       setAmount]       = useState("");
+  const [notes,        setNotes]        = useState("");
   const [notifyTenant, setNotifyTenant] = useState(false);
 
   useEffect(() => {
@@ -275,24 +288,24 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
 
   useEffect(() => {
     if (unitId) { fetchCycleBalance(unitId); setAmount(""); }
-    else { clearCycleBalance(); }
+    else        { clearCycleBalance(); }
   }, [unitId, fetchCycleBalance, clearCycleBalance]);
 
   const selectedUnit = occupiedUnits.find((u) => String(u.unit_id) === String(unitId));
 
-  const amountNum = parseFloat(amount) || 0;
-  const amountDue = parseFloat(cycleBalance?.amount_due || 0);
-  const amountPaid = parseFloat(cycleBalance?.amount_paid || 0);
-  const remaining = parseFloat(cycleBalance?.amount_remaining || 0);
-  const isSettled = cycleBalance?.is_settled === true;
-  const isEarlyCycle = cycleBalance?.is_early === true;
+  const amountNum    = parseFloat(amount)  || 0;
+  const amountDue    = parseFloat(cycleBalance?.amount_due       || 0);
+  const amountPaid   = parseFloat(cycleBalance?.amount_paid      || 0);
+  const remaining    = parseFloat(cycleBalance?.amount_remaining || 0);
+  const isSettled    = cycleBalance?.is_settled === true;
+  const isEarlyCycle = cycleBalance?.is_early   === true;
   const isEarlyPayment = isSettled || isEarlyCycle;
-  const maxAllowed = isEarlyPayment ? parseFloat(selectedUnit?.rent_amount || 0) : remaining;
-  const newTotal = amountPaid + amountNum;
-  const willSettle = !isEarlyPayment && amountNum > 0 && newTotal >= amountDue;
-  const isPartial = !isEarlyPayment && amountNum > 0 && newTotal < amountDue;
-  const paymentType = isEarlyPayment ? "early" : willSettle ? "full" : isPartial ? "partial" : null;
-  const amountValid = amountNum > 0 && amountNum <= maxAllowed;
+  const maxAllowed   = isEarlyPayment ? parseFloat(selectedUnit?.rent_amount || 0) : remaining;
+  const newTotal     = amountPaid + amountNum;
+  const willSettle   = !isEarlyPayment && amountNum > 0 && newTotal >= amountDue;
+  const isPartial    = !isEarlyPayment && amountNum > 0 && newTotal <  amountDue;
+  const paymentType  = isEarlyPayment ? "early" : willSettle ? "full" : isPartial ? "partial" : null;
+  const amountValid  = amountNum > 0 && amountNum <= maxAllowed;
 
   const quickFillOptions = useMemo(() => {
     if (!cycleBalance) return [];
@@ -302,8 +315,8 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
       return [{ label: "Pay remaining", value: remaining }];
     }
     return [
-      { label: "25%", value: Math.floor((cap * 0.25) / 500) * 500 },
-      { label: "50%", value: Math.floor((cap * 0.50) / 500) * 500 },
+      { label: "25%",  value: Math.floor((cap * 0.25) / 500) * 500 },
+      { label: "50%",  value: Math.floor((cap * 0.50) / 500) * 500 },
       { label: "Full", value: cap },
     ].filter((o) => o.value > 0);
   }, [cycleBalance, isEarlyPayment, maxAllowed, remaining, amountPaid, amountDue]);
@@ -317,8 +330,8 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
         description: cs?.is_settled
           ? "This billing cycle is now fully settled."
           : isEarlyPayment
-            ? "Recorded as an early payment for the next cycle."
-            : `${formatCurrency(cs?.amount_remaining)} still outstanding this cycle.`,
+          ? "Recorded as an early payment for the next cycle."
+          : `${formatCurrency(cs?.amount_remaining)} still outstanding this cycle.`,
       });
       onOpenChange(false);
     } else {
@@ -328,24 +341,33 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md overflow-hidden p-0">
-        <div className="flex flex-col max-h-[90dvh]">
+      {/*
+        shadcn DialogContent uses `grid` internally. We override it to `flex`
+        with an inline style so our flex column layout actually controls the
+        height. p-0 removes internal padding so we own it completely.
+        max-h-[90dvh] caps the total height; the scrollable body fills the
+        remainder between the fixed header and footer.
+      */}
+      <DialogContent
+        className="max-w-md p-0 overflow-hidden gap-0"
+        style={{ display: "flex", flexDirection: "column", maxHeight: "90dvh" }}
+      >
+        {/* Fixed header */}
+        <div className="flex-shrink-0 px-6 pt-6 pb-3">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Record a Payment
+            </DialogTitle>
+            <DialogDescription>
+              Record cash or off-app payments instantly — no tenant confirmation
+              needed. Partial, full, and early payments are all supported.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-          <div className="flex-shrink-0 px-6 pt-6 pb-3">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Receipt className="h-5 w-5" />
-                Record a Payment
-              </DialogTitle>
-              <DialogDescription>
-                Record cash or off-app payments instantly — no tenant confirmation
-                needed. Partial, full, and early payments are all supported.
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-
-          {/* Scrollable body — min-h-0 is required for flex children to shrink */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-6 space-y-5 pb-4">
+        {/* Scrollable body */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 space-y-5 pb-2">
 
             {/* Unit picker */}
             <div className="space-y-1.5">
@@ -519,8 +541,8 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
                       {isEarlyPayment
                         ? "Advance payment for next cycle."
                         : willSettle
-                          ? "This will fully settle the current cycle."
-                          : `${formatCurrency(amountDue - newTotal)} will remain outstanding after this.`}
+                        ? "This will fully settle the current cycle."
+                        : `${formatCurrency(amountDue - newTotal)} will remain outstanding after this.`}
                     </span>
                   </div>
                 )}
@@ -545,7 +567,7 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1.5 text-sm font-medium">
                     {notifyTenant
-                      ? <Bell className="h-4 w-4" />
+                      ? <Bell    className="h-4 w-4" />
                       : <BellOff className="h-4 w-4 text-muted-foreground" />}
                     Notify tenant
                   </div>
@@ -567,21 +589,19 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
             )}
           </div>
 
-          {/* Fixed footer — always visible inside the dialog */}
-          <div className="flex-shrink-0 border-t px-6 py-4">
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={recordLoading}>
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={!unitId || !amountValid || recordLoading}>
-                {recordLoading
-                  ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Recording…</>
-                  : <><Check className="h-4 w-4 mr-2" />Record Payment</>}
-              </Button>
-            </DialogFooter>
-          </div>
-
+        {/* Fixed footer — always visible, no Cancel (X closes the dialog) */}
+        <div className="flex-shrink-0 border-t px-6 py-4">
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={!unitId || !amountValid || recordLoading}
+          >
+            {recordLoading
+              ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Recording…</>
+              : <><Check      className="h-4 w-4 mr-2" />Record Payment</>}
+          </Button>
         </div>
+
       </DialogContent>
     </Dialog>
   );
@@ -605,7 +625,7 @@ function ConfirmPaymentDialog({ open, onOpenChange, payment, action, onSubmit, l
             <div className={`p-1.5 rounded-lg ${isAccept ? "bg-green-100" : "bg-red-100"}`}>
               {isAccept
                 ? <CheckCircle2 className="h-5 w-5 text-green-600" />
-                : <XCircle className="h-5 w-5 text-red-600" />}
+                : <XCircle      className="h-5 w-5 text-red-600"   />}
             </div>
             {isAccept ? "Confirm you received this payment" : "Reject this payment"}
           </DialogTitle>
@@ -620,7 +640,7 @@ function ConfirmPaymentDialog({ open, onOpenChange, payment, action, onSubmit, l
           <div className="rounded-lg border bg-muted/30 p-4 space-y-2 text-sm">
             {[
               ["Tenant", payment.tenant_name],
-              ["Unit", `${payment.unit_name}${payment.floor_number != null ? ` · Floor ${payment.floor_number}` : ""}`],
+              ["Unit",   `${payment.unit_name}${payment.floor_number != null ? ` · Floor ${payment.floor_number}` : ""}`],
               ["Amount", <span key="amt" className="font-semibold text-base">{formatCurrency(payment.amount)}</span>],
               ["Period", `${new Date(payment.payment_period_start).toLocaleDateString()} – ${new Date(payment.payment_period_end).toLocaleDateString()}`],
             ].map(([label, value]) => (
@@ -662,17 +682,16 @@ function ConfirmPaymentDialog({ open, onOpenChange, payment, action, onSubmit, l
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
           <Button
             onClick={() => onSubmit(payment.id, action, rejectionReason)}
             disabled={loading || (!isAccept && !rejectionReason.trim())}
-            className={isAccept ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}
+            className={`w-full ${isAccept ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}`}
           >
             {loading
               ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Processing…</>
               : isAccept
-                ? <><Check className="h-4 w-4 mr-2" />Yes, I received it</>
-                : <><X className="h-4 w-4 mr-2" />Reject Payment</>}
+              ? <><Check className="h-4 w-4 mr-2" />Yes, I received it</>
+              : <><X     className="h-4 w-4 mr-2" />Reject Payment</>}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -725,11 +744,11 @@ function PaymentDetailDialog({ open, onOpenChange, payment }) {
             <Separator />
 
             {[
-              [<><User className="h-3.5 w-3.5 inline mr-1.5" />Tenant</>, payment.tenant_name],
-              [<><Building2 className="h-3.5 w-3.5 inline mr-1.5" />Unit</>, `${payment.unit_name}${payment.floor_number != null ? ` · Floor ${payment.floor_number}` : ""}`],
-              [<><Banknote className="h-3.5 w-3.5 inline mr-1.5" />Amount</>, <span key="a" className="font-semibold text-base">{formatCurrency(payment.amount)}</span>],
-              [<><CalendarDays className="h-3.5 w-3.5 inline mr-1.5" />Period</>, `${new Date(payment.payment_period_start).toLocaleDateString()} – ${new Date(payment.payment_period_end).toLocaleDateString()}`],
-              ["Recorded on", new Date(payment.created_at).toLocaleDateString()],
+              [<><User         className="h-3.5 w-3.5 inline mr-1.5" />Tenant</>  , payment.tenant_name],
+              [<><Building2    className="h-3.5 w-3.5 inline mr-1.5" />Unit</>    , `${payment.unit_name}${payment.floor_number != null ? ` · Floor ${payment.floor_number}` : ""}`],
+              [<><Banknote     className="h-3.5 w-3.5 inline mr-1.5" />Amount</>  , <span key="a" className="font-semibold text-base">{formatCurrency(payment.amount)}</span>],
+              [<><CalendarDays className="h-3.5 w-3.5 inline mr-1.5" />Period</>  , `${new Date(payment.payment_period_start).toLocaleDateString()} – ${new Date(payment.payment_period_end).toLocaleDateString()}`],
+              ["Recorded on"                                                        , new Date(payment.created_at).toLocaleDateString()],
             ].map(([label, value], i) => (
               <div key={i} className="flex justify-between">
                 <span className="text-muted-foreground">{label}</span>
@@ -766,20 +785,18 @@ function PaymentDetailDialog({ open, onOpenChange, payment }) {
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-        </DialogFooter>
+        <DialogFooter />
       </DialogContent>
     </Dialog>
   );
 }
 
 export default function PropertyPaymentsTab({ property, floorData, tenants }) {
-  const [showRecordDialog, setShowRecordDialog] = useState(false);
+  const [showRecordDialog,  setShowRecordDialog]  = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showDetailDialog, setShowDetailDialog] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
-  const [confirmAction, setConfirmAction] = useState("");
+  const [showDetailDialog,  setShowDetailDialog]  = useState(false);
+  const [selectedPayment,   setSelectedPayment]   = useState(null);
+  const [confirmAction,     setConfirmAction]     = useState("");
   const [preselectedUnitId, setPreselectedUnitId] = useState(null);
 
   const {
@@ -804,27 +821,27 @@ export default function PropertyPaymentsTab({ property, floorData, tenants }) {
         .filter((t) => t.occupancy_status === "active")
         .map((t) => {
           const lastPayment = t.payment_details?.last_payment;
-          const lastPaid = parseFloat(lastPayment?.amount || 0);
-          const rent = parseFloat(t.rent_amount || 0);
+          const lastPaid    = parseFloat(lastPayment?.amount || 0);
+          const rent        = parseFloat(t.rent_amount || 0);
           const outstanding = t.payment_status === "partial" && lastPaid > 0 && lastPaid < rent
             ? rent - lastPaid : 0;
           return {
-            unit_id: t.unit_id,
-            unit_name: t.unit_name,
-            floor_number: t.floor_number,
-            floor_name: t.floor_name ?? `Floor ${t.floor_number}`,
-            tenant_name: t.tenant?.full_name ?? t.tenant_name ?? "—",
-            rent_amount: rent,
-            payment_status: t.payment_status,
-            payment_details: t.payment_details,
-            next_payment_date: t.next_payment_date,
+            unit_id:            t.unit_id,
+            unit_name:          t.unit_name,
+            floor_number:       t.floor_number,
+            floor_name:         t.floor_name ?? `Floor ${t.floor_number}`,
+            tenant_name:        t.tenant?.full_name ?? t.tenant_name ?? "—",
+            rent_amount:        rent,
+            payment_status:     t.payment_status,
+            payment_details:    t.payment_details,
+            next_payment_date:  t.next_payment_date,
             amount_outstanding: outstanding,
           };
         });
     }
 
     if (!floorData) return [];
-    const result = [];
+    const result  = [];
     const entries = Array.isArray(floorData)
       ? floorData.map((f, i) => [String(f.floor_number ?? i + 1), f])
       : Object.entries(floorData);
@@ -834,15 +851,15 @@ export default function PropertyPaymentsTab({ property, floorData, tenants }) {
           unit.current_tenant?.full_name ?? unit.current_tenant?.name ?? unit.tenant_name ?? null;
         if (!tenantName) return;
         result.push({
-          unit_id: unit.id,
-          unit_name: unit.unit_name ?? unit.name,
-          floor_number: parseInt(floorNum, 10),
-          floor_name: floor.floor_name ?? `Floor ${floorNum}`,
-          tenant_name: tenantName,
-          rent_amount: parseFloat(unit.rent_amount ?? unit.monthly_rent ?? 0),
-          payment_status: unit.payment_status ?? "unknown",
-          payment_details: null,
-          next_payment_date: null,
+          unit_id:            unit.id,
+          unit_name:          unit.unit_name ?? unit.name,
+          floor_number:       parseInt(floorNum, 10),
+          floor_name:         floor.floor_name ?? `Floor ${floorNum}`,
+          tenant_name:        tenantName,
+          rent_amount:        parseFloat(unit.rent_amount ?? unit.monthly_rent ?? 0),
+          payment_status:     unit.payment_status ?? "unknown",
+          payment_details:    null,
+          next_payment_date:  null,
           amount_outstanding: 0,
         });
       });
@@ -879,7 +896,7 @@ export default function PropertyPaymentsTab({ property, floorData, tenants }) {
   }
 
   const filteredPayments = getFilteredPayments();
-  const pendingPayments = getPendingPayments();
+  const pendingPayments  = getPendingPayments();
 
   const columns = [
     {
@@ -1052,7 +1069,7 @@ export default function PropertyPaymentsTab({ property, floorData, tenants }) {
           </CloudflareCardContent>
         </CloudflareCard>
       )}
-
+      
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
