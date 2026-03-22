@@ -75,6 +75,8 @@ export default function TenantDashboard() {
         description="Manage your rent payments and property information"
       />
 
+      <br />
+
       {/* ── Icon-only tab bar — sits above content, takes no column space ── */}
       <TooltipProvider delayDuration={200}>
         <div className="flex items-center gap-1 border-b pb-0">
@@ -87,19 +89,16 @@ export default function TenantDashboard() {
                   <button
                     onClick={() => setActiveTab(tab.id)}
                     className={`
-                      relative flex items-center justify-center w-10 h-10 rounded-t-md
-                      transition-colors
+                      relative flex items-center justify-center w-10 h-10 rounded-full
+                      transition-colors mb-4
                       ${isActive
-                        ? 'text-primary bg-primary/8 border border-b-0 border-border -mb-px'
+                        ? 'text-primary bg-primary/8 border  border-primary'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}
                     `}
                     aria-label={tab.label}
                   >
                     <Icon className="h-4 w-4" />
                     {/* Active indicator dot */}
-                    {isActive && (
-                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full" />
-                    )}
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
@@ -112,17 +111,17 @@ export default function TenantDashboard() {
       </TooltipProvider>
 
       {/* ── Content — full width, no sidebar ──────────────────────────── */}
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-4xl border bg-card">
         {/* Subtle active tab context line */}
-        <div className="flex items-center gap-2 px-5 py-3 border-b">
+        <div className="flex items-center gap-2 px-8 py-6 border-b">
           {ActiveIcon && <ActiveIcon className="h-4 w-4 text-primary" />}
-          <span className="text-sm font-medium">{activeTabData?.label}</span>
-          <span className="text-xs text-muted-foreground hidden sm:inline">
+          <span className="text-base md:text-lg font-medium">{activeTabData?.label}</span>
+          <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">
             — {TAB_DESCRIPTIONS[activeTab]}
           </span>
         </div>
 
-        <div className="p-5">
+        <div className="p-6">
           {isClient && ActiveComponent && (
             <ActiveComponent onPayNow={handlePayNow} />
           )}

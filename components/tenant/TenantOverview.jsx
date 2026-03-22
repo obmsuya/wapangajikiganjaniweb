@@ -257,7 +257,7 @@ export default function TenantOverview({ onPayNow }) {
       {/* ── All your units ─────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 px-2">
             <Home className="h-5 w-5" />
             Your Units
           </CardTitle>
@@ -340,7 +340,6 @@ export default function TenantOverview({ onPayNow }) {
                       {/* Pay button — always available unless settled */}
                       {!isSettled && (
                         <Button
-                          size="sm"
                           className="w-full gap-2"
                           onClick={() => handleQuickPay(occupancy)}
                         >
