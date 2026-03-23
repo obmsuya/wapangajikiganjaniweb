@@ -496,7 +496,7 @@ function RequestsTable({ data, onRowClick, showUnitColumn = false }) {
         className="max-w-xs"
       />
 
-      <div className="rounded-md border overflow-x-auto">
+      <div className="rounded-2xl border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -707,7 +707,7 @@ export default function TenantMaintenancePage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-7xl md:px-4 max-md:pb-16">
       <CloudflareBreadcrumbs items={breadcrumbItems} />
 
       {/* ── Header ─────────────────────────────────────────────────── */}
@@ -720,13 +720,14 @@ export default function TenantMaintenancePage() {
               <Plus className="h-4 w-4 mr-1.5" />
               Report Issue
             </Button>
-            <Button size="icon" variant="outline" className="h-9 w-9"
+            <Button size="icon" variant="outline"
               onClick={() => refreshData("all")} disabled={requestsLoading}>
               <RefreshCw className={`h-4 w-4 ${requestsLoading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         }
       />
+      <br />
 
       {/* ── Unit tabs — only shown when tenant has multiple units ──── */}
       {/* This is the core navigation: tenant switches between units to
@@ -735,7 +736,7 @@ export default function TenantMaintenancePage() {
         <div className="flex items-center gap-1 flex-wrap">
           <button
             onClick={() => setSelectedUnitId(null)}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border
               ${!selectedUnitId
                 ? "bg-primary text-primary-foreground border-primary"
                 : "border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}
@@ -746,7 +747,7 @@ export default function TenantMaintenancePage() {
             <button
               key={o.unit_id}
               onClick={() => setSelectedUnitId(String(o.unit_id))}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
                 transition-colors border
                 ${String(selectedUnitId) === String(o.unit_id)
                   ? "bg-primary text-primary-foreground border-primary"
@@ -778,7 +779,7 @@ export default function TenantMaintenancePage() {
           { label: "In progress", value: counts.in_progress },
           { label: "Completed",   value: counts.completed   },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-lg border bg-card px-4 py-3">
+          <div key={label} className="rounded-3xl border bg-card px-4 py-3">
             <p className="text-2xl font-bold">{value}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
           </div>
@@ -786,9 +787,9 @@ export default function TenantMaintenancePage() {
       </div>
 
       {/* ── Requests DataTable ─────────────────────────────────────── */}
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-3xl border bg-card">
         <div className="flex items-center justify-between px-5 py-3 border-b">
-          <h3 className="text-sm font-semibold flex items-center gap-2">
+          <h3 className="text-xl font-semibold flex items-center gap-2">
             <Wrench className="h-4 w-4 text-muted-foreground" />
             {selectedUnitId
               ? `Requests — ${occupancies.find(o => String(o.unit_id) === selectedUnitId)?.unit_name ?? "Unit"}`

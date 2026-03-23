@@ -261,7 +261,7 @@ function ProviderPicker({ value, onChange, disabled, error }) {
       <div className="flex flex-wrap gap-2">
         {PROVIDERS.map((p) => (
           <Button
-            key={p.id} type="button" variant="outline" size="sm"
+            key={p.id} type="button" variant="outline"
             disabled={disabled}
             onClick={() => onChange(p.id)}
             className={`gap-2 border-2 transition-all ${
@@ -541,7 +541,7 @@ export default function TenantPaymentDialog() {
             <>
               <Button
                 variant="ghost" size="sm"
-                className="gap-1 text-muted-foreground -ml-2 -mt-2"
+                className="gap-1 text-muted-foreground -ml-2 -mt-2 w-fit"
                 disabled={isProcessing}
                 onClick={() => { setPaymentFlow("select"); clearError?.(); }}
               >
@@ -580,14 +580,14 @@ export default function TenantPaymentDialog() {
                       {/* Quick-select: full or partial toggle */}
                       <div className="flex gap-2 flex-wrap">
                         <Button
-                          type="button" size="sm" variant="outline"
+                          type="button" variant="outline"
                           className={!formData.partialAmount ? "border-primary bg-primary/5" : ""}
                           onClick={() => setField("partialAmount", "")}
                         >
                           Full — {fmt(maxPayable)}
                         </Button>
                         <Button
-                          type="button" size="sm" variant="outline"
+                          type="button" variant="outline"
                           className={formData.partialAmount ? "border-primary bg-primary/5" : ""}
                           onClick={() => {
                             // Focus the input when "Partial" is clicked
@@ -600,7 +600,7 @@ export default function TenantPaymentDialog() {
 
                       {/* Amount input — text input to avoid browser step validation popup */}
                       <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none select-none">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none select-none mt-0.5 pr-2 border-r">
                           TZS
                         </div>
                         <input
@@ -614,7 +614,7 @@ export default function TenantPaymentDialog() {
                             setField("partialAmount", raw);
                           }}
                           disabled={isProcessing}
-                          className={`flex h-10 w-full rounded-md border bg-background pl-10 pr-3 py-2 text-sm
+                          className={`flex h-11 w-full rounded-full border bg-background pl-12 pr-3 text-sm
                             placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
                             focus-visible:ring-ring disabled:opacity-50
                             ${formErrors.partialAmount ? "border-destructive" : "border-input"}`}
@@ -680,8 +680,8 @@ export default function TenantPaymentDialog() {
                       <Label className="text-sm font-medium">Your Mobile Number *</Label>
                       <div className="relative">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
-                          <span className="text-base">🇹🇿</span>
-                          <span className="text-xs text-muted-foreground border-r pr-2">+255</span>
+                          <span className="text-base mb-0.5">🇹🇿</span>
+                          <span className="text-xs text-muted-foreground border-r pr-2 mt-0.5">+255</span>
                         </div>
                         <input
                           type="tel"
@@ -689,7 +689,7 @@ export default function TenantPaymentDialog() {
                           value={formData.accountNumber}
                           onChange={(e) => setField("accountNumber", e.target.value)}
                           disabled={isProcessing}
-                          className={`flex h-10 w-full rounded-md border bg-background pl-[4.5rem] pr-3 py-2 text-sm
+                          className={`flex h-11 w-full rounded-full border bg-background pl-20 pr-3 py-2 text-sm
                             placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
                             focus-visible:ring-ring disabled:opacity-50
                             ${formErrors.accountNumber ? "border-destructive" : "border-input"}`}
@@ -708,7 +708,7 @@ export default function TenantPaymentDialog() {
                 )}
 
                 <div className="flex gap-3 pt-1">
-                  <Button type="button" variant="outline" className="flex-1"
+                  <Button type="button" variant="outline" className="w-fit px-4"
                     disabled={isProcessing}
                     onClick={() => { setPaymentFlow("select"); clearError?.(); }}>
                     Back
