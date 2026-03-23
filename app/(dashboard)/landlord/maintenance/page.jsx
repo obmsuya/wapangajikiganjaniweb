@@ -23,21 +23,21 @@ function MaintenanceSummaryCards({ summary }) {
   const summaryCards = [
     {
       title: "Total Requests",
-      value: summary.total_requests || 0,
+      value: summary?.total_requests || 0,
       icon: Wrench,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
     {
       title: "Pending",
-      value: summary.pending_count || 0,
+      value: summary?.pending_count || 0,
       icon: Clock,
       color: "text-yellow-600",
       bgColor: "bg-yellow-100",
     },
     {
       title: "In Progress",
-      value: summary.in_progress_count || 0,
+      value: summary?.in_progress_count || 0,
       icon: AlertTriangle,
       color: "text-orange-600",
       bgColor: "bg-orange-100",
@@ -97,7 +97,7 @@ export default function LandlordMaintenancePage() {
   const pageActions = (
     <div className="flex items-center gap-2">
       <Badge variant="outline" className="text-xs text-gray-600">
-        {summary.total_requests || 0} Total Requests
+        {summary?.total_requests || 0} Total Requests
       </Badge>
       {summary.pending_count > 0 && (
         <Badge className="bg-yellow-100 text-yellow-800">
