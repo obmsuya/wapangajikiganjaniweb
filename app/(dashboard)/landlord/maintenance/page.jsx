@@ -99,9 +99,9 @@ export default function LandlordMaintenancePage() {
       <Badge variant="outline" className="text-xs text-gray-600">
         {summary?.total_requests || 0} Total Requests
       </Badge>
-      {summary.pending_count > 0 && (
+      {summary?.pending_count > 0 && (
         <Badge className="bg-yellow-100 text-yellow-800">
-          {summary.pending_count} Pending
+          {summary?.pending_count} Pending
         </Badge>
       )}
     </div>
@@ -155,15 +155,15 @@ export default function LandlordMaintenancePage() {
 
           <TabsContent value="pending" className="mt-2">
             <div className="space-y-4">
-              {summary.pending_count > 0 && (
+              {summary?.pending_count > 0 && (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Clock className="h-5 w-5 text-yellow-600" />
                     <div>
                       <h3 className="font-medium text-yellow-800">
-                        {summary.pending_count} request
-                        {summary.pending_count > 1 ? "s" : ""} need
-                        {summary.pending_count === 1 ? "s" : ""} your attention
+                        {summary?.pending_count} request
+                        {summary?.pending_count > 1 ? "s" : ""} need
+                        {summary?.pending_count === 1 ? "s" : ""} your attention
                       </h3>
                       <p className="text-sm text-yellow-700">
                         Review and respond to pending maintenance requests below
