@@ -44,14 +44,14 @@ function MaintenanceSummaryCards({ summary }) {
     },
     {
       title: "Completed",
-      value: summary.completed_count || 0,
+      value: summary?.completed_count || 0,
       icon: CheckCircle,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },
     {
       title: "Urgent",
-      value: summary.urgent_count || 0,
+      value: summary?.urgent_count || 0,
       icon: XCircle,
       color: "text-red-600",
       bgColor: "bg-red-100",
@@ -131,21 +131,21 @@ export default function LandlordMaintenancePage() {
               value="pending"
             >
               <Clock className="h-4 w-4" />
-              <span className="max-lg:hidden">Pending ({summary.pending_count || 0})</span>
+              <span className="max-lg:hidden">Pending ({summary?.pending_count || 0})</span>
             </TabsTrigger>
 
             <TabsTrigger
               value="in_progress"
             >
               <AlertTriangle className="h-4 w-4" />
-              <span className="max-lg:hidden">In Progress ({summary.in_progress_count || 0})</span>
+              <span className="max-lg:hidden">In Progress ({summary?.in_progress_count || 0})</span>
             </TabsTrigger>
 
             <TabsTrigger
               value="completed"
             >
               <CheckCircle className="h-4 w-4" />
-              <span className="max-lg:hidden">Completed ({summary.completed_count || 0})</span>
+              <span className="max-lg:hidden">Completed ({summary?.completed_count || 0})</span>
             </TabsTrigger>
           </TabsList>
 
