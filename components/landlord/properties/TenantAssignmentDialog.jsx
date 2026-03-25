@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   User, Calendar, DollarSign, CheckCircle,
-  UserPlus, ChevronDown, ChevronUp, History,
+  UserPlus, History,
   Edit2, Phone, Info, Calculator, AlertCircle,
 } from "lucide-react";
 import {
@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,6 +25,7 @@ import {
   useExistingTenantRegistration,
 } from "@/hooks/landlord/useTenantAssignment";
 import { toast } from "sonner";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -38,11 +39,9 @@ const COMMON_FREQS = PAYMENT_FREQUENCY_OPTIONS.slice(0, 6);
 const EXTENDED_FREQS = PAYMENT_FREQUENCY_OPTIONS.slice(6);
 
 // ─── phone helpers ────────────────────────────────────────────────────────────
-// The prefix +255 is always shown in the UI. The user types ONLY the 9-digit
-// local number (e.g. 712433665). We prepend +255 before sending to the server.
 
 function buildFullPhone(localPart) {
-  const clean = localPart.replace(/\D/g, ""); // digits only
+  const clean = localPart.replace(/\D/g, "");
   return "+255" + clean;
 }
 
@@ -50,13 +49,12 @@ function validateLocalPhone(localPart) {
   if (!localPart || !localPart.trim())
     return "Phone number is required";
   const digits = localPart.replace(/\D/g, "");
-  // Local part: 9 digits, starting with 6 or 7
   if (!/^[67]\d{8}$/.test(digits))
     return "Enter 9 digits starting with 6 or 7 — e.g. 712 433 665";
   return null;
 }
 
-// ─── currency formatter — commas, no decimals ─────────────────────────────────
+// ─── currency formatter ───────────────────────────────────────────────────────
 
 function fmt(amount) {
   if (!amount || isNaN(amount)) return "—";
@@ -66,14 +64,12 @@ function fmt(amount) {
   }).format(amount);
 }
 
-// Format a raw number string with commas while typing (no decimals)
 function addCommas(raw) {
   const digits = raw.replace(/\D/g, "");
   if (!digits) return "";
   return parseInt(digits, 10).toLocaleString("en-TZ");
 }
 
-// Strip commas to get a plain number string for calculation
 function stripCommas(formatted) {
   return formatted.replace(/,/g, "");
 }
@@ -120,19 +116,17 @@ function Field({ icon, label, tooltip, error, hint, children }) {
   );
 }
 
-// ─── phone input — prefix fixed, user types 9 local digits ───────────────────
+// ─── phone input ──────────────────────────────────────────────────────────────
 
 function PhoneInput({ value, onChange, disabled, error }) {
   const [touched, setTouched] = useState(false);
   const displayError = touched ? error : null;
 
-  // Only allow digits, max 9
   const handleChange = (e) => {
     const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
     onChange(digits);
   };
 
-  // Format for display: add spaces e.g. 712 433 665
   const display = value
     ? value.replace(/(\d{3})(\d{3})(\d{0,3})/, (_, a, b, c) =>
       c ? `${a} ${b} ${c}` : `${a} ${b}`
@@ -142,7 +136,6 @@ function PhoneInput({ value, onChange, disabled, error }) {
   return (
     <div className="space-y-1.5">
       <div className="relative">
-        {/* Fixed +255 prefix */}
         <div className="absolute left-0 top-0 bottom-0 flex items-center pl-3 pointer-events-none select-none">
           <span className="text-base leading-none">🇹🇿</span>
           <span className="ml-1.5 text-sm font-medium text-foreground">+255</span>
@@ -156,7 +149,7 @@ function PhoneInput({ value, onChange, disabled, error }) {
           onChange={handleChange}
           onBlur={() => setTouched(true)}
           disabled={disabled}
-          maxLength={11} /* 9 digits + 2 spaces */
+          maxLength={11}
           className={`flex h-10 w-full rounded-md border bg-background pl-[5.5rem] pr-3 py-2 text-sm
                       placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
                       focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50
@@ -176,12 +169,11 @@ function PhoneInput({ value, onChange, disabled, error }) {
   );
 }
 
-// ─── rent amount input — commas, no decimals ──────────────────────────────────
+// ─── rent input ───────────────────────────────────────────────────────────────
 
 function RentInput({ id, placeholder, value, onChange, disabled, error }) {
-  // value stored internally as formatted string with commas
   const handleChange = (e) => {
-    const raw = e.target.value.replace(/\D/g, ""); // digits only
+    const raw = e.target.value.replace(/\D/g, "");
     if (!raw) { onChange(""); return; }
     onChange(addCommas(raw));
   };
@@ -203,7 +195,7 @@ function RentInput({ id, placeholder, value, onChange, disabled, error }) {
   );
 }
 
-// ─── plain text / date input ──────────────────────────────────────────────────
+// ─── text / date input ────────────────────────────────────────────────────────
 
 function TextInput({ id, type = "text", placeholder, value, onChange, disabled, error }) {
   return (
@@ -219,7 +211,7 @@ function TextInput({ id, type = "text", placeholder, value, onChange, disabled, 
   );
 }
 
-// ─── rent calculator — landlord said keep its colors ─────────────────────────
+// ─── rent calculator ──────────────────────────────────────────────────────────
 
 function RentCalculator({ monthlyRent, frequency, mode }) {
   const monthly = parseFloat(stripCommas(monthlyRent));
@@ -318,21 +310,14 @@ function FrequencyPicker({ value, onChange, disabled }) {
 
 // ─── main dialog ──────────────────────────────────────────────────────────────
 
-const EMPTY_NEW = {
+const EMPTY_FORM = {
   full_name: "",
-  phone_number: "",   // stores local 9 digits only
+  phone_number: "",
   payment_frequency: "1",
   start_date: new Date().toISOString().split("T")[0],
-  monthly_rent: "",   // formatted with commas
-};
-
-const EMPTY_EXISTING = {
-  full_name: "",
-  phone_number: "",   // local 9 digits
-  payment_frequency: "1",
+  monthly_rent: "",
   original_move_in_date: "",
-  monthly_rent: "",   // formatted with commas
-  last_payment_monthly: "",   // formatted with commas
+  last_payment_monthly: "",
 };
 
 export default function TenantAssignmentDialog({
@@ -340,8 +325,7 @@ export default function TenantAssignmentDialog({
   editMode = false, existingTenantData = null,
 }) {
   const [mode, setMode] = useState("new");
-  const [newForm, setNewForm] = useState(EMPTY_NEW);
-  const [exForm, setExForm] = useState(EMPTY_EXISTING);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
 
   const { assignTenant, loading: newLoading } = useTenantAssignment();
@@ -350,23 +334,32 @@ export default function TenantAssignmentDialog({
 
   const loading = mode === "new" ? newLoading : existingLoading;
 
-  // ── derived totals (strip commas before calculating) ──────────────────────
+  // true when the switch is on (tenant pre-dates the app)
+  const isExisting = mode === "existing";
+
+  const setField = (f, v) => setForm((p) => ({ ...p, [f]: v }));
+
+  // ── when the switch is toggled, flip mode and clear errors ────────────────
+  const handleModeSwitch = (checked) => {
+    setMode(checked ? "existing" : "new");
+    setFieldErrors({});
+  };
+
+  // ── totals ────────────────────────────────────────────────────────────────
   const calcTotal = (monthlyFormatted, freq) => {
     const m = parseFloat(stripCommas(monthlyFormatted));
     const f = parseInt(freq) || 1;
     return isNaN(m) || m <= 0 ? "" : String(Math.round(m * f));
   };
 
-  const newTotal = calcTotal(newForm.monthly_rent, newForm.payment_frequency);
-  const exTotal = calcTotal(exForm.monthly_rent, exForm.payment_frequency);
-  const exLastTotal = calcTotal(exForm.last_payment_monthly, exForm.payment_frequency);
+  const total = calcTotal(form.monthly_rent, form.payment_frequency);
+  const lastTotal = calcTotal(form.last_payment_monthly, form.payment_frequency);
 
   // ── seed / reset ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) {
       setMode("new");
-      setNewForm(EMPTY_NEW);
-      setExForm(EMPTY_EXISTING);
+      setForm(EMPTY_FORM);
       setFieldErrors({});
       return;
     }
@@ -378,66 +371,65 @@ export default function TenantAssignmentDialog({
       const freqNum = parseInt(freq) || 1;
       const monthly = freqNum > 0 ? Math.round(totalRent / freqNum) : Math.round(totalRent);
 
-      // Extract local 9 digits from existing phone
       const rawPhone = String(existingTenantData.phone_number ?? "").replace(/\D/g, "");
       const localDigits = rawPhone.startsWith("255") ? rawPhone.slice(3) : rawPhone;
 
-      setExForm({
+      setForm({
         full_name: existingTenantData.full_name ?? "",
         phone_number: localDigits,
         payment_frequency: freq,
+        start_date: new Date().toISOString().split("T")[0],
+        monthly_rent: monthly > 0 ? addCommas(String(monthly)) : "",
         original_move_in_date: existingTenantData.original_move_in_date
           ?? existingTenantData.move_in_date ?? "",
-        monthly_rent: monthly > 0 ? addCommas(String(monthly)) : "",
         last_payment_monthly: "",
       });
     } else {
       const unitRent = unit?.full_unit_info?.rent_amount ?? unit?.rent_amount ?? "";
-      setNewForm((p) => ({
+      setForm((p) => ({
         ...p,
         monthly_rent: unitRent ? addCommas(String(Math.round(parseFloat(unitRent)))) : "",
       }));
     }
   }, [isOpen, unit, editMode, existingTenantData]);
 
-  const setNew = (f, v) => setNewForm((p) => ({ ...p, [f]: v }));
-  const setEx = (f, v) => setExForm((p) => ({ ...p, [f]: v }));
-
   // ── validation ────────────────────────────────────────────────────────────
   const validate = useCallback(() => {
     const errors = {};
-    const f = mode === "new" ? newForm : exForm;
 
-    if (!f.full_name?.trim())
+    if (!form.full_name?.trim())
       errors.full_name = "Name is required";
 
-    const phoneErr = validateLocalPhone(f.phone_number);
-    if (phoneErr)
-      errors.phone_number = phoneErr;
+    const phoneErr = validateLocalPhone(form.phone_number);
+    if (phoneErr) errors.phone_number = phoneErr;
 
-    const monthlyVal = parseFloat(stripCommas(f.monthly_rent));
-    if (!f.monthly_rent || isNaN(monthlyVal) || monthlyVal <= 0)
+    const monthlyVal = parseFloat(stripCommas(form.monthly_rent));
+    if (!form.monthly_rent || isNaN(monthlyVal) || monthlyVal <= 0)
       errors.monthly_rent = "Enter a valid monthly rent";
 
-    if (!f.payment_frequency)
+    if (!form.payment_frequency)
       errors.payment_frequency = "Select a frequency";
 
-    if (mode === "new") {
-      if (!newForm.start_date)
+    // new tenant needs a start date
+    if (!isExisting) {
+      if (!form.start_date)
         errors.start_date = "Move-in date is required";
-    } else {
-      if (!exForm.original_move_in_date)
+    }
+
+    // existing tenant needs original move-in date + last payment (unless editing)
+    if (isExisting) {
+      if (!form.original_move_in_date)
         errors.original_move_in_date = "Move-in date is required";
       if (!editMode) {
-        const lastVal = parseFloat(stripCommas(exForm.last_payment_monthly));
-        if (!exForm.last_payment_monthly || isNaN(lastVal) || lastVal <= 0)
+        const lastVal = parseFloat(stripCommas(form.last_payment_monthly));
+        if (!form.last_payment_monthly || isNaN(lastVal) || lastVal <= 0)
           errors.last_payment_monthly = "Enter last payment monthly amount";
       }
     }
 
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [mode, newForm, exForm, editMode]);
+  }, [form, isExisting, editMode]);
 
   // ── submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
@@ -447,24 +439,24 @@ export default function TenantAssignmentDialog({
     }
 
     try {
-      if (mode === "new") {
+      if (!isExisting) {
         await assignTenant({
           unit_id: unit.id,
-          full_name: newForm.full_name.trim(),
-          phone_number: buildFullPhone(newForm.phone_number),
-          rent_amount: parseFloat(newTotal),
-          payment_frequency: newForm.payment_frequency,
-          start_date: newForm.start_date,
+          full_name: form.full_name.trim(),
+          phone_number: buildFullPhone(form.phone_number),
+          rent_amount: parseFloat(total),
+          payment_frequency: form.payment_frequency,
+          start_date: form.start_date,
         });
       } else {
         const payload = {
           unit_id: unit.id,
-          full_name: exForm.full_name.trim(),
-          phone_number: buildFullPhone(exForm.phone_number),
-          rent_amount: parseFloat(exTotal),
-          payment_frequency: parseInt(exForm.payment_frequency),
-          original_move_in_date: exForm.original_move_in_date,
-          last_payment_amount: parseFloat(exLastTotal) || 0,
+          full_name: form.full_name.trim(),
+          phone_number: buildFullPhone(form.phone_number),
+          rent_amount: parseFloat(total),
+          payment_frequency: parseInt(form.payment_frequency),
+          original_move_in_date: form.original_move_in_date,
+          last_payment_amount: parseFloat(lastTotal) || 0,
         };
 
         if (editMode && existingTenantData?.occupancy_id) {
@@ -478,13 +470,6 @@ export default function TenantAssignmentDialog({
     } catch { /* hooks handle toasts */ }
   };
 
-  // ── shared values for rendering ───────────────────────────────────────────
-  const sharedName = mode === "new" ? newForm.full_name : exForm.full_name;
-  const sharedPhone = mode === "new" ? newForm.phone_number : exForm.phone_number;
-  const sharedRent = mode === "new" ? newForm.monthly_rent : exForm.monthly_rent;
-  const sharedFreq = mode === "new" ? newForm.payment_frequency : exForm.payment_frequency;
-  const sharedTotal = mode === "new" ? newTotal : exTotal;
-
   const title = editMode ? "Edit Tenant" : "Add Tenant";
   const submitText = loading
     ? (editMode ? "Saving…" : "Adding…")
@@ -492,7 +477,6 @@ export default function TenantAssignmentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-
       <DialogContent className="max-w-md sm:max-w-lg flex flex-col max-h-[92dvh] overflow-hidden p-0">
 
         <div className="px-6 pt-6 pb-4 space-y-3 flex-shrink-0">
@@ -509,205 +493,202 @@ export default function TenantAssignmentDialog({
             </p>
           </DialogHeader>
 
-          {/* mode tabs */}
+          {/* switch — only show when not in edit mode */}
           {!editMode && (
-            <div className="space-y-1">
-              <Tabs value={mode} onValueChange={(v) => { setMode(v); setFieldErrors({}); }}>
-                <TabsList className="w-full grid grid-cols-2">
-                  <TabsTrigger value="new" className="flex items-center gap-1.5 text-xs">
-                    <UserPlus className="w-3.5 h-3.5" /> New Tenant
-                  </TabsTrigger>
-                  <TabsTrigger value="existing" className="flex items-center gap-1.5 text-xs">
-                    <History className="w-3.5 h-3.5" /> Existing Tenant
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <p className="text-xs text-center text-muted-foreground">
-                {mode === "new"
-                  ? "Tenant is moving in for the first time."
-                  : "Tenant was already living here before this system."}
-              </p>
+            <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <History className="w-3.5 h-3.5 text-muted-foreground" />
+                  Already paid before this app?
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isExisting
+                    ? "Enter their history so we can calculate the next due date."
+                    : "Tenant is moving in fresh — no prior history needed."}
+                </p>
+              </div>
+              <Switch
+                checked={isExisting}
+                onCheckedChange={handleModeSwitch}
+                disabled={loading}
+              />
             </div>
           )}
 
           <Separator />
         </div>
 
-        {/* ── scrollable body — fields + actions all inside here ── */}
+        <ScrollArea className="h-[calc(92dvh-180px)] w-full">
+          <div className="px-6 pb-6 space-y-5">
 
-          <ScrollArea className="h-[calc(92dvh-180px)] w-full">
-            <div className="px-6 pb-6 space-y-5">
+            {/* full name */}
+            <Field icon={User} label="Tenant Full Name" error={fieldErrors.full_name}>
+              <TextInput
+                id="full_name" placeholder="e.g. Amina Juma"
+                value={form.full_name} disabled={loading}
+                error={!!fieldErrors.full_name}
+                onChange={(v) => setField("full_name", v)}
+              />
+            </Field>
 
-              {/* full name */}
-              <Field icon={User} label="Tenant Full Name" error={fieldErrors.full_name}>
-                <TextInput
-                  id="full_name" placeholder="e.g. Amina Juma"
-                  value={sharedName} disabled={loading}
-                  error={!!fieldErrors.full_name}
-                  onChange={(v) => mode === "new" ? setNew("full_name", v) : setEx("full_name", v)}
-                />
-              </Field>
-
-              {/* phone */}
-              <Field
-                icon={Phone} label="Phone Number"
-                tooltip="The tenant will use this number to log in."
+            {/* phone */}
+            <Field
+              icon={Phone} label="Phone Number"
+              tooltip="The tenant will use this number to log in."
+              error={fieldErrors.phone_number}
+            >
+              <PhoneInput
+                value={form.phone_number}
+                disabled={loading || editMode}
                 error={fieldErrors.phone_number}
-              >
-                <PhoneInput
-                  value={sharedPhone}
-                  disabled={loading || (editMode ? true : false)}
-                  error={fieldErrors.phone_number}
-                  onChange={(v) => mode === "new" ? setNew("phone_number", v) : setEx("phone_number", v)}
-                />
-                {editMode && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Phone number cannot be changed.
-                  </p>
-                )}
-              </Field>
-
-              {/* monthly rent */}
-              <Field
-                icon={DollarSign}
-                label="Monthly Rent (TZS)"
-                tooltip="Enter rent for ONE month. The cycle total is calculated automatically."
-                error={fieldErrors.monthly_rent}
-                hint={
-                  sharedTotal
-                    ? `Cycle total = ${fmt(parseFloat(sharedTotal))}`
-                    : "Enter monthly rent to see the cycle total"
-                }
-              >
-                <RentInput
-                  id="monthly_rent" placeholder="e.g. 150,000"
-                  value={sharedRent} disabled={loading}
-                  error={!!fieldErrors.monthly_rent}
-                  onChange={(v) => mode === "new" ? setNew("monthly_rent", v) : setEx("monthly_rent", v)}
-                />
-              </Field>
-
-              {/* frequency */}
-              <Field
-                icon={CheckCircle}
-                label="Payment Frequency"
-                tooltip="How many months does the tenant pay at once? Monthly = 1, Quarterly = 3, etc."
-                error={fieldErrors.payment_frequency}
-              >
-                <FrequencyPicker
-                  value={sharedFreq} disabled={loading}
-                  onChange={(v) => mode === "new" ? setNew("payment_frequency", v) : setEx("payment_frequency", v)}
-                />
-              </Field>
-
-              {/* calculator — keeps its colors per user request */}
-              {sharedRent && parseFloat(stripCommas(sharedRent)) > 0 && (
-                <RentCalculator
-                  monthlyRent={sharedRent}
-                  frequency={sharedFreq}
-                  mode={mode}
-                />
+                onChange={(v) => setField("phone_number", v)}
+              />
+              {editMode && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Phone number cannot be changed.
+                </p>
               )}
+            </Field>
 
-              {/* new tenant: move-in date */}
-              {mode === "new" && (
+            {/* monthly rent */}
+            <Field
+              icon={DollarSign}
+              label="Monthly Rent (TZS)"
+              tooltip="Enter rent for ONE month. The cycle total is calculated automatically."
+              error={fieldErrors.monthly_rent}
+              hint={
+                total
+                  ? `Cycle total = ${fmt(parseFloat(total))}`
+                  : "Enter monthly rent to see the cycle total"
+              }
+            >
+              <RentInput
+                id="monthly_rent" placeholder="e.g. 150,000"
+                value={form.monthly_rent} disabled={loading}
+                error={!!fieldErrors.monthly_rent}
+                onChange={(v) => setField("monthly_rent", v)}
+              />
+            </Field>
+
+            {/* frequency */}
+            <Field
+              icon={CheckCircle}
+              label="Payment Frequency"
+              tooltip="How many months does the tenant pay at once? Monthly = 1, Quarterly = 3, etc."
+              error={fieldErrors.payment_frequency}
+            >
+              <FrequencyPicker
+                value={form.payment_frequency} disabled={loading}
+                onChange={(v) => setField("payment_frequency", v)}
+              />
+            </Field>
+
+            {/* calculator */}
+            {form.monthly_rent && parseFloat(stripCommas(form.monthly_rent)) > 0 && (
+              <RentCalculator
+                monthlyRent={form.monthly_rent}
+                frequency={form.payment_frequency}
+                mode={mode}
+              />
+            )}
+
+            {/* new tenant: move-in date — hidden when switch is on */}
+            {!isExisting && (
+              <Field
+                icon={Calendar} label="Move-in Date"
+                error={fieldErrors.start_date}
+                hint="The date the tenant is starting their lease."
+              >
+                <TextInput
+                  id="start_date" type="date"
+                  value={form.start_date} disabled={loading}
+                  error={!!fieldErrors.start_date}
+                  onChange={(v) => setField("start_date", v)}
+                />
+              </Field>
+            )}
+
+            {/* existing tenant: pre-system fields — shown when switch is on */}
+            {isExisting && (
+              <>
+                <Separator />
+
+                <Alert>
+                  <History className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    <span className="font-semibold">Pre-system history</span> — Enter details from
+                    before this app was introduced. The next due date is calculated automatically.
+                  </AlertDescription>
+                </Alert>
+
                 <Field
-                  icon={Calendar} label="Move-in Date"
-                  error={fieldErrors.start_date}
-                  hint="The date the tenant is starting their lease."
+                  icon={Calendar} label="Original Move-in Date"
+                  error={fieldErrors.original_move_in_date}
+                  hint="The date the tenant first moved in — even if years ago."
                 >
                   <TextInput
-                    id="start_date" type="date"
-                    value={newForm.start_date} disabled={loading}
-                    error={!!fieldErrors.start_date}
-                    onChange={(v) => setNew("start_date", v)}
+                    id="original_move_in_date" type="date"
+                    value={form.original_move_in_date} disabled={loading}
+                    error={!!fieldErrors.original_move_in_date}
+                    onChange={(v) => setField("original_move_in_date", v)}
                   />
                 </Field>
-              )}
 
-              {/* existing tenant: pre-system fields */}
-              {mode === "existing" && (
-                <>
-                  <Separator />
-
-                  <Alert>
-                    <History className="h-4 w-4" />
-                    <AlertDescription className="text-xs">
-                      <span className="font-semibold">Pre-system history</span> — Enter details from
-                      before this app was introduced. The next due date is calculated automatically.
-                    </AlertDescription>
-                  </Alert>
-
-                  <Field
-                    icon={Calendar} label="Original Move-in Date"
-                    error={fieldErrors.original_move_in_date}
-                    hint="The date the tenant first moved in — even if years ago."
-                  >
-                    <TextInput
-                      id="original_move_in_date" type="date"
-                      value={exForm.original_move_in_date} disabled={loading}
-                      error={!!fieldErrors.original_move_in_date}
-                      onChange={(v) => setEx("original_move_in_date", v)}
-                    />
-                  </Field>
-
-                  <Field
-                    icon={DollarSign}
-                    label={`Last Payment — Monthly Amount (TZS)${editMode ? " (optional)" : ""}`}
-                    tooltip="Monthly rate of their last payment. The cycle total is calculated automatically."
-                    error={fieldErrors.last_payment_monthly}
-                    hint={
-                      exLastTotal
-                        ? `Last cycle total = ${fmt(parseFloat(exLastTotal))}`
-                        : editMode ? "Leave blank to keep existing record" : "Required to calculate the next due date"
-                    }
-                  >
-                    <RentInput
-                      id="last_payment_monthly" placeholder="e.g. 150,000"
-                      value={exForm.last_payment_monthly} disabled={loading}
-                      error={!!fieldErrors.last_payment_monthly}
-                      onChange={(v) => setEx("last_payment_monthly", v)}
-                    />
-                  </Field>
-
-                  {/* last payment cycle badge — keeps green per existing design */}
-                  {exForm.last_payment_monthly && parseFloat(stripCommas(exForm.last_payment_monthly)) > 0 && (
-                    <div className="rounded-md border border-green-200 bg-green-50 px-4 py-2.5 flex items-center justify-between">
-                      <p className="text-xs text-green-700 font-medium">Last payment cycle total</p>
-                      <Badge className="bg-green-600 text-white text-xs">
-                        {fmt(parseFloat(exLastTotal))}
-                      </Badge>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* ── actions inside scroll so they're never cut off ── */}
-              <Separator />
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline" onClick={onClose} disabled={loading} className="flex-1"
+                <Field
+                  icon={DollarSign}
+                  label={`Last Payment — Monthly Amount (TZS)${editMode ? " (optional)" : ""}`}
+                  tooltip="Monthly rate of their last payment. The cycle total is calculated automatically."
+                  error={fieldErrors.last_payment_monthly}
+                  hint={
+                    lastTotal
+                      ? `Last cycle total = ${fmt(parseFloat(lastTotal))}`
+                      : editMode ? "Leave blank to keep existing record" : "Required to calculate the next due date"
+                  }
                 >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmit} disabled={loading} className="flex-1"
-                >
-                  {submitText}
-                </Button>
-              </div>
+                  <RentInput
+                    id="last_payment_monthly" placeholder="e.g. 150,000"
+                    value={form.last_payment_monthly} disabled={loading}
+                    error={!!fieldErrors.last_payment_monthly}
+                    onChange={(v) => setField("last_payment_monthly", v)}
+                  />
+                </Field>
 
-              <p className="text-xs text-muted-foreground text-center pb-1">
-                {editMode
-                  ? "Changes will be saved and the tenant will be notified."
-                  : mode === "new"
-                    ? "A welcome SMS with login details will be sent to the tenant."
-                    : "The tenant will be registered and their next due date calculated automatically."}
-              </p>
+                {form.last_payment_monthly && parseFloat(stripCommas(form.last_payment_monthly)) > 0 && (
+                  <div className="rounded-md border border-green-200 bg-green-50 px-4 py-2.5 flex items-center justify-between">
+                    <p className="text-xs text-green-700 font-medium">Last payment cycle total</p>
+                    <Badge className="bg-green-600 text-white text-xs">
+                      {fmt(parseFloat(lastTotal))}
+                    </Badge>
+                  </div>
+                )}
+              </>
+            )}
 
+            <Separator />
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline" onClick={onClose} disabled={loading} className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit} disabled={loading} className="flex-1"
+              >
+                {submitText}
+              </Button>
             </div>
-          </ScrollArea>
+
+            <p className="text-xs text-muted-foreground text-center pb-1">
+              {editMode
+                ? "Changes will be saved and the tenant will be notified."
+                : isExisting
+                  ? "The tenant will be registered and their next due date calculated automatically."
+                  : "A welcome SMS with login details will be sent to the tenant."}
+            </p>
+
+          </div>
+        </ScrollArea>
 
       </DialogContent>
     </Dialog>
