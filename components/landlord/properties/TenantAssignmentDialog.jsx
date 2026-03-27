@@ -327,6 +327,7 @@ export default function TenantAssignmentDialog({
   const [mode, setMode] = useState("new");
   const [form, setForm] = useState(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [sendSms, setSendSms] = useState(true);
 
   const { assignTenant, loading: newLoading } = useTenantAssignment();
   const { registerExistingTenant, updateExistingTenant,
@@ -361,6 +362,7 @@ export default function TenantAssignmentDialog({
       setMode("new");
       setForm(EMPTY_FORM);
       setFieldErrors({});
+      setSendSms(true);
       return;
     }
 
@@ -447,6 +449,7 @@ export default function TenantAssignmentDialog({
           rent_amount: parseFloat(total),
           payment_frequency: form.payment_frequency,
           start_date: form.start_date,
+          send_welcome_sms: sendSms,
         });
       } else {
         const payload = {
@@ -462,7 +465,10 @@ export default function TenantAssignmentDialog({
         if (editMode && existingTenantData?.occupancy_id) {
           await updateExistingTenant(existingTenantData.occupancy_id, payload);
         } else {
-          await registerExistingTenant(payload);
+          await registerExistingTenant({
+            ...payload,
+            send_welcome_sms: sendSms,
+          });
         }
       }
       onSuccess?.();
@@ -495,23 +501,45 @@ export default function TenantAssignmentDialog({
 
           {/* switch — only show when not in edit mode */}
           {!editMode && (
-            <div className="flex items-center justify-between rounded-lg border px-4 py-3">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium flex items-center gap-1.5">
-                  <History className="w-3.5 h-3.5 text-muted-foreground" />
-                  Already paid before this app?
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {isExisting
-                    ? "Enter their history so we can calculate the next due date."
-                    : "Tenant is moving in fresh — no prior history needed."}
-                </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium flex items-center gap-1.5">
+                    <History className="w-3.5 h-3.5 text-muted-foreground" />
+                    Already paid before this app?
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {isExisting
+                      ? "Enter their history so we can calculate the next due date."
+                      : "Tenant is moving in fresh — no prior history needed."}
+                  </p>
+                </div>
+                <Switch
+                  checked={isExisting}
+                  onCheckedChange={handleModeSwitch}
+                  disabled={loading}
+                />
               </div>
-              <Switch
-                checked={isExisting}
-                onCheckedChange={handleModeSwitch}
-                disabled={loading}
-              />
+
+              {/* sms opt-in — only for new registrations */}
+              <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                    Send welcome SMS?
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {sendSms
+                      ? "Tenant will receive login credentials by SMS."
+                      : "No SMS will be sent to the tenant."}
+                  </p>
+                </div>
+                <Switch
+                  checked={sendSms}
+                  onCheckedChange={setSendSms}
+                  disabled={loading}
+                />
+              </div>
             </div>
           )}
 
