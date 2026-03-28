@@ -1,68 +1,75 @@
-// components/landlord/properties/UnitConfigurationDialog.jsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+  DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem,
+  SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import PropertyService from "@/services/landlord/property";
 import TenantService from "@/services/landlord/tenant";
 import { toast } from "sonner";
 
 export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveSuccess }) {
-  const [unitName, setUnitName] = useState("");
+  const [unitName, setUnitName]   = useState("");
+  const [tenantForm, setTenantForm] = useState({});   // name + phone live here
   const [occupancyForm, setOccupancyForm] = useState({});
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving]   = useState(false);
 
-  // A unit is occupied when it has an active tenant assigned
+  // Unit is occupied when it has an active tenant
   const isOccupied = !!(unit?.current_tenant || unit?.occupancy_id);
 
   // Payment frequency is locked once a payment has been made
   const isFrequencyLocked = unit?.payment_status === "paid";
 
   useEffect(() => {
-    if (unit) {
-      // Unit table: only unit_name is editable
-      setUnitName(unit.unit_name || "");
+    if (!unit) return;
 
-      // Occupancy fields — sourced from occupancy, NOT from the unit table
-      if (isOccupied) {
-        setOccupancyForm({
-          rent_amount: unit.rent_amount || 0,
-          payment_frequency: Number(unit.payment_frequency || unit.payment_freq || 1),
-          original_move_in_date: unit.move_in_date || unit.current_tenant?.move_in_date || "",
-        });
-      }
+    // Unit table — only unit_name is editable here
+    setUnitName(unit.unit_name || "");
+
+    if (isOccupied) {
+      // Tenant identity fields — sourced from the tenant object in the response
+      setTenantForm({
+        full_name:    unit.tenant?.full_name    || unit.full_name    || "",
+        phone_number: unit.tenant?.phone_number || unit.phone_number || "",
+      });
+
+      // Occupancy fields
+      setOccupancyForm({
+        rent_amount:           unit.rent_amount || 0,
+        payment_frequency:     Number(unit.payment_frequency || unit.payment_freq || 1),
+        original_move_in_date: unit.move_in_date || unit.current_tenant?.move_in_date || "",
+      });
     }
   }, [unit, isOccupied]);
 
+  const handleTenantChange = useCallback((field, value) => {
+    setTenantForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
   const handleOccupancyChange = useCallback((field, value) => {
-    setOccupancyForm((prev) => ({ ...prev, [field]: value }));
+    setOccupancyForm(prev => ({ ...prev, [field]: value }));
   }, []);
 
   const handleSave = async () => {
     if (!unit) return;
 
+    // Validation
     if (!unitName.trim()) {
       toast.error("Validation Error", { description: "Unit name is required." });
       return;
     }
-
+    if (isOccupied && !tenantForm.full_name?.trim()) {
+      toast.error("Validation Error", { description: "Tenant name is required." });
+      return;
+    }
     if (isOccupied && occupancyForm.rent_amount < 0) {
       toast.error("Validation Error", { description: "Rent amount cannot be negative." });
       return;
@@ -73,17 +80,19 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
       const isRealUnit = unit.id && typeof unit.id === "number" && unit.id > 0;
 
       if (isRealUnit) {
-        // Always patch unit_name on the unit table
+        // 1. Always update the unit name
         await PropertyService.updateUnitDetails(unit.id, { unit_name: unitName });
 
-        // If occupied, patch the occupancy record — nothing else touches the unit table
+        // 2. If occupied, patch the occupancy record with all editable fields
         if (isOccupied && unit.occupancy_id) {
           const occupancyPayload = {
-            rent_amount: parseFloat(occupancyForm.rent_amount) || 0,
-            original_move_in_date: occupancyForm.original_move_in_date || undefined,
+            full_name:              tenantForm.full_name,
+            phone_number:           tenantForm.phone_number,
+            rent_amount:            parseFloat(occupancyForm.rent_amount) || 0,
+            original_move_in_date:  occupancyForm.original_move_in_date || undefined,
           };
 
-          // Only include payment_frequency if it is not locked
+          // Only send payment_frequency if not locked
           if (!isFrequencyLocked) {
             occupancyPayload.payment_frequency = Number(occupancyForm.payment_frequency);
           }
@@ -95,9 +104,9 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
           description: `${unitName} has been updated successfully.`,
         });
 
-        onSaveSuccess?.({ ...unit, unit_name: unitName });
+        onSaveSuccess?.({ ...unit, unit_name: unitName, ...tenantForm });
       } else {
-        // Pre-save setup wizard — local state only
+        // Pre-save wizard — local state only
         toast.success("Configured", { description: `${unitName} configuration saved.` });
         onSaveSuccess?.({ ...unit, unit_name: unitName });
       }
@@ -122,14 +131,14 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
           <DialogTitle>Edit {unit.unit_name}</DialogTitle>
           <DialogDescription>
             {isOccupied
-              ? "Update occupancy details. Unit name changes apply to the unit record."
+              ? "Update tenant and occupancy details."
               : "No tenant assigned — only the unit name can be edited."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
 
-          {/* ── Unit name — always editable ─────────────────────── */}
+          {/* ── Unit name — always editable ─────────────────────────────── */}
           <div>
             <Label htmlFor="unit_name">Unit Name</Label>
             <Input
@@ -140,7 +149,36 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
             />
           </div>
 
-          {/* ── Occupancy fields — only when tenant is assigned ─── */}
+          {/* ── Tenant identity — only when occupied ────────────────────── */}
+          {isOccupied && (
+            <div className="border-t pt-4 space-y-4">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                Tenant Details
+              </p>
+
+              <div>
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input
+                  id="full_name"
+                  value={tenantForm.full_name}
+                  onChange={(e) => handleTenantChange("full_name", e.target.value)}
+                  placeholder="Tenant full name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="phone_number">Phone Number</Label>
+                <Input
+                  id="phone_number"
+                  value={tenantForm.phone_number}
+                  onChange={(e) => handleTenantChange("phone_number", e.target.value)}
+                  placeholder="+255..."
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Occupancy fields — only when occupied ───────────────────── */}
           {isOccupied && (
             <div className="border-t pt-4 space-y-4">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
@@ -206,19 +244,10 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
         </div>
 
         <DialogFooter className="flex flex-row gap-2 pt-2">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isSaving}
-            className="flex-1"
-          >
+          <Button variant="outline" onClick={onClose} disabled={isSaving} className="flex-1">
             Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex-1"
-          >
+          <Button onClick={handleSave} disabled={isSaving} className="flex-1">
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
