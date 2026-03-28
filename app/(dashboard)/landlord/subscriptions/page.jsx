@@ -45,6 +45,8 @@ import { toast } from "sonner";
 const MOBILE_PROVIDERS = [
   { id: "AIRTEL",   name: "Airtel Money", logo: "/images/airtel-logo.png"    },
   { id: "TIGO",     name: "Tigo Pesa",    logo: "/images/tigo-logo.png"      },
+  { id: "MPESA",    name: "M-Pesa",       logo: "/images/mpesa-logo.png"     },
+  { id: "HALOPESA", name: "Halopesa",     logo: "/images/halopesa-logo.png"  },
   { id: "AZAMPESA", name: "Azam Pesa",    logo: "/images/azam-pesa-logo.png" },
 ];
 
@@ -397,32 +399,41 @@ export default function SubscriptionPage() {
           <div className="space-y-5 py-2">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Mobile money provider</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {MOBILE_PROVIDERS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() =>
-                      setPaymentData((prev) => ({ ...prev, provider: p.id }))
-                    }
-                    className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg border text-sm transition-all text-left ${
-                      paymentData.provider === p.id
-                        ? "border-primary bg-primary/5 font-medium"
-                        : "border-border hover:border-muted-foreground hover:bg-muted/40"
-                    }`}
-                  >
-                    <img
-                      src={p.logo}
-                      alt={p.name}
-                      className="w-6 h-6 object-contain shrink-0"
-                    />
-                    <span>{p.name}</span>
-                    {paymentData.provider === p.id && (
-                      <Check className="h-4 w-4 text-primary ml-auto" />
-                    )}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-2">
+                {MOBILE_PROVIDERS.map((p) => {
+                  const selected = paymentData.provider === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() =>
+                        setPaymentData((prev) => ({
+                          ...prev,
+                          provider: selected ? "" : p.id,
+                        }))
+                      }
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                        selected
+                          ? "border-primary bg-primary/5 font-medium"
+                          : "border-border hover:border-muted-foreground hover:bg-muted/40"
+                      }`}
+                    >
+                      <img
+                        src={p.logo}
+                        alt={p.name}
+                        className="w-5 h-5 object-contain shrink-0"
+                      />
+                      <span>{p.name}</span>
+                      {selected && (
+                        <Check className="h-3.5 w-3.5 text-primary" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
+              {!paymentData.provider && (
+                <p className="text-xs text-muted-foreground">Select a provider to continue.</p>
+              )}
             </div>
 
             <div className="space-y-2">
