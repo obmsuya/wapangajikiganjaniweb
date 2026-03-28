@@ -1,4 +1,3 @@
-// app/(dashboard)/landlord/subscription/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,12 +11,9 @@ import {
   Building2,
   ArrowRight,
   RefreshCw,
-  Zap,
-  Shield,
+  Check,
+  X,
   Calendar,
-  Star,
-  BarChart3,
-  TrendingUp,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,29 +33,57 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CloudflareTable } from "@/components/cloudflare/Table";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 import { useSubscriptionStore } from "@/stores/landlord/useSubscriptionStore";
 import { toast } from "sonner";
 
-/* --------------------------------------------------------------
-   Mobile providers – only the ones that work
-   -------------------------------------------------------------- */
 const MOBILE_PROVIDERS = [
   { id: "AIRTEL", name: "Airtel Money", logo: "/images/airtel-logo.png" },
   { id: "TIGO", name: "Tigo Pesa", logo: "/images/tigo-logo.png" },
   { id: "AZAMPESA", name: "Azam Pesa", logo: "/images/azam-pesa-logo.png" },
 ];
 
+const PERMISSION_LABELS = {
+  auto_rent_reminders:    "Auto rent reminders",
+  advanced_reporting:     "Advanced reporting",
+  export_reports:         "Export reports",
+  sms_notifications:      "SMS notifications",
+  can_add_managers:       "Manager accounts",
+  online_rent_collection: "Online rent collection",
+  wallet_withdrawals:     "Wallet withdrawals",
+};
+
+function PlanCardSkeleton() {
+  return (
+    <Card className="p-5 space-y-4">
+      <Skeleton className="h-5 w-32" />
+      <Skeleton className="h-8 w-24" />
+      <Skeleton className="h-4 w-full" />
+      <div className="space-y-2 pt-2">
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-4/5" />
+        <Skeleton className="h-3 w-3/5" />
+      </div>
+      <Skeleton className="h-9 w-full mt-2" />
+    </Card>
+  );
+}
+
 export default function SubscriptionPage() {
   const [activeTab, setActiveTab] = useState("plans");
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [paymentData, setPaymentData] = useState({
-    provider: "",
-    accountNumber: "",
-  });
+  const [paymentData, setPaymentData] = useState({ provider: "", accountNumber: "" });
   const [isProcessing, setIsProcessing] = useState(false);
 
   const {
@@ -75,44 +99,28 @@ export default function SubscriptionPage() {
     processMNOPayment,
     cancelSubscription,
     formatCurrency,
-    getPlanTypeColor,
-    getSubscriptionStatusColor,
-    refreshAllData,
   } = useSubscriptionStore();
 
-  /* ------------------------------------------------------------------ */
-  /* Initialise data on mount                                            */
-  /* ------------------------------------------------------------------ */
   useEffect(() => {
-    const init = async () => {
-      await Promise.all([
-        fetchPlans(),
-        fetchCurrentSubscription(),
-        fetchSubscriptionStatus(),
-        fetchSubscriptionHistory(),
-      ]);
-    };
-    init();
+    Promise.all([
+      fetchPlans(),
+      fetchCurrentSubscription(),
+      fetchSubscriptionStatus(),
+      fetchSubscriptionHistory(),
+    ]);
   }, []);
 
-  /* ------------------------------------------------------------------ */
-  /* Plan selection                                                      */
-  /* ------------------------------------------------------------------ */
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
     setShowCheckout(true);
     setPaymentData({ provider: "", accountNumber: "" });
   };
 
-  /* ------------------------------------------------------------------ */
-  /* Payment handling (mobile only)                                      */
-  /* ------------------------------------------------------------------ */
   const handlePayment = async () => {
     if (!selectedPlan || !paymentData.provider || !paymentData.accountNumber) {
       toast.error("Please complete all required fields");
       return;
     }
-
     setIsProcessing(true);
     try {
       const response = await processMNOPayment(
@@ -120,15 +128,13 @@ export default function SubscriptionPage() {
         paymentData.accountNumber,
         paymentData.provider,
       );
-
       if (response?.success) {
         setShowCheckout(false);
         setShowSuccess(true);
-        await refreshAllData();
-
+        await Promise.all([fetchCurrentSubscription(), fetchSubscriptionStatus()]);
         setTimeout(() => {
           setShowSuccess(false);
-          setActiveTab("current");
+          setActiveTab("plans");
         }, 5000);
       }
     } catch {
@@ -138,680 +144,296 @@ export default function SubscriptionPage() {
     }
   };
 
-  /* ------------------------------------------------------------------ */
-  /* Helper calculations                                                 */
-  /* ------------------------------------------------------------------ */
-  const getSubscriptionProgress = () => {
-    if (!currentSubscription || !subscriptionStatus) return 0;
-    const start = new Date(currentSubscription.startDate);
-    const end = new Date(currentSubscription.endDate);
-    const now = new Date();
-    const total = end.getTime() - start.getTime();
-    const elapsed = now.getTime() - start.getTime();
-    return Math.max(0, Math.min(100, (elapsed / total) * 100));
-  };
-
   const getDaysRemaining = () => {
-    if (!currentSubscription) return 0;
-    const end = new Date(currentSubscription.endDate);
-    const now = new Date();
-    const diff = end.getTime() - now.getTime();
+    if (!currentSubscription?.endDate) return 0;
+    const diff = new Date(currentSubscription.endDate).getTime() - Date.now();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   };
 
-  /* ------------------------------------------------------------------ */
-  /* Table columns for history                                           */
-  /* ------------------------------------------------------------------ */
-  const historyColumns = [
-    {
-      header: "Plan",
-      accessor: "planName",
-      cell: (row) => (
-        <div className="flex items-center sm:gap-4">
-          <Crown className="h-4 w-4 text-yellow-500 max-sm:hidden" />
-          <div>
-            <div className="sm:font-medium max-md:text-xs">{row.planName}</div>
-            <Badge
-              variant="secondary"
-              className={`text-xs ${getPlanTypeColor(row.planType)}`}
-            >
-              {row.planType}
-            </Badge>
-          </div>
-        </div>
-      ),
-    },
-    {
-      header: "Duration",
-      accessor: "duration",
-      cell: (row) => (
-        <div>
-          <div className="text-sm sm:text-base">{new Date(row.startDate).toLocaleDateString()}</div>
-          <div className="text-xs sm:text-sm text-gray-500">
-            to {new Date(row.endDate).toLocaleDateString()}
-          </div>
-        </div>
-      ),
-    },
-    {
-      header: "Status",
-      accessor: "status",
-      cell: (row) => (
-        <Badge variant="outline" className={getSubscriptionStatusColor(row.status)}>
-          {row.status}
-        </Badge>
-      ),
-    },
-    {
-      header: "Price",
-      accessor: "price",
-      cell: (row) => (
-        <span className="max-sm:text-xs font-medium">{formatCurrency(row.price)}</span>
-      ),
-    },
-  ];
+  const getSubscriptionProgress = () => {
+    if (!currentSubscription?.startDate || !currentSubscription?.endDate) return 0;
+    const total = new Date(currentSubscription.endDate) - new Date(currentSubscription.startDate);
+    const elapsed = Date.now() - new Date(currentSubscription.startDate);
+    return Math.max(0, Math.min(100, (elapsed / total) * 100));
+  };
 
-  /* ------------------------------------------------------------------ */
-  /* Loading state                                                       */
-  /* ------------------------------------------------------------------ */
-  if (loading && !plans.length) {
-    return (
-      <div className="container mx-auto py-8 space-y-6">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading subscription data...</p>
-        </div>
-      </div>
-    );
-  }
+  const isCurrentPlan = (plan) => currentSubscription?.plan?.id === plan.id;
 
-  /* ------------------------------------------------------------------ */
-  /* Main UI                                                             */
-  /* ------------------------------------------------------------------ */
+  const daysRemaining = getDaysRemaining();
+  const isExpiringSoon = daysRemaining > 0 && daysRemaining < 7;
+
   return (
-    <div className="space-y-8 pb-16">
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-8">
-        <div>
-          <h1 className="text-3xl font-bold">Subscription Management</h1>
-          <p className="text-muted-foreground">
-            Manage your subscription and billing
-          </p>
+    <div className="space-y-6 pb-16 max-w-5xl mx-auto">
+
+      {isExpiringSoon && (
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+          <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-destructive">Subscription expiring in {daysRemaining} days</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Renew to avoid service interruption.</p>
+          </div>
+          <Button size="sm" variant="destructive" onClick={() => setActiveTab("plans")}>
+            Renew
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          onClick={refreshAllData}
-          disabled={loading}
-          className="w-fit"
-        >
-          <RefreshCw
-            className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
-      </div>
+      )}
 
-      {/* ── Payment due warning ── */}
-      {subscriptionStatus &&
-        getDaysRemaining() < 7 &&
-        getDaysRemaining() > 0 && (
-          <Card className="border-l-4 border-l-orange-500 bg-orange-50">
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0" />
-                <div className="flex-1">
-                  <h4 className="font-medium text-orange-800">
-                    Payment Due Soon
-                  </h4>
-                  <p className="text-orange-700">
-                    Your subscription expires in {getDaysRemaining()} days.
-                    Renew now to avoid service interruption.
-                  </p>
-                </div>
-                <Button
-                  onClick={() => setActiveTab("plans")}
-                  className="bg-orange-600 hover:bg-orange-700 w-full sm:w-auto"
-                >
-                  Renew Now
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-      {/* ── Tabs ── */}
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="space-y-6"
-      >
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="plans" className="flex items-center gap-2">
-            <Crown className="h-4 w-4" />
-            <span className="hidden md:inline">Plans</span>
-          </TabsTrigger>
-          <TabsTrigger value="current" className="flex items-center gap-2">
-            <Zap className="h-4 w-4" />
-            <span className="hidden md:inline">Current</span>
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <span className="hidden md:inline">History</span>
-          </TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full">
+          <TabsTrigger value="plans" className="flex-1">Plans</TabsTrigger>
+          <TabsTrigger value="history" className="flex-1">History</TabsTrigger>
         </TabsList>
 
         {/* ── Plans Tab ── */}
-        <TabsContent value="plans" className="space-y-6">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-2">Choose Your Plan</h2>
-            <p className="text-muted-foreground">
-              Select the perfect plan for your property management needs
-            </p>
-          </div>
+        <TabsContent value="plans" className="space-y-6 mt-6">
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {plans.map((plan) => (
-              <Card
-                key={plan.id}
-                className={`relative transition-all hover:shadow-lg ${
-                  plan.planType === "premium"
-                    ? "shadow-xl shadow-primary/20 border-0 py-8"
-                    : ""
-                }`}
-              >
-                {plan.planType === "premium" && (
-                  <div className="mx-auto text-center">
-                    <Badge className="bg-blue-500 text-white">
-                      <Star className="h-3 w-3 mr-1" />
-                      Most Popular
-                    </Badge>
-                  </div>
-                )}
-
-                <CardHeader className="text-center mt-2">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Crown className="h-5 w-5 text-yellow-500" />
-                    <CardTitle>{plan.name}</CardTitle>
-                  </div>
-                  <Badge className={getPlanTypeColor(plan.planType)}>
-                    {plan.planType}
-                  </Badge>
-                </CardHeader>
-
-                <CardContent className="space-y-6 px-4">
-                  {/* Price */}
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">
-                      {formatCurrency(plan.price)}
-                    </div>
-                    <div className="text-muted-foreground">
-                      per {plan.durationDisplay}
-                    </div>
-                  </div>
-
-                  {/* Details */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span>Property Limit:</span>
-                      <span className="font-medium">
-                        {plan.propertyLimit === -1
-                          ? "Unlimited"
-                          : plan.propertyLimit}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span>Duration:</span>
-                      <span className="font-medium">
-                        {plan.durationDisplay}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Features */}
-                  {plan.features && Object.keys(plan.features).length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="font-medium">Features:</h4>
-                      <div className="space-y-2">
-                        {Object.entries(plan.features).map(([key, value]) => (
-                          <div key={key} className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            <span className="text-sm capitalize">
-                              {key.replace("_", " ")}: {value ? "Yes" : "No"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Action */}
-                  <Button
-                    className="w-full"
-                    onClick={() => handlePlanSelect(plan)}
-                    disabled={currentSubscription?.plan?.id === plan.id}
-                    variant={
-                      plan.planType === "premium" ? "default" : "outline"
-                    }
-                  >
-                    {currentSubscription?.plan?.id === plan.id ? (
-                      <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Current Plan
-                      </>
-                    ) : (
-                      <>
-                        <ArrowRight className="h-4 w-4 mr-2" />
-                        Choose Plan
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* ── Current Subscription Tab ── */}
-        <TabsContent value="current" className="space-y-6">
-          {currentSubscription ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main Details Card */}
-              <div className="lg:col-span-2">
-                <Card className="border border-border overflow-hidden">
-                  {/* Premium Header */}
-                  <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 px-6 py-8 rounded-3xl">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div>
-                        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
-                          {currentSubscription.plan.name}
-                        </h2>
-                        <p className="text-sm text-slate-600 mt-1">
-                          Your current plan
-                        </p>
-                      </div>
-                      <Badge
-                        className={`${getSubscriptionStatusColor(currentSubscription.status)} text-sm`}
-                        variant="secondary"
-                      >
-                        {currentSubscription.status}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <CardContent className="pt-8">
-                    <div className="space-y-6">
-                      {/* Plan Details Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <Label className="text-xs sm:text-sm text-slate-600 font-medium">
-                            Plan Type
-                          </Label>
-                          <div>
-                            <Badge
-                              className={`${getPlanTypeColor(currentSubscription.plan.planType)} text-sm`}
-                              variant="outline"
-                            >
-                              {currentSubscription.plan.planType}
-                            </Badge>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-xs sm:text-sm text-slate-600 font-medium">
-                            Auto Renewal
-                          </Label>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-2 h-2 rounded-full ${currentSubscription.autoRenew ? "bg-emerald-500" : "bg-slate-300"}`}
-                            ></div>
-                            <span className="text-sm font-medium text-slate-900">
-                              {currentSubscription.autoRenew
-                                ? "Enabled"
-                                : "Disabled"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      {/* Billing Period */}
-                      <div className="space-y-4">
-                        <Label className="text-xs sm:text-sm text-slate-600 font-medium">
-                          Billing Period
-                        </Label>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 rounded-lg border border-primary bg-primary/5">
-                            <div className="text-xs text-primary mb-1">
-                              Started
-                            </div>
-                            <div className="text-sm font-semibold text-primary">
-                              {new Date(
-                                currentSubscription.startDate,
-                              ).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
-                            </div>
-                          </div>
-                          <div className="p-4 rounded-lg border border-orange-300 bg-orange-100">
-                            <div className="text-xs text-orange-600 mb-1">
-                              Expires
-                            </div>
-                            <div className="text-sm font-semibold text-orange-900">
-                              {new Date(
-                                currentSubscription.endDate,
-                              ).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      {/* Action Buttons */}
-                      <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
-                        <Button
-                          variant="outline"
-                          onClick={cancelSubscription}
-                          disabled={loading}
-                          className="w-full px-4 sm:w-fit border-red-200 text-red-600 hover:bg-red-50"
-                        >
-                          Cancel Plan
-                        </Button>
-                        <Button
-                          onClick={() => setActiveTab("plans")}
-                          className="w-full sm:w-fit px-4"
-                        >
-                          <TrendingUp className="h-4 w-4 mr-2" />
-                          Upgrade Plan
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Usage Summary Card */}
-              <Card className="border-0 shadow-sm overflow-hidden">
-                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/40 px-6 py-6 rounded-3xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="h-5 w-5 text-emerald-600" />
-                    <h3 className="font-semibold text-slate-900">
-                      Usage Summary
-                    </h3>
-                  </div>
+          {/* Current plan summary strip */}
+          {!loading && currentSubscription && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border bg-muted/40">
+              <div className="flex items-center gap-3">
+                <Crown className="h-4 w-4 text-primary shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">
+                    {currentSubscription.plan.name}
+                    <Badge variant="secondary" className="ml-2 text-xs">Active</Badge>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {daysRemaining} days remaining · {currentSubscription.plan.propertyLimit === -1 ? "Unlimited" : currentSubscription.plan.propertyLimit} properties
+                  </p>
                 </div>
+              </div>
+              <div className="flex items-center gap-2 sm:shrink-0">
+                <Progress value={getSubscriptionProgress()} className="h-1.5 w-24 hidden sm:block" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive text-xs"
+                  onClick={cancelSubscription}
+                  disabled={loading}
+                >
+                  Cancel plan
+                </Button>
+              </div>
+            </div>
+          )}
 
-                <CardContent className="pt-6 space-y-6">
-                  {/* Total Properties */}
-                  <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-3xl border border-blue-200">
-                    <div className="text-4xl font-bold text-blue-600 mb-2">
-                      {subscriptionStatus?.propertyCounts?.total || 0}
-                    </div>
-                    <div className="text-xs sm:text-sm text-blue-700 font-medium">
-                      Total Properties
-                    </div>
-                  </div>
+          {/* Plans grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {loading ? (
+              <>
+                <PlanCardSkeleton />
+                <PlanCardSkeleton />
+                <PlanCardSkeleton />
+              </>
+            ) : (
+              plans.map((plan) => {
+                const isCurrent = isCurrentPlan(plan);
+                const enabledFeatures = Object.entries(plan.features || {})
+                  .filter(([, v]) => v === true)
+                  .map(([k]) => PERMISSION_LABELS[k] || k);
 
-                  {/* Active and Available */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 bg-emerald-50 rounded-3xl border border-emerald-200">
-                      <div className="text-2xl font-bold text-emerald-600">
-                        {subscriptionStatus?.propertyCounts?.total || 0}
-                      </div>
-                      <div className="text-xs text-emerald-700 font-medium mt-1">
-                        Active
-                      </div>
-                    </div>
-                    <div className="p-4 rounded-3xl border border-slate-200 bg-slate-100">
-                      <div className="text-2xl font-bold text-slate-600 flex items-center gap-1">
-                        {subscriptionStatus?.propertyCounts?.available ===
-                        "Unlimited" ? (
-                          <Infinity className="h-5 w-5" />
-                        ) : (
-                          subscriptionStatus?.propertyCounts?.available || 0
+                return (
+                  <Card
+                    key={plan.id}
+                    className={`flex flex-col transition-all ${isCurrent ? "ring-2 ring-primary" : ""}`}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <CardTitle className="text-base">{plan.name}</CardTitle>
+                          <p className="text-xs text-muted-foreground mt-0.5">{plan.durationDisplay}</p>
+                        </div>
+                        {isCurrent && (
+                          <Badge variant="default" className="text-xs shrink-0">Current</Badge>
                         )}
                       </div>
-                      <div className="text-xs text-slate-700 font-medium mt-1">
-                        Available
+                      <div className="mt-2">
+                        <span className="text-2xl font-bold">{formatCurrency(plan.price)}</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          /{plan.duration === "annual" ? "yr" : plan.duration === "quarterly" ? "3mo" : "mo"}
+                        </span>
                       </div>
-                    </div>
-                  </div>
+                    </CardHeader>
 
-                  {/* Usage Bar */}
-                  {currentSubscription.propertyLimit !== -1 && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-600 font-medium">
-                          Property Limit
-                        </span>
-                        <span className="text-slate-900 font-bold">
-                          {subscriptionStatus?.propertyCounts?.total || 0} /{" "}
-                          {currentSubscription.plan.propertyLimit === -1
-                            ? "∞"
-                            : currentSubscription.plan.propertyLimit}
-                        </span>
+                    <CardContent className="flex-1 space-y-4">
+                      <div className="text-sm text-muted-foreground">
+                        Up to <span className="font-medium text-foreground">
+                          {plan.propertyLimit === -1 ? "unlimited" : plan.propertyLimit}
+                        </span> {plan.propertyLimit === 1 ? "property" : "properties"}
                       </div>
-                      <Progress
-                        value={
-                          currentSubscription.plan.propertyLimit === -1
-                            ? 0
-                            : ((subscriptionStatus?.propertyCounts?.total ||
-                                0) /
-                                currentSubscription.plan.propertyLimit) *
-                              100
-                        }
-                        className="h-2"
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <Card className="border-0 shadow-sm">
-              <CardContent className="pt-12 sm:pt-16">
-                <div className="text-center py-8 px-4 sm:px-6">
-                  <div className="inline-flex p-4 bg-slate-100 rounded-2xl mb-6">
-                    <AlertTriangle className="h-12 w-12 text-slate-500" />
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                    No Active Subscription
-                  </h3>
-                  <p className="text-sm sm:text-base text-slate-600 mb-8 max-w-md mx-auto">
-                    You don't have an active subscription. Choose a plan to
-                    unlock features and grow your business.
-                  </p>
-                  <Button
-                    onClick={() => setActiveTab("plans")}
-                    size="lg"
-                    className="w-full sm:w-fit"
-                  >
-                    <Crown className="h-4 w-4 mr-2" />
-                    View Plans
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+
+                      {enabledFeatures.length > 0 && (
+                        <ul className="space-y-1.5">
+                          {enabledFeatures.map((label) => (
+                            <li key={label} className="flex items-center gap-2 text-xs">
+                              <Check className="h-3 w-3 text-primary shrink-0" />
+                              {label}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      <Button
+                        className="w-full mt-auto"
+                        variant={isCurrent ? "secondary" : "default"}
+                        disabled={isCurrent}
+                        onClick={() => handlePlanSelect(plan)}
+                      >
+                        {isCurrent ? (
+                          <>
+                            <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                            Current plan
+                          </>
+                        ) : (
+                          <>
+                            <ArrowRight className="h-3.5 w-3.5 mr-1.5" />
+                            Choose plan
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
         </TabsContent>
 
         {/* ── History Tab ── */}
-        <TabsContent value="history" className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">
-              Subscription History
-            </h2>
-            <p className="text-muted-foreground">
-              View all your past and current subscriptions
-            </p>
-          </div>
-
-          {subscriptionHistory?.length > 0 ? (
+        <TabsContent value="history" className="mt-6">
+          {loading ? (
+            <div className="space-y-2">
+              {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            </div>
+          ) : subscriptionHistory?.length > 0 ? (
             <Card>
-              <CardContent className="p-0">
-                <CloudflareTable
-                  data={subscriptionHistory}
-                  columns={historyColumns}
-                  pagination={true}
-                  pageSize={10}
-                />
-              </CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Plan</TableHead>
+                    <TableHead className="hidden sm:table-cell">Period</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {subscriptionHistory.map((sub) => (
+                    <TableRow key={sub.id}>
+                      <TableCell>
+                        <p className="text-sm font-medium">{sub.planName}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{sub.planType}</p>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(sub.startDate).toLocaleDateString()} –{" "}
+                          {new Date(sub.endDate).toLocaleDateString()}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={sub.status === "active" ? "default" : "secondary"}
+                          className="text-xs capitalize"
+                        >
+                          {sub.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-medium">
+                        {formatCurrency(sub.price)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </Card>
           ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center py-12">
-                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No History</h3>
-                  <p className="text-muted-foreground">
-                    Your subscription history will appear here.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="py-16 text-center text-muted-foreground">
+              <Clock className="h-8 w-8 mx-auto mb-3 opacity-40" />
+              <p className="text-sm">No subscription history yet.</p>
+            </div>
           )}
         </TabsContent>
       </Tabs>
 
-      {/* ── Checkout Dialog (mobile only) ── */}
+      {/* ── Checkout Dialog ── */}
       <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
-        <DialogContent className="max-w-md p-0">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Complete Payment
-            </DialogTitle>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Complete payment</DialogTitle>
             <DialogDescription>
-              Subscribe to {selectedPlan?.name} for{" "}
-              {formatCurrency(selectedPlan?.price || 0)}
+              {selectedPlan?.name} · {formatCurrency(selectedPlan?.price || 0)}
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="max-h-[70vh] px-6 pb-6">
-            <div className="space-y-5 pt-4">
-              {/* Provider selection – logo buttons */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">
-                  Mobile Money Provider *
-                </Label>
-                <div className="flex flex-wrap gap-3">
-                  {MOBILE_PROVIDERS.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() =>
-                        setPaymentData((prev) => ({
-                          ...prev,
-                          provider: p.id,
-                        }))
-                      }
-                      className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all
-                        ${
-                          paymentData.provider === p.id
-                            ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
-                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                        }`}
-                    >
-                      <div className="w-8 h-8 rounded overflow-hidden bg-background p-1 shadow-sm">
-                        <img
-                          src={p.logo}
-                          alt={p.name}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <span className="text-sm font-medium">{p.name}</span>
-                    </button>
-                  ))}
-                </div>
-                {!paymentData.provider && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Select a provider to continue.
-                  </p>
-                )}
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-sm">Mobile money provider</Label>
+              <div className="flex flex-wrap gap-2">
+                {MOBILE_PROVIDERS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPaymentData((prev) => ({ ...prev, provider: p.id }))}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                      paymentData.provider === p.id
+                        ? "border-primary bg-primary/5 font-medium"
+                        : "border-border hover:border-muted-foreground"
+                    }`}
+                  >
+                    <img src={p.logo} alt={p.name} className="w-5 h-5 object-contain" />
+                    {p.name}
+                  </button>
+                ))}
               </div>
-
-              {/* Mobile number */}
-              <div>
-                <Label htmlFor="mobile-number" className="text-sm font-medium">
-                  Mobile Number *
-                </Label>
-                <Input
-                  id="mobile-number"
-                  type="tel"
-                  placeholder="+255 712 345 678"
-                  value={paymentData.accountNumber}
-                  onChange={(e) =>
-                    setPaymentData((prev) => ({
-                      ...prev,
-                      accountNumber: e.target.value,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              {/* Summary */}
-              {selectedPlan && (
-                <div className="bg-muted p-4 rounded-lg space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Plan:</span>
-                    <span className="font-medium">{selectedPlan.name}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Duration:</span>
-                    <span>{selectedPlan.durationDisplay}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Property Limit:</span>
-                    <span>
-                      {selectedPlan.propertyLimit === -1
-                        ? "Unlimited"
-                        : selectedPlan.propertyLimit}
-                    </span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-semibold">
-                    <span>Total:</span>
-                    <span>{formatCurrency(selectedPlan.price)}</span>
-                  </div>
-                </div>
-              )}
             </div>
-          </ScrollArea>
 
-          <DialogFooter className="p-6 pt-0 flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowCheckout(false)}
-              className="w-full sm:w-auto"
-            >
+            <div className="space-y-2">
+              <Label htmlFor="mobile-number" className="text-sm">Mobile number</Label>
+              <Input
+                id="mobile-number"
+                type="tel"
+                placeholder="+255 712 345 678"
+                value={paymentData.accountNumber}
+                onChange={(e) => setPaymentData((prev) => ({ ...prev, accountNumber: e.target.value }))}
+              />
+            </div>
+
+            {selectedPlan && (
+              <div className="rounded-lg border p-3 space-y-1.5 bg-muted/40 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Plan</span>
+                  <span className="font-medium">{selectedPlan.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Properties</span>
+                  <span>{selectedPlan.propertyLimit === -1 ? "Unlimited" : selectedPlan.propertyLimit}</span>
+                </div>
+                <Separator className="my-1" />
+                <div className="flex justify-between font-semibold">
+                  <span>Total</span>
+                  <span>{formatCurrency(selectedPlan.price)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowCheckout(false)} className="flex-1">
               Cancel
             </Button>
             <Button
               onClick={handlePayment}
-              disabled={
-                isProcessing ||
-                !paymentData.provider ||
-                !paymentData.accountNumber
-              }
-              className="w-full sm:w-fit"
+              disabled={isProcessing || !paymentData.provider || !paymentData.accountNumber}
+              className="flex-1"
             >
               {isProcessing ? (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
                   Processing...
                 </>
               ) : (
                 <>
-                  <Smartphone className="h-4 w-4 mr-2" />
-                  Pay {formatCurrency(selectedPlan?.price || 0)}
+                  <Smartphone className="h-3.5 w-3.5 mr-1.5" />
+                  Pay
                 </>
               )}
             </Button>
@@ -821,56 +443,36 @@ export default function SubscriptionPage() {
 
       {/* ── Success Dialog ── */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="h-5 w-5" />
-              Payment Successful!
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-primary" />
+              Payment successful
             </DialogTitle>
             <DialogDescription>
-              Your subscription has been activated successfully.
+              Your subscription is now active.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Crown className="h-5 w-5 text-green-600" />
-                <span className="font-medium text-green-800">
-                  Subscription Active
-                </span>
-              </div>
-              <div className="text-sm text-green-700 space-y-1">
-                <div>Plan: {selectedPlan?.name}</div>
-                <div>Duration: {selectedPlan?.durationDisplay}</div>
-                <div>Amount: {formatCurrency(selectedPlan?.price || 0)}</div>
-              </div>
+          <div className="rounded-lg border p-4 space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Plan</span>
+              <span className="font-medium">{selectedPlan?.name}</span>
             </div>
-
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="h-5 w-5 text-blue-600" />
-                <span className="font-medium text-blue-800">What’s Next?</span>
-              </div>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• All your properties are now visible</li>
-                <li>
-                  • You can add up to{" "}
-                  {selectedPlan?.propertyLimit === -1
-                    ? "unlimited"
-                    : selectedPlan?.propertyLimit}{" "}
-                  properties
-                </li>
-                <li>• Access to premium features</li>
-                <li>• Priority customer support</li>
-              </ul>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Properties</span>
+              <span>{selectedPlan?.propertyLimit === -1 ? "Unlimited" : selectedPlan?.propertyLimit}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Amount paid</span>
+              <span className="font-semibold">{formatCurrency(selectedPlan?.price || 0)}</span>
             </div>
           </div>
 
           <DialogFooter>
             <Button onClick={() => setShowSuccess(false)} className="w-full">
-              <Building2 className="h-4 w-4 mr-2" />
-              Go to Dashboard
+              <Building2 className="h-3.5 w-3.5 mr-1.5" />
+              Go to dashboard
             </Button>
           </DialogFooter>
         </DialogContent>
