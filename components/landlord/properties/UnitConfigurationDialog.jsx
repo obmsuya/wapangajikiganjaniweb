@@ -35,11 +35,12 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
     setUnitName(unit.unit_name || "");
 
     if (isOccupied) {
-      // Tenant identity fields — sourced from the tenant object in the response
+      const tenant = unit.current_tenant || unit.tenant || {};
+
       setTenantForm({
-        full_name:    unit.tenant?.full_name    || unit.full_name    || "",
-        phone_number: unit.tenant?.phone_number || unit.phone_number || "",
-      });
+      full_name:    tenant.full_name    || unit.full_name    || "",
+      phone_number: String(tenant.phone_number || unit.phone_number || ""),
+    });
 
       // Occupancy fields
       setOccupancyForm({

@@ -236,6 +236,7 @@ export default function PropertyDetailsPage({ params }) {
             // Units details for editing
             units_details: processedUnits.map((unit) => ({
               svg_id: unit.svg_id,
+              id: unit.id,
               unit_name: unit.unit_name,
               area_sqm: unit.area_sqm,
               rooms: unit.rooms,
