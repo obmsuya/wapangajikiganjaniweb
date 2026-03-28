@@ -29,7 +29,10 @@ import SubscriptionPlanForm from './SubscriptionPlanForm';
 
 const PERMISSION_LABELS = {
   auto_rent_reminders:    'Auto reminders',
+  advanced_reporting:     'Advanced reporting',
+  export_reports:         'Export reports',
   sms_notifications:      'SMS notifications',
+  can_add_managers:       'Manager accounts',
   online_rent_collection: 'Online rent collection',
   wallet_withdrawals:     'Wallet withdrawals',
 };
