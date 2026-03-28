@@ -35,7 +35,8 @@ export default function UnitConfigurationDialog({ unit, isOpen, onClose, onSaveS
     setUnitName(unit.unit_name || "");
 
     if (isOccupied) {
-      const tenant = unit.current_tenant || unit.tenant || {};
+      const raw = unit.current_tenant || {};
+      const tenant = raw.tenant || raw; 
 
       setTenantForm({
       full_name:    tenant.full_name    || unit.full_name    || "",
