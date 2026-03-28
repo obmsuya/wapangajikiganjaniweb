@@ -21,7 +21,7 @@ export default function WapangajiLanding() {
       hero: {
         title: "Wapangaji Property Management System",
         subtitle: "Simplify your property management with automated rent collection, tenant management, and real-time analytics.",
-        landlordLogin: "Landlord Login",
+        landlordLogin: "Login Using the System",
         tenantLogin: "Tenant Login",
         agentLogin: "Agent Login"
       },
@@ -86,7 +86,7 @@ export default function WapangajiLanding() {
       hero: {
         title: "Mfumo wa Usimamizi wa Mali wa Wapangaji",
         subtitle: "Rahisisha usimamizi wa mali yako kwa ukusanyaji otomatiki wa kodi, usimamizi wa wapangaji, na uchambuzi wa wakati halisi.",
-        landlordLogin: "Ingia - Mwenye Nyumba",
+        landlordLogin: "Ingia Kutumia Mfumo",
         tenantLogin: "Ingia - Mpangaji",
         agentLogin: "Ingia - Wakala"
       },
@@ -209,12 +209,12 @@ export default function WapangajiLanding() {
                 <Button size="lg" asChild>
                   <a href="/login?type=landlord">{t.hero.landlordLogin}</a>
                 </Button>
-                <Button size="lg" variant="outline" asChild>
+                {/* <Button size="lg" variant="outline" asChild>
                   <a href="/login?type=tenant">{t.hero.tenantLogin}</a>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
                   <a href="/login?type=agent">{t.hero.agentLogin}</a>
-                </Button>
+                </Button> */}
                 <Button size="lg" variant="ghost" asChild>
                   <a href="#features">Explore Features</a>
                 </Button>
