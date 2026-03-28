@@ -60,7 +60,8 @@ export const useSubscriptionStore = create((set, get) => ({
           visibleProperties: payload.visible_properties,
           planType: payload.plan_type,
           isFreePlan: payload.is_free_plan,
-          planName: payload.plan_name
+          planName: payload.plan_name,
+          permissions: payload.permissions ?? {},
         };
       }
     } catch (error) {
@@ -79,6 +80,11 @@ export const useSubscriptionStore = create((set, get) => ({
     const apiData = get().subscriptionStatus;
 
     return apiData?.canAddProperties ?? tokenData?.canAddProperties ?? false;
+  },
+
+  hasPermission: (key) => {
+    const data = get().tokenSubscriptionData || get().extractTokenSubscriptionData();
+    return data?.permissions?.[key] ?? false;
   },
 
   setLoading: (loading) => set({ loading }),

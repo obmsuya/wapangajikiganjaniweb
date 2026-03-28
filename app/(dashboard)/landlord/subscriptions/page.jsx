@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   Crown,
-  CreditCard,
   Clock,
   CheckCircle,
   AlertTriangle,
@@ -12,8 +11,6 @@ import {
   ArrowRight,
   RefreshCw,
   Check,
-  X,
-  Calendar,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +29,6 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -47,9 +43,9 @@ import { useSubscriptionStore } from "@/stores/landlord/useSubscriptionStore";
 import { toast } from "sonner";
 
 const MOBILE_PROVIDERS = [
-  { id: "AIRTEL", name: "Airtel Money", logo: "/images/airtel-logo.png" },
-  { id: "TIGO", name: "Tigo Pesa", logo: "/images/tigo-logo.png" },
-  { id: "AZAMPESA", name: "Azam Pesa", logo: "/images/azam-pesa-logo.png" },
+  { id: "AIRTEL",   name: "Airtel Money", logo: "/images/airtel-logo.png"    },
+  { id: "TIGO",     name: "Tigo Pesa",    logo: "/images/tigo-logo.png"      },
+  { id: "AZAMPESA", name: "Azam Pesa",    logo: "/images/azam-pesa-logo.png" },
 ];
 
 const PERMISSION_LABELS = {
@@ -60,6 +56,11 @@ const PERMISSION_LABELS = {
   can_add_managers:       "Manager accounts",
   online_rent_collection: "Online rent collection",
   wallet_withdrawals:     "Wallet withdrawals",
+  can_manage_tenants:     "Tenant management",
+  website:                "Property website",
+  tenant_page:            "Tenant portal",
+  notification:           "Push notifications",
+  customer_support:       "Priority support",
 };
 
 function PlanCardSkeleton() {
@@ -67,24 +68,24 @@ function PlanCardSkeleton() {
     <Card className="p-5 space-y-4">
       <Skeleton className="h-5 w-32" />
       <Skeleton className="h-8 w-24" />
-      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-3/4" />
       <div className="space-y-2 pt-2">
         <Skeleton className="h-3 w-full" />
         <Skeleton className="h-3 w-4/5" />
         <Skeleton className="h-3 w-3/5" />
       </div>
-      <Skeleton className="h-9 w-full mt-2" />
+      <Skeleton className="h-10 w-full mt-2" />
     </Card>
   );
 }
 
 export default function SubscriptionPage() {
-  const [activeTab, setActiveTab] = useState("plans");
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [paymentData, setPaymentData] = useState({ provider: "", accountNumber: "" });
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [activeTab,     setActiveTab]     = useState("plans");
+  const [selectedPlan,  setSelectedPlan]  = useState(null);
+  const [showCheckout,  setShowCheckout]  = useState(false);
+  const [showSuccess,   setShowSuccess]   = useState(false);
+  const [paymentData,   setPaymentData]   = useState({ provider: "", accountNumber: "" });
+  const [isProcessing,  setIsProcessing]  = useState(false);
 
   const {
     loading,
@@ -132,10 +133,7 @@ export default function SubscriptionPage() {
         setShowCheckout(false);
         setShowSuccess(true);
         await Promise.all([fetchCurrentSubscription(), fetchSubscriptionStatus()]);
-        setTimeout(() => {
-          setShowSuccess(false);
-          setActiveTab("plans");
-        }, 5000);
+        setTimeout(() => { setShowSuccess(false); setActiveTab("plans"); }, 5000);
       }
     } catch {
       toast.error("Payment failed. Please try again.");
@@ -150,16 +148,15 @@ export default function SubscriptionPage() {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   };
 
-  const getSubscriptionProgress = () => {
+  const getProgress = () => {
     if (!currentSubscription?.startDate || !currentSubscription?.endDate) return 0;
-    const total = new Date(currentSubscription.endDate) - new Date(currentSubscription.startDate);
+    const total   = new Date(currentSubscription.endDate) - new Date(currentSubscription.startDate);
     const elapsed = Date.now() - new Date(currentSubscription.startDate);
     return Math.max(0, Math.min(100, (elapsed / total) * 100));
   };
 
-  const isCurrentPlan = (plan) => currentSubscription?.plan?.id === plan.id;
-
-  const daysRemaining = getDaysRemaining();
+  const isCurrentPlan  = (plan) => currentSubscription?.plan?.id === plan.id;
+  const daysRemaining  = getDaysRemaining();
   const isExpiringSoon = daysRemaining > 0 && daysRemaining < 7;
 
   return (
@@ -169,8 +166,12 @@ export default function SubscriptionPage() {
         <div className="flex items-start gap-3 p-4 rounded-lg border border-destructive/30 bg-destructive/5">
           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-destructive">Subscription expiring in {daysRemaining} days</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Renew to avoid service interruption.</p>
+            <p className="text-sm font-medium text-destructive">
+              Subscription expiring in {daysRemaining} days
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Renew now to avoid service interruption.
+            </p>
           </div>
           <Button size="sm" variant="destructive" onClick={() => setActiveTab("plans")}>
             Renew
@@ -180,14 +181,13 @@ export default function SubscriptionPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full">
-          <TabsTrigger value="plans" className="flex-1">Plans</TabsTrigger>
+          <TabsTrigger value="plans"   className="flex-1">Plans</TabsTrigger>
           <TabsTrigger value="history" className="flex-1">History</TabsTrigger>
         </TabsList>
 
         {/* ── Plans Tab ── */}
         <TabsContent value="plans" className="space-y-6 mt-6">
 
-          {/* Current plan summary strip */}
           {!loading && currentSubscription && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border bg-muted/40">
               <div className="flex items-center gap-3">
@@ -198,12 +198,17 @@ export default function SubscriptionPage() {
                     <Badge variant="secondary" className="ml-2 text-xs">Active</Badge>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {daysRemaining} days remaining · {currentSubscription.plan.propertyLimit === -1 ? "Unlimited" : currentSubscription.plan.propertyLimit} properties
+                    {daysRemaining} days remaining
+                    {" · "}
+                    {currentSubscription.plan.propertyLimit === -1
+                      ? "Unlimited"
+                      : currentSubscription.plan.propertyLimit}{" "}
+                    {currentSubscription.plan.propertyLimit === 1 ? "property" : "properties"}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 sm:shrink-0">
-                <Progress value={getSubscriptionProgress()} className="h-1.5 w-24 hidden sm:block" />
+              <div className="flex items-center gap-3 sm:shrink-0">
+                <Progress value={getProgress()} className="h-1.5 w-24 hidden sm:block" />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -217,7 +222,6 @@ export default function SubscriptionPage() {
             </div>
           )}
 
-          {/* Plans grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {loading ? (
               <>
@@ -228,53 +232,77 @@ export default function SubscriptionPage() {
             ) : (
               plans.map((plan) => {
                 const isCurrent = isCurrentPlan(plan);
+
                 const enabledFeatures = Object.entries(plan.features || {})
                   .filter(([, v]) => v === true)
-                  .map(([k]) => PERMISSION_LABELS[k] || k);
+                  .map(([k]) => PERMISSION_LABELS[k] || k.replace(/_/g, " "));
 
                 return (
                   <Card
                     key={plan.id}
-                    className={`flex flex-col transition-all ${isCurrent ? "ring-2 ring-primary" : ""}`}
+                    className={`flex flex-col relative overflow-hidden transition-all duration-200 ${
+                      isCurrent
+                        ? "ring-2 ring-primary shadow-sm"
+                        : "hover:shadow-sm"
+                    }`}
                   >
-                    <CardHeader className="pb-3">
+                    {isCurrent && (
+                      <div className="absolute top-0 inset-x-0 h-0.5 bg-primary" />
+                    )}
+
+                    <CardHeader className="pb-2 pt-5">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <CardTitle className="text-base">{plan.name}</CardTitle>
-                          <p className="text-xs text-muted-foreground mt-0.5">{plan.durationDisplay}</p>
+                          <CardTitle className="text-base font-semibold leading-tight">
+                            {plan.name}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+                            {plan.durationDisplay}
+                          </p>
                         </div>
                         {isCurrent && (
-                          <Badge variant="default" className="text-xs shrink-0">Current</Badge>
+                          <Badge className="text-xs shrink-0">Current</Badge>
                         )}
                       </div>
-                      <div className="mt-2">
-                        <span className="text-2xl font-bold">{formatCurrency(plan.price)}</span>
+
+                      <div className="mt-3">
+                        <span className="text-3xl font-bold tracking-tight">
+                          {formatCurrency(plan.price)}
+                        </span>
                         <span className="text-xs text-muted-foreground ml-1">
-                          /{plan.duration === "annual" ? "yr" : plan.duration === "quarterly" ? "3mo" : "mo"}
+                          /{plan.duration === "annual"    ? "yr"
+                            : plan.duration === "quarterly" ? "3mo"
+                            : "mo"}
                         </span>
                       </div>
                     </CardHeader>
 
-                    <CardContent className="flex-1 space-y-4">
-                      <div className="text-sm text-muted-foreground">
-                        Up to <span className="font-medium text-foreground">
+                    <CardContent className="flex flex-col flex-1 gap-4 pt-1">
+                      <p className="text-sm text-muted-foreground">
+                        Up to{" "}
+                        <span className="font-semibold text-foreground">
                           {plan.propertyLimit === -1 ? "unlimited" : plan.propertyLimit}
-                        </span> {plan.propertyLimit === 1 ? "property" : "properties"}
-                      </div>
+                        </span>{" "}
+                        {plan.propertyLimit === 1 ? "property" : "properties"}
+                      </p>
 
                       {enabledFeatures.length > 0 && (
-                        <ul className="space-y-1.5">
+                        <ul className="space-y-2 flex-1">
                           {enabledFeatures.map((label) => (
-                            <li key={label} className="flex items-center gap-2 text-xs">
-                              <Check className="h-3 w-3 text-primary shrink-0" />
-                              {label}
+                            <li key={label} className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                                <Check className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-400" />
+                              </span>
+                              <span className="capitalize">{label}</span>
                             </li>
                           ))}
                         </ul>
                       )}
 
+                      {enabledFeatures.length === 0 && <div className="flex-1" />}
+
                       <Button
-                        className="w-full mt-auto"
+                        className="w-full"
                         variant={isCurrent ? "secondary" : "default"}
                         disabled={isCurrent}
                         onClick={() => handlePlanSelect(plan)}
@@ -303,7 +331,9 @@ export default function SubscriptionPage() {
         <TabsContent value="history" className="mt-6">
           {loading ? (
             <div className="space-y-2">
-              {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+              {Array(4).fill(0).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
             </div>
           ) : subscriptionHistory?.length > 0 ? (
             <Card>
@@ -364,50 +394,65 @@ export default function SubscriptionPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-5 py-2">
             <div className="space-y-2">
-              <Label className="text-sm">Mobile money provider</Label>
-              <div className="flex flex-wrap gap-2">
+              <Label className="text-sm font-medium">Mobile money provider</Label>
+              <div className="grid grid-cols-1 gap-2">
                 {MOBILE_PROVIDERS.map((p) => (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => setPaymentData((prev) => ({ ...prev, provider: p.id }))}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                    onClick={() =>
+                      setPaymentData((prev) => ({ ...prev, provider: p.id }))
+                    }
+                    className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg border text-sm transition-all text-left ${
                       paymentData.provider === p.id
                         ? "border-primary bg-primary/5 font-medium"
-                        : "border-border hover:border-muted-foreground"
+                        : "border-border hover:border-muted-foreground hover:bg-muted/40"
                     }`}
                   >
-                    <img src={p.logo} alt={p.name} className="w-5 h-5 object-contain" />
-                    {p.name}
+                    <img
+                      src={p.logo}
+                      alt={p.name}
+                      className="w-6 h-6 object-contain shrink-0"
+                    />
+                    <span>{p.name}</span>
+                    {paymentData.provider === p.id && (
+                      <Check className="h-4 w-4 text-primary ml-auto" />
+                    )}
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="mobile-number" className="text-sm">Mobile number</Label>
+              <Label htmlFor="mobile-number" className="text-sm font-medium">
+                Mobile number
+              </Label>
               <Input
                 id="mobile-number"
                 type="tel"
                 placeholder="+255 712 345 678"
                 value={paymentData.accountNumber}
-                onChange={(e) => setPaymentData((prev) => ({ ...prev, accountNumber: e.target.value }))}
+                onChange={(e) =>
+                  setPaymentData((prev) => ({ ...prev, accountNumber: e.target.value }))
+                }
               />
             </div>
 
             {selectedPlan && (
-              <div className="rounded-lg border p-3 space-y-1.5 bg-muted/40 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Plan</span>
-                  <span className="font-medium">{selectedPlan.name}</span>
+              <div className="rounded-lg border p-3 space-y-2 bg-muted/40 text-sm">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Plan</span>
+                  <span className="font-medium text-foreground">{selectedPlan.name}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Properties</span>
-                  <span>{selectedPlan.propertyLimit === -1 ? "Unlimited" : selectedPlan.propertyLimit}</span>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Properties</span>
+                  <span>
+                    {selectedPlan.propertyLimit === -1 ? "Unlimited" : selectedPlan.propertyLimit}
+                  </span>
                 </div>
-                <Separator className="my-1" />
+                <Separator />
                 <div className="flex justify-between font-semibold">
                   <span>Total</span>
                   <span>{formatCurrency(selectedPlan.price)}</span>
@@ -417,12 +462,18 @@ export default function SubscriptionPage() {
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowCheckout(false)} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={() => setShowCheckout(false)}
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button
               onClick={handlePayment}
-              disabled={isProcessing || !paymentData.provider || !paymentData.accountNumber}
+              disabled={
+                isProcessing || !paymentData.provider || !paymentData.accountNumber
+              }
               className="flex-1"
             >
               {isProcessing ? (
@@ -433,7 +484,7 @@ export default function SubscriptionPage() {
               ) : (
                 <>
                   <Smartphone className="h-3.5 w-3.5 mr-1.5" />
-                  Pay
+                  Pay {formatCurrency(selectedPlan?.price || 0)}
                 </>
               )}
             </Button>
@@ -446,26 +497,29 @@ export default function SubscriptionPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-primary" />
+              <CheckCircle className="h-5 w-5 text-emerald-500" />
               Payment successful
             </DialogTitle>
-            <DialogDescription>
-              Your subscription is now active.
-            </DialogDescription>
+            <DialogDescription>Your subscription is now active.</DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-lg border p-4 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Plan</span>
-              <span className="font-medium">{selectedPlan?.name}</span>
+          <div className="rounded-lg border p-4 space-y-2 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Plan</span>
+              <span className="font-medium text-foreground">{selectedPlan?.name}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Properties</span>
-              <span>{selectedPlan?.propertyLimit === -1 ? "Unlimited" : selectedPlan?.propertyLimit}</span>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Properties</span>
+              <span>
+                {selectedPlan?.propertyLimit === -1
+                  ? "Unlimited"
+                  : selectedPlan?.propertyLimit}
+              </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Amount paid</span>
-              <span className="font-semibold">{formatCurrency(selectedPlan?.price || 0)}</span>
+            <Separator />
+            <div className="flex justify-between font-semibold">
+              <span>Amount paid</span>
+              <span>{formatCurrency(selectedPlan?.price || 0)}</span>
             </div>
           </div>
 
