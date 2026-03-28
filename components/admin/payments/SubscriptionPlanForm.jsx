@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -24,121 +26,113 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { DialogFooter } from '@/components/ui/dialog';
-import { Minus, Plus } from 'lucide-react';
-import { useForm } from 'react-hook-form';
 
-/**
- * Form component for creating and editing subscription plans
- */
-export default function SubscriptionPlanForm({ 
-  initialData = null, 
-  onSubmit, 
-  onCancel 
-}) {
-  const [features, setFeatures] = useState([{ key: '', value: '' }]);
-  
-  // Initialize form with react-hook-form
+const PERMISSION_KEYS = [
+  { key: 'auto_rent_reminders',    label: 'Auto rent reminders',     description: 'Automated SMS reminders sent before rent due date' },
+  { key: 'sms_notifications',      label: 'SMS notifications',       description: 'SMS alerts sent to the landlord' },
+  { key: 'online_rent_collection', label: 'Online rent collection',  description: 'MNO and bank rent collection via the platform' },
+  { key: 'wallet_withdrawals',     label: 'Wallet withdrawals',      description: 'Withdraw collected rent from landlord wallet' },
+];
+
+const DEFAULT_PERMISSIONS = PERMISSION_KEYS.reduce((acc, { key }) => {
+  acc[key] = false;
+  return acc;
+}, {});
+
+function formatPrice(raw) {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('en-TZ');
+}
+
+function parsePrice(formatted) {
+  return parseFloat(formatted.replace(/,/g, '')) || 0;
+}
+
+export default function SubscriptionPlanForm({ initialData = null, onSubmit, onCancel }) {
+  const [permissions, setPermissions] = useState({ ...DEFAULT_PERMISSIONS });
+  const [priceDisplay, setPriceDisplay] = useState('');
+
   const form = useForm({
     defaultValues: {
-      name: initialData?.name || '',
-      plan_type: initialData?.plan_type || 'basic',
-      duration: initialData?.duration || 'monthly',
-      price: initialData?.price || '',
+      name:           initialData?.name || '',
+      plan_type:      initialData?.plan_type || 'basic',
+      duration:       initialData?.duration || 'monthly',
       property_limit: initialData?.property_limit || 1,
-      description: initialData?.description || '',
-      is_active: initialData?.is_active !== undefined ? initialData.is_active : true,
+      description:    initialData?.description || '',
+      is_active:      initialData?.is_active !== undefined ? initialData.is_active : true,
     },
   });
 
-  // Initialize features from initialData
   useEffect(() => {
+    if (initialData?.price) {
+      setPriceDisplay(formatPrice(String(Math.round(initialData.price))));
+    }
+
     if (initialData?.features) {
-      const featuresList = Object.entries(initialData.features).map(([key, value]) => ({
-        key,
-        value: typeof value === 'boolean' ? '' : value
-      }));
-      
-      // Ensure we always have at least one empty feature row
-      if (featuresList.length === 0) {
-        featuresList.push({ key: '', value: '' });
-      }
-      
-      setFeatures(featuresList);
+      const merged = { ...DEFAULT_PERMISSIONS };
+      PERMISSION_KEYS.forEach(({ key }) => {
+        if (key in initialData.features) {
+          merged[key] = Boolean(initialData.features[key]);
+        }
+      });
+      setPermissions(merged);
     }
   }, [initialData]);
 
-  // Handle adding a new feature
-  const addFeature = () => {
-    setFeatures([...features, { key: '', value: '' }]);
+  const handlePriceInput = (e) => {
+    setPriceDisplay(formatPrice(e.target.value));
   };
 
-  // Handle removing a feature
-  const removeFeature = (index) => {
-    const newFeatures = [...features];
-    newFeatures.splice(index, 1);
-    setFeatures(newFeatures.length ? newFeatures : [{ key: '', value: '' }]);
+  const togglePermission = (key) => {
+    setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Handle feature key/value changes
-  const handleFeatureChange = (index, field, value) => {
-    const newFeatures = [...features];
-    newFeatures[index][field] = value;
-    setFeatures(newFeatures);
-  };
-
-  // Handle form submission
   const handleFormSubmit = (values) => {
-    // Convert features array to object
-    const featuresObject = features.reduce((obj, { key, value }) => {
-      if (key) {
-        obj[key] = value || true; // If no value, treat as boolean feature
-      }
-      return obj;
-    }, {});
+    const price = parsePrice(priceDisplay);
+    if (!price) {
+      toast.error('Please enter a valid price');
+      return;
+    }
 
-    // Submit the form with features
     onSubmit({
       ...values,
-      features: featuresObject,
-      price: parseFloat(values.price)
+      price,
+      features: { ...permissions },
     });
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Plan Name */}
           <FormField
             control={form.control}
             name="name"
             rules={{ required: 'Plan name is required' }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Plan Name</FormLabel>
+                <FormLabel>Plan name</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. Basic Plan" {...field} />
+                  <Input placeholder="e.g. Premium Plan" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          {/* Plan Type */}
           <FormField
             control={form.control}
             name="plan_type"
             rules={{ required: 'Plan type is required' }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Plan Type</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                >
+                <FormLabel>Plan type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select plan type" />
+                      <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -155,26 +149,22 @@ export default function SubscriptionPlanForm({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Duration */}
           <FormField
             control={form.control}
             name="duration"
             rules={{ required: 'Duration is required' }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Duration</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                >
+                <FormLabel>Billing cycle</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select duration" />
+                      <SelectValue placeholder="Select cycle" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="quarterly">Quarterly (3 months)</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
                     <SelectItem value="annual">Annual</SelectItem>
                   </SelectContent>
                 </Select>
@@ -183,64 +173,42 @@ export default function SubscriptionPlanForm({
             )}
           />
 
-          {/* Price */}
-          <FormField
-            control={form.control}
-            name="price"
-            rules={{ 
-              required: 'Price is required',
-              pattern: {
-                value: /^[0-9]*\.?[0-9]+$/,
-                message: 'Please enter a valid price'
-              }
-            }}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Price (TZS)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="text" 
-                    placeholder="0"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="price">Price (TZS)</Label>
+            <Input
+              id="price"
+              inputMode="numeric"
+              placeholder="0"
+              value={priceDisplay}
+              onChange={handlePriceInput}
+            />
+          </div>
         </div>
 
-        {/* Property Limit */}
         <FormField
           control={form.control}
           name="property_limit"
-          rules={{ 
+          rules={{
             required: 'Property limit is required',
-            min: {
-              value: 1,
-              message: 'Minimum property limit is 1'
-            }
+            min: { value: 1, message: 'Minimum is 1' },
           }}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Property Limit</FormLabel>
+              <FormLabel>Property limit</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
+                <Input
+                  type="number"
                   min="1"
-                  {...field} 
+                  {...field}
                   onChange={(e) => field.onChange(parseInt(e.target.value, 10) || '')}
                 />
               </FormControl>
-              <FormDescription>
-                Maximum number of properties allowed for this plan
-              </FormDescription>
+              <FormDescription>Maximum properties allowed on this plan</FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {/* Description */}
         <FormField
           control={form.control}
           name="description"
@@ -248,10 +216,10 @@ export default function SubscriptionPlanForm({
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea 
-                  placeholder="Enter plan description..." 
+                <Textarea
+                  placeholder="Describe what this plan includes..."
                   className="min-h-[80px]"
-                  {...field} 
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -259,68 +227,48 @@ export default function SubscriptionPlanForm({
           )}
         />
 
-        {/* Features */}
         <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <Label>Features</Label>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              onClick={addFeature}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Feature
-            </Button>
+          <div>
+            <Label className="text-sm font-medium">Plan permissions</Label>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Toggle the features available on this plan
+            </p>
           </div>
-          
-          {features.map((feature, index) => (
-            <div key={index} className="flex items-start gap-2">
-              <Input
-                className="flex-1"
-                placeholder="Feature name"
-                value={feature.key}
-                onChange={(e) => handleFeatureChange(index, 'key', e.target.value)}
-              />
-              <Input
-                className="flex-1"
-                placeholder="Value (optional)"
-                value={feature.value}
-                onChange={(e) => handleFeatureChange(index, 'value', e.target.value)}
-              />
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="icon"
-                onClick={() => removeFeature(index)}
-                disabled={features.length === 1 && !features[0].key && !features[0].value}
+
+          <Separator />
+
+          <div className="space-y-1">
+            {PERMISSION_KEYS.map(({ key, label, description }) => (
+              <div
+                key={key}
+                className="flex items-center justify-between rounded-lg px-3 py-3 hover:bg-muted/50 transition-colors"
               >
-                <Minus className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-          <FormDescription>
-            Add features that come with this plan. Leave value empty for boolean features.
-          </FormDescription>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium leading-none">{label}</p>
+                  <p className="text-xs text-muted-foreground">{description}</p>
+                </div>
+                <Switch
+                  checked={permissions[key]}
+                  onCheckedChange={() => togglePermission(key)}
+                />
+              </div>
+            ))}
+          </div>
+
+          <Separator />
         </div>
 
-        {/* Active Status */}
         <FormField
           control={form.control}
           name="is_active"
           render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <FormLabel className="text-base">Active Status</FormLabel>
-                <FormDescription>
-                  Make this plan available for subscription
-                </FormDescription>
+                <FormLabel className="text-base">Active</FormLabel>
+                <FormDescription>Make this plan available for subscription</FormDescription>
               </div>
               <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
+                <Switch checked={field.value} onCheckedChange={field.onChange} />
               </FormControl>
             </FormItem>
           )}
@@ -333,7 +281,7 @@ export default function SubscriptionPlanForm({
             </Button>
           )}
           <Button type="submit">
-            {initialData ? 'Update Plan' : 'Create Plan'}
+            {initialData ? 'Update plan' : 'Create plan'}
           </Button>
         </DialogFooter>
       </form>

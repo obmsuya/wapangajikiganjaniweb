@@ -1,17 +1,18 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Plus, Edit, Trash2, CreditCard, Check, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, Check, AlertTriangle, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -26,35 +27,47 @@ import {
 import { useSubscriptionPlans } from '@/hooks/admin/useAdminPayment';
 import SubscriptionPlanForm from './SubscriptionPlanForm';
 
-/**
- * Subscription plans list component showing all plans with CRUD operations
- */
+const PERMISSION_LABELS = {
+  auto_rent_reminders:    'Auto reminders',
+  sms_notifications:      'SMS notifications',
+  online_rent_collection: 'Online rent collection',
+  wallet_withdrawals:     'Wallet withdrawals',
+};
+
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('en-TZ', {
+    style: 'currency',
+    currency: 'TZS',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function getPlanTypeBadgeVariant(planType) {
+  const map = { free: 'secondary', basic: 'outline', premium: 'default', enterprise: 'default' };
+  return map[planType] || 'outline';
+}
+
+function getDurationLabel(duration) {
+  const map = { monthly: 'Monthly', quarterly: 'Quarterly', annual: 'Annual' };
+  return map[duration] || duration;
+}
+
 export default function SubscriptionPlansList() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen]   = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [currentPlan, setCurrentPlan] = useState(null);
-  
-  // Get subscription plans data
+
   const { plans, loading, error, createPlan, updatePlan, deletePlan } = useSubscriptionPlans();
 
-  // Format currency to TZS
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-TZ', {
-      style: 'currency',
-      currency: 'TZS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
-  // Handle form submissions
   const handleCreatePlan = async (planData) => {
     try {
       await createPlan(planData);
       setCreateDialogOpen(false);
-    } catch (err) {
-      console.error('Failed to create plan:', err);
+      toast.success('Plan created successfully');
+    } catch {
+      toast.error('Failed to create plan');
     }
   };
 
@@ -62,8 +75,9 @@ export default function SubscriptionPlansList() {
     try {
       await updatePlan({ ...planData, id: currentPlan.id });
       setEditDialogOpen(false);
-    } catch (err) {
-      console.error('Failed to update plan:', err);
+      toast.success('Plan updated successfully');
+    } catch {
+      toast.error('Failed to update plan');
     }
   };
 
@@ -71,163 +85,115 @@ export default function SubscriptionPlansList() {
     try {
       await deletePlan(currentPlan.id);
       setDeleteDialogOpen(false);
-    } catch (err) {
-      console.error('Failed to delete plan:', err);
+      toast.success(`"${currentPlan.name}" deleted`);
+    } catch {
+      toast.error('Failed to delete plan. It may have active subscriptions.');
     }
   };
 
-  // Open edit dialog with plan data
   const openEditDialog = useCallback((plan) => {
     setCurrentPlan(plan);
     setEditDialogOpen(true);
   }, []);
 
-  // Open delete confirmation dialog
   const openDeleteDialog = useCallback((plan) => {
     setCurrentPlan(plan);
     setDeleteDialogOpen(true);
   }, []);
 
-  // Render loading skeletons
-  const renderSkeletons = () => {
-    return Array(4).fill(0).map((_, index) => (
-      <Card key={index} className="p-5">
-        <div className="space-y-4">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-5 w-24" />
-          <div className="pt-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full mt-2" />
-            <Skeleton className="h-4 w-2/3 mt-2" />
-          </div>
-          <div className="flex justify-between pt-4">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-10 w-20" />
-          </div>
-        </div>
-      </Card>
-    ));
-  };
-
-  // Get badge color based on plan type
-  const getPlanTypeColor = (planType) => {
-    switch (planType) {
-      case 'free':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-      case 'basic':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'premium':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
-      case 'enterprise':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-    }
-  };
-
-  // Get badge for plan duration
-  const getDurationBadge = (duration) => {
-    const durationLabels = {
-      monthly: 'Monthly',
-      quarterly: 'Quarterly',
-      annual: 'Annual'
-    };
-    
-    return (
-      <Badge variant="outline">
-        {durationLabels[duration] || duration}
-      </Badge>
-    );
-  };
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Subscription Plans</h2>
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Subscription plans</h2>
+          <p className="text-sm text-muted-foreground">Manage plans and their permissions</p>
+        </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Plan
+          Add plan
         </Button>
       </div>
-      
-      {/* Error message */}
+
       {error && (
-        <div className="p-4 bg-error-50 text-error-700 rounded-md">
+        <div className="flex items-center gap-2 p-4 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
           Failed to load subscription plans. Please try again.
         </div>
       )}
-      
-      {/* Plans grid */}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {loading ? (
-          renderSkeletons()
+          Array(4).fill(0).map((_, i) => (
+            <Card key={i} className="p-5 space-y-4">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-28" />
+              <div className="space-y-2 pt-2">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-2/3" />
+              </div>
+            </Card>
+          ))
         ) : plans && plans.length > 0 ? (
           plans.map((plan) => (
             <PlanCard
               key={plan.id}
               plan={plan}
-              formatCurrency={formatCurrency}
-              getPlanTypeColor={getPlanTypeColor}
-              getDurationBadge={getDurationBadge}
               onEdit={openEditDialog}
               onDelete={openDeleteDialog}
             />
           ))
         ) : (
-          <div className="col-span-full p-8 text-center text-gray-500">
-            <p>No subscription plans found. Create your first plan to get started.</p>
+          <div className="col-span-full py-16 text-center text-muted-foreground">
+            <p className="text-sm">No plans found. Create your first plan to get started.</p>
           </div>
         )}
       </div>
-      
-      {/* Create Plan Dialog */}
+
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create Subscription Plan</DialogTitle>
+            <DialogTitle>Create subscription plan</DialogTitle>
           </DialogHeader>
           <SubscriptionPlanForm onSubmit={handleCreatePlan} />
         </DialogContent>
       </Dialog>
-      
-      {/* Edit Plan Dialog */}
+
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Subscription Plan</DialogTitle>
+            <DialogTitle>Edit subscription plan</DialogTitle>
           </DialogHeader>
           {currentPlan && (
-            <SubscriptionPlanForm 
-              initialData={currentPlan} 
-              onSubmit={handleUpdatePlan} 
+            <SubscriptionPlanForm
+              initialData={currentPlan}
+              onSubmit={handleUpdatePlan}
             />
           )}
         </DialogContent>
       </Dialog>
-      
-      {/* Delete Confirmation Dialog */}
+
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Subscription Plan</AlertDialogTitle>
+            <AlertDialogTitle>Delete plan</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the "{currentPlan?.name}" plan?
+              Are you sure you want to delete &ldquo;{currentPlan?.name}&rdquo;? This cannot be undone.
               {currentPlan?.active_subscriptions > 0 && (
-                <div className="mt-2 flex items-center p-2 bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 rounded">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  <span>
-                    This plan has {currentPlan.active_subscriptions} active
-                    {currentPlan.active_subscriptions === 1 ? ' subscription' : ' subscriptions'}.
-                  </span>
-                </div>
+                <span className="flex items-center gap-2 mt-3 p-3 rounded-md border border-destructive/30 bg-destructive/5 text-destructive text-xs">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  {currentPlan.active_subscriptions} active{' '}
+                  {currentPlan.active_subscriptions === 1 ? 'subscription' : 'subscriptions'} on this plan.
+                </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeletePlan}
-              className="bg-error-500 hover:bg-error-700 text-white"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>
@@ -238,84 +204,79 @@ export default function SubscriptionPlansList() {
   );
 }
 
-/**
- * Individual plan card component
- */
-function PlanCard({ 
-  plan, 
-  formatCurrency, 
-  getPlanTypeColor, 
-  getDurationBadge, 
-  onEdit, 
-  onDelete 
-}) {
+function PlanCard({ plan, onEdit, onDelete }) {
+  const enabledPermissions = Object.entries(plan.features || {})
+    .filter(([, value]) => value === true)
+    .map(([key]) => PERMISSION_LABELS[key] || key);
+
   return (
-    <Card className="p-5 flex flex-col h-full">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-lg font-bold">{plan.name}</h3>
-          <div className="mt-1 flex items-center gap-2">
-            <Badge className={getPlanTypeColor(plan.plan_type)}>
-              {plan.plan_type.charAt(0).toUpperCase() + plan.plan_type.slice(1)}
-            </Badge>
-            {getDurationBadge(plan.duration)}
+    <Card className="flex flex-col">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1 min-w-0">
+            <p className="font-semibold text-sm leading-tight truncate">{plan.name}</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge variant={getPlanTypeBadgeVariant(plan.plan_type)} className="text-xs capitalize">
+                {plan.plan_type}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {getDurationLabel(plan.duration)}
+              </Badge>
+            </div>
           </div>
+          <Badge variant={plan.is_active ? 'default' : 'secondary'} className="text-xs shrink-0">
+            {plan.is_active ? 'Active' : 'Inactive'}
+          </Badge>
         </div>
-        {plan.is_active ? (
-          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-            Active
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="text-gray-500">
-            Inactive
-          </Badge>
+      </CardHeader>
+
+      <CardContent className="flex-1 space-y-4 pb-4">
+        <div>
+          <p className="text-2xl font-bold tracking-tight">{formatCurrency(plan.price)}</p>
+          <p className="text-xs text-muted-foreground">
+            per {plan.duration === 'annual' ? 'year' : plan.duration === 'quarterly' ? '3 months' : 'month'}
+          </p>
+        </div>
+
+        {plan.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2">{plan.description}</p>
         )}
-      </div>
-      
-      <div className="mt-4">
-        <p className="text-2xl font-bold">
-          {formatCurrency(plan.price)}
-          <span className="text-sm font-normal text-gray-500 ml-1">
-            /{plan.duration === 'annual' ? 'year' : plan.duration === 'quarterly' ? '3 months' : 'month'}
-          </span>
-        </p>
-      </div>
-      
-      <div className="mt-4 text-sm">
-        <p className="text-gray-600 dark:text-gray-400">
-          {plan.description || 'No description provided.'}
-        </p>
-      </div>
-      
-      <div className="mt-4 flex-grow">
-        <h4 className="text-sm font-medium mb-2">Features:</h4>
-        <ul className="space-y-2 text-sm">
-          <li className="flex items-start">
-            <Check className="h-4 w-4 mr-2 text-green-500 mt-0.5" />
-            <span>Up to {plan.property_limit} properties</span>
-          </li>
-          {plan.features && Object.entries(plan.features).map(([key, value], idx) => (
-            <li key={idx} className="flex items-start">
-              <Check className="h-4 w-4 mr-2 text-green-500 mt-0.5" />
-              <span>{typeof value === 'boolean' ? key : `${key}: ${value}`}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      
-      <div className="mt-6 pt-4 border-t border-card-border flex justify-between items-center">
-        <div className="text-sm text-gray-500">
+
+        <Separator />
+
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Up to {plan.property_limit} {plan.property_limit === 1 ? 'property' : 'properties'}
+          </p>
+
+          {enabledPermissions.length > 0 ? (
+            <ul className="space-y-1">
+              {enabledPermissions.map((label) => (
+                <li key={label} className="flex items-center gap-1.5 text-xs">
+                  <Check className="h-3 w-3 text-primary shrink-0" />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">No extra permissions</p>
+          )}
+        </div>
+      </CardContent>
+
+      <CardFooter className="pt-0 flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
           <span className="font-medium">{plan.active_subscriptions}</span> active
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => onEdit(plan)}>
-            <Edit className="h-4 w-4" />
+        </p>
+        <div className="flex gap-1.5">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(plan)}>
+            <Edit className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onDelete(plan)}>
-            <Trash2 className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDelete(plan)}>
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
+      </CardFooter>
     </Card>
   );
 }
