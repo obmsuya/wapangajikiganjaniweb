@@ -21,7 +21,7 @@ export default function WapangajiLanding() {
       hero: {
         title: "Wapangaji Property Management System",
         subtitle: "Simplify your property management with automated rent collection, tenant management, and real-time analytics.",
-        landlordLogin: "Login Using the System",
+        landlordLogin: "Login",
         tenantLogin: "Tenant Login",
         agentLogin: "Agent Login"
       },
