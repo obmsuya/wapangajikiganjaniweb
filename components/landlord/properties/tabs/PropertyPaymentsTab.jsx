@@ -35,13 +35,13 @@ import {
 import { usePaymentTabStore } from "@/stores/landlord/UsePaymentTabStore";
 import { toast } from "sonner";
 
+// Derives the type badge for a payment history row.
+// "partial" fires when amount < rent_amount (backend must include rent_amount on each row).
 function derivePaymentType(payment) {
   const notes = (payment.notes || "").toLowerCase();
   if (notes.includes("early")) return "early";
   if (payment.payment_method === "landlord_entry") return "landlord_entry";
-  // A payment is partial when its amount is less than the unit's rent_amount.
-  // The history endpoint returns both fields so we can compare directly.
-  const paid = parseFloat(payment.amount || 0);
+  const paid = parseFloat(payment.amount     || 0);
   const due  = parseFloat(payment.rent_amount || 0);
   if (due > 0 && paid < due) return "partial";
   return null;
@@ -173,7 +173,7 @@ function PaymentHistoryTable({ columns, data, emptyMessage = "No payments found.
         </Table>
       </div>
 
-      {/* Pagination lives outside the bordered table wrapper */}
+      {/* Pagination sits outside the bordered table wrapper */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
           <span>
@@ -283,21 +283,20 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
     else        { clearCycleBalance(); }
   }, [unitId, fetchCycleBalance, clearCycleBalance]);
 
-  const selectedUnit = occupiedUnits.find((u) => String(u.unit_id) === String(unitId));
-
-  const amountNum    = parseFloat(amount)  || 0;
-  const amountDue    = parseFloat(cycleBalance?.amount_due       || 0);
-  const amountPaid   = parseFloat(cycleBalance?.amount_paid      || 0);
-  const remaining    = parseFloat(cycleBalance?.amount_remaining || 0);
-  const isSettled    = cycleBalance?.is_settled === true;
-  const isEarlyCycle = cycleBalance?.is_early   === true;
+  const selectedUnit   = occupiedUnits.find((u) => String(u.unit_id) === String(unitId));
+  const amountNum      = parseFloat(amount) || 0;
+  const amountDue      = parseFloat(cycleBalance?.amount_due       || 0);
+  const amountPaid     = parseFloat(cycleBalance?.amount_paid      || 0);
+  const remaining      = parseFloat(cycleBalance?.amount_remaining || 0);
+  const isSettled      = cycleBalance?.is_settled === true;
+  const isEarlyCycle   = cycleBalance?.is_early   === true;
   const isEarlyPayment = isSettled || isEarlyCycle;
-  const maxAllowed   = isEarlyPayment ? parseFloat(selectedUnit?.rent_amount || 0) : remaining;
-  const newTotal     = amountPaid + amountNum;
-  const willSettle   = !isEarlyPayment && amountNum > 0 && newTotal >= amountDue;
-  const isPartial    = !isEarlyPayment && amountNum > 0 && newTotal <  amountDue;
-  const paymentType  = isEarlyPayment ? "early" : willSettle ? "full" : isPartial ? "partial" : null;
-  const amountValid  = amountNum > 0 && amountNum <= maxAllowed;
+  const maxAllowed     = isEarlyPayment ? parseFloat(selectedUnit?.rent_amount || 0) : remaining;
+  const newTotal       = amountPaid + amountNum;
+  const willSettle     = !isEarlyPayment && amountNum > 0 && newTotal >= amountDue;
+  const isPartial      = !isEarlyPayment && amountNum > 0 && newTotal <  amountDue;
+  const paymentType    = isEarlyPayment ? "early" : willSettle ? "full" : isPartial ? "partial" : null;
+  const amountValid    = amountNum > 0 && amountNum <= maxAllowed;
 
   const quickFillOptions = useMemo(() => {
     if (!cycleBalance) return [];
@@ -351,7 +350,6 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-6 space-y-5 pb-2">
-
           <div className="space-y-1.5">
             <Label>Which unit is this for?</Label>
             <Select value={unitId} onValueChange={setUnitId}>
@@ -577,7 +575,6 @@ function RecordPaymentDialog({ open, onOpenChange, occupiedUnits, propertyId, pr
               : <><Check      className="h-4 w-4 mr-2" />Record Payment</>}
           </Button>
         </div>
-
       </DialogContent>
     </Dialog>
   );
@@ -590,7 +587,6 @@ function ConfirmPaymentDialog({ open, onOpenChange, payment, action, onSubmit, l
   useEffect(() => { if (!open) setRejectionReason(""); }, [open]);
 
   if (!payment) return null;
-
   const isAccept = action === "accept";
 
   return (
@@ -767,7 +763,9 @@ function PaymentDetailDialog({ open, onOpenChange, payment }) {
   );
 }
 
-export default function PropertyPaymentsTab({ property, floorData, tenants }) {
+// Tenant state is owned by the store (fetchPropertyTenants) and refreshed
+// after every payment. The `tenants` prop seeds the initial render only.
+export default function PropertyPaymentsTab({ property, floorData, tenants: tenantsProp }) {
   const [showRecordDialog,  setShowRecordDialog]  = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showDetailDialog,  setShowDetailDialog]  = useState(false);
@@ -778,6 +776,7 @@ export default function PropertyPaymentsTab({ property, floorData, tenants }) {
   const {
     loading, error,
     filters, updateFilters,
+    tenants: storeTenants,
     confirmPayment,
     getFilteredPayments,
     getPendingPayments,
@@ -791,27 +790,26 @@ export default function PropertyPaymentsTab({ property, floorData, tenants }) {
     if (property?.id) initializeTab(property.id);
   }, [property?.id, initializeTab]);
 
+  // Store tenants are the live source; prop is the initial seed while fetching.
+  const activeTenants = storeTenants.length > 0 ? storeTenants : (tenantsProp ?? []);
+
   const occupiedUnits = useMemo(() => {
-    if (Array.isArray(tenants) && tenants.length > 0) {
-      return tenants
+    if (Array.isArray(activeTenants) && activeTenants.length > 0) {
+      return activeTenants
         .filter((t) => t.occupancy_status === "active")
         .map((t) => {
           const rent        = parseFloat(t.rent_amount || 0);
           const lastPayment = t.payment_details?.last_payment;
           const lastPaid    = parseFloat(lastPayment?.amount || 0);
 
-          // Use backend payment_status directly — backend now returns "partial"
-          // when amount_paid < rent_amount for the current cycle.
-          // Fall back to local detection only if backend sends "paid" but last
-          // payment is clearly less than rent (guards against stale API versions).
-          const backendStatus = t.payment_status;
+          // Trust backend status; local fallback catches stale "paid" responses
+          // that should actually be "partial".
+          const backendStatus   = t.payment_status;
           const effectiveStatus =
             backendStatus === "paid" && lastPaid > 0 && lastPaid < rent
               ? "partial"
               : backendStatus;
 
-          // amount_outstanding comes from backend payment_details for "partial",
-          // otherwise compute locally as a fallback.
           const outstanding =
             effectiveStatus === "partial"
               ? parseFloat(t.payment_details?.amount_outstanding || 0) || (rent - lastPaid)
@@ -857,7 +855,7 @@ export default function PropertyPaymentsTab({ property, floorData, tenants }) {
       });
     });
     return result;
-  }, [tenants, floorData]);
+  }, [activeTenants, floorData]);
 
   const attentionUnits = useMemo(
     () => occupiedUnits.filter((u) => ["overdue", "due", "partial"].includes(u.payment_status)),
@@ -911,7 +909,19 @@ export default function PropertyPaymentsTab({ property, floorData, tenants }) {
     },
     {
       header: "Amount", accessor: "amount", sortable: true,
-      cell: (row) => <span className="font-semibold">{formatCurrency(row.amount)}</span>,
+      cell: (row) => {
+        const paid = parseFloat(row.amount     || 0);
+        const due  = parseFloat(row.rent_amount || 0);
+        return (
+          <div>
+            <span className="font-semibold">{formatCurrency(paid)}</span>
+            {/* Show full cycle rent beneath the paid amount when partial */}
+            {due > 0 && paid < due && (
+              <p className="text-xs text-muted-foreground">of {formatCurrency(due)}</p>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: "Type", accessor: "payment_method",
@@ -988,7 +998,7 @@ export default function PropertyPaymentsTab({ property, floorData, tenants }) {
     },
   ];
 
-  if (loading) {
+  if (loading && storeTenants.length === 0) {
     return (
       <div className="flex justify-center items-center py-12 gap-2 text-muted-foreground">
         <RefreshCw className="h-5 w-5 animate-spin" />

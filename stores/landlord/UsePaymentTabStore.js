@@ -2,7 +2,8 @@
 import { create } from 'zustand';
 import axios from 'axios';
 
-const API_BASE = 'https://backend.wapangaji.com/api/v1/payments';
+const API_BASE    = 'https://backend.wapangaji.com/api/v1/payments';
+const TENANT_BASE = 'https://backend.wapangaji.com/api/v1/tenants';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -12,47 +13,85 @@ const getAuthHeaders = () => {
 const formatCurrency = (amount) => {
   if (!amount && amount !== 0) return 'TZS 0';
   return new Intl.NumberFormat('en-TZ', {
-    style: 'currency',
-    currency: 'TZS',
+    style:                 'currency',
+    currency:              'TZS',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
 };
 
 export const usePaymentTabStore = create((set, get) => ({
+
+  // ── Global loading / error ─────────────────────────────────────────────────
   loading: false,
-  error: null,
+  error:   null,
+
+  // ── Payment history ────────────────────────────────────────────────────────
   payments: [],
+
+  // ── Tenant list (owned by the store so it stays fresh after payments) ──────
+  tenants:        [],
+  tenantsLoading: false,
+  tenantsError:   null,
+
+  // ── Summary / unit breakdown ───────────────────────────────────────────────
   summary: {
-    totalAmount: 0,
-    paidCount: 0,
+    totalAmount:  0,
+    paidCount:    0,
     pendingCount: 0,
     overdueCount: 0,
   },
   unitBreakdown: [],
+
+  // ── Filters ────────────────────────────────────────────────────────────────
   filters: {
-    status: 'all',
-    search: '',
+    status:    'all',
+    search:    '',
     startDate: null,
-    endDate: null,
+    endDate:   null,
   },
 
-  // ── Cycle balance for a unit (NEW) ────────────────────────────────
-  cycleBalance: null,
+  // ── Cycle balance ──────────────────────────────────────────────────────────
+  cycleBalance:        null,
   cycleBalanceLoading: false,
-  cycleBalanceError: null,
+  cycleBalanceError:   null,
 
-  // ── Record payment form state (NEW) ───────────────────────────────
+  // ── Record payment form ────────────────────────────────────────────────────
   recordLoading: false,
-  recordError: null,
+  recordError:   null,
 
-  setLoading: (loading) => set({ loading }),
-  setError: (error) => set({ error }),
-  clearError: () => set({ error: null }),
-
+  // ── Setters ────────────────────────────────────────────────────────────────
+  setLoading:   (loading) => set({ loading }),
+  setError:     (error)   => set({ error }),
+  clearError:   ()        => set({ error: null }),
   updateFilters: (newFilters) =>
     set((state) => ({ filters: { ...state.filters, ...newFilters } })),
 
+  // ── Fetch tenant list for a property ──────────────────────────────────────
+  // This is the single source of truth for "Needs Attention" cards.
+  // Called on init and after every payment so the list is always fresh.
+  fetchPropertyTenants: async (propertyId) => {
+    if (!propertyId) return;
+    try {
+      set({ tenantsLoading: true, tenantsError: null });
+      const response = await axios.get(
+        `${TENANT_BASE}/property/${propertyId}/`,
+        { headers: getAuthHeaders() }
+      );
+      if (response.data?.tenants) {
+        set({ tenants: response.data.tenants, tenantsLoading: false });
+      } else {
+        set({ tenantsLoading: false });
+      }
+    } catch (err) {
+      set({
+        tenantsLoading: false,
+        tenantsError: err.response?.data?.message || 'Failed to load tenants',
+      });
+    }
+  },
+
+  // ── Fetch payment history ──────────────────────────────────────────────────
   fetchPaymentHistory: async (propertyId) => {
     if (!propertyId) return;
     try {
@@ -61,18 +100,20 @@ export const usePaymentTabStore = create((set, get) => ({
       params.append('property_id', propertyId);
       const { filters } = get();
       if (filters.startDate) params.append('start_date', filters.startDate);
-      if (filters.endDate) params.append('end_date', filters.endDate);
+      if (filters.endDate)   params.append('end_date',   filters.endDate);
 
-      const response = await axios.get(`${API_BASE}/rent/history/?${params}`, {
-        headers: getAuthHeaders(),
-      });
-
+      const response = await axios.get(
+        `${API_BASE}/rent/history/?${params}`,
+        { headers: getAuthHeaders() }
+      );
       if (response.data.success) {
         set({ payments: response.data.payments || [], loading: false });
+      } else {
+        set({ loading: false });
       }
-    } catch (error) {
+    } catch (err) {
       set({
-        error: error.response?.data?.message || 'Failed to load payments',
+        error:   err.response?.data?.message || 'Failed to load payments',
         loading: false,
       });
     }
@@ -85,25 +126,25 @@ export const usePaymentTabStore = create((set, get) => ({
       const params = new URLSearchParams();
       params.append('property_id', propertyId);
       if (filters.startDate) params.append('start_date', filters.startDate);
-      if (filters.endDate) params.append('end_date', filters.endDate);
+      if (filters.endDate)   params.append('end_date',   filters.endDate);
 
-      const response = await axios.get(`${API_BASE}/rent/summary/?${params}`, {
-        headers: getAuthHeaders(),
-      });
-
+      const response = await axios.get(
+        `${API_BASE}/rent/summary/?${params}`,
+        { headers: getAuthHeaders() }
+      );
       if (response.data.success) {
         const s = response.data.summary;
         set({
           summary: {
-            totalAmount: s.total_amount || 0,
-            paidCount: s.payment_count || 0,
+            totalAmount:  s.total_amount  || 0,
+            paidCount:    s.payment_count || 0,
             pendingCount: s.pending_count || 0,
             overdueCount: s.overdue_count || 0,
           },
         });
       }
-    } catch (error) {
-      set({ error: 'Failed to load summary' });
+    } catch {
+      // non-critical — silent fail
     }
   },
 
@@ -113,23 +154,21 @@ export const usePaymentTabStore = create((set, get) => ({
       const { filters } = get();
       const params = new URLSearchParams();
       if (filters.startDate) params.append('start_date', filters.startDate);
-      if (filters.endDate) params.append('end_date', filters.endDate);
+      if (filters.endDate)   params.append('end_date',   filters.endDate);
 
       const response = await axios.get(
         `${API_BASE}/rent/property/${propertyId}/units/?${params}`,
         { headers: getAuthHeaders() }
       );
-
       if (response.data.success) {
         set({ unitBreakdown: response.data.unit_breakdown || [] });
       }
-    } catch (error) {
-      set({ error: 'Failed to load unit data' });
+    } catch {
+      // non-critical — silent fail
     }
   },
 
-  // Fetch current billing cycle balance for a unit (NEW)
-  // Called when landlord selects a unit in the record-payment dialog
+  // ── Cycle balance ──────────────────────────────────────────────────────────
   fetchCycleBalance: async (unitId) => {
     if (!unitId) return null;
     try {
@@ -143,11 +182,11 @@ export const usePaymentTabStore = create((set, get) => ({
         return response.data;
       }
       throw new Error('Failed to load balance');
-    } catch (error) {
+    } catch (err) {
       set({
         cycleBalanceLoading: false,
         cycleBalanceError:
-          error.response?.data?.message || 'Could not load balance for this unit',
+          err.response?.data?.message || 'Could not load balance for this unit',
       });
       return null;
     }
@@ -156,37 +195,44 @@ export const usePaymentTabStore = create((set, get) => ({
   clearCycleBalance: () =>
     set({ cycleBalance: null, cycleBalanceError: null, cycleBalanceLoading: false }),
 
-  // Landlord records a cash/manual payment for a tenant (NEW)
-  // notifyTenant: bool — whether tenant gets an SMS
+  // ── Record landlord payment ────────────────────────────────────────────────
+  // After success: refresh both payment history AND tenant list so that
+  // "Needs Attention" cards update immediately without a full page reload.
   recordLandlordPayment: async ({ unitId, amount, notes, notifyTenant, propertyId }) => {
     try {
       set({ recordLoading: true, recordError: null });
       const response = await axios.post(
         `${API_BASE}/rent/landlord/record/`,
         {
-          unit_id: unitId,
-          amount: parseFloat(amount),
-          notes: notes || '',
+          unit_id:       unitId,
+          amount:        parseFloat(amount),
+          notes:         notes || '',
           notify_tenant: notifyTenant,
         },
         { headers: getAuthHeaders() }
       );
 
       if (response.data.success) {
-        // Refresh payment list for this property
-        if (propertyId) await get().fetchPaymentHistory(propertyId);
+        // Refresh payment history AND tenant statuses in parallel so both
+        // the table and the "Needs Attention" section update immediately.
+        if (propertyId) {
+          await Promise.all([
+            get().fetchPaymentHistory(propertyId),
+            get().fetchPropertyTenants(propertyId),
+          ]);
+        }
         set({ recordLoading: false });
         return { success: true, data: response.data };
       }
       throw new Error(response.data?.message || 'Failed to record payment');
-    } catch (error) {
-      const msg =
-        error.response?.data?.message || error.message || 'Failed to record payment';
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to record payment';
       set({ recordLoading: false, recordError: msg });
       return { success: false, error: msg };
     }
   },
 
+  // ── Confirm / reject pending payment ──────────────────────────────────────
   confirmPayment: async (paymentId, action, rejectionReason = '') => {
     try {
       set({ loading: true, error: null });
@@ -197,27 +243,28 @@ export const usePaymentTabStore = create((set, get) => ({
       );
 
       if (response.data.success) {
-        const { payments } = get();
-        set({
-          payments: payments.map((p) =>
-            p.id === paymentId
-              ? { ...p, status: action === 'accept' ? 'completed' : 'failed' }
-              : p
+        // Optimistically update the payment row status in the table
+        const newStatus = action === 'accept' ? 'completed' : 'failed';
+        set((state) => ({
+          payments: state.payments.map((p) =>
+            p.id === paymentId ? { ...p, status: newStatus } : p
           ),
           loading: false,
-        });
+        }));
         return true;
       }
+      set({ loading: false });
       return false;
-    } catch (error) {
+    } catch (err) {
       set({
-        error: error.response?.data?.message || 'Failed to update payment',
+        error:   err.response?.data?.message || 'Failed to update payment',
         loading: false,
       });
       return false;
     }
   },
 
+  // ── Selectors ──────────────────────────────────────────────────────────────
   getFilteredPayments: () => {
     const { payments, filters } = get();
     return payments.filter((payment) => {
@@ -231,12 +278,12 @@ export const usePaymentTabStore = create((set, get) => ({
     });
   },
 
-  getPendingPayments: () =>
-    get().payments.filter((p) => p.status === 'pending'),
+  getPendingPayments: () => get().payments.filter((p) => p.status === 'pending'),
 
   getRecentPayments: (limit = 5) =>
     get()
-      .payments.filter((p) => p.status === 'completed')
+      .payments
+      .filter((p) => p.status === 'completed')
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, limit),
 
@@ -251,12 +298,15 @@ export const usePaymentTabStore = create((set, get) => ({
     }
   },
 
+  // ── Init / refresh ─────────────────────────────────────────────────────────
+  // Fetches everything needed for the payments tab in parallel.
   initializeTab: async (propertyId) => {
     if (!propertyId) return;
     await Promise.all([
       get().fetchPaymentHistory(propertyId),
       get().fetchPaymentSummary(propertyId),
       get().fetchUnitBreakdown(propertyId),
+      get().fetchPropertyTenants(propertyId),
     ]);
   },
 
