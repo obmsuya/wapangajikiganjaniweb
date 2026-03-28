@@ -1,7 +1,7 @@
 // components/landlord/properties/PropertyTypeSelection.jsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Home, Building } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,40 +26,21 @@ const propertyTypes = [
 
 export default function PropertyTypeSelection({ onValidationChange }) {
   const { propertyData, updatePropertyData } = usePropertyCreation();
-  const [selectedType, setSelectedType] = useState(propertyData.category || '');
-  const [errors, setErrors] = useState({});
+
+  const selectedType = propertyData.category || '';
 
   useEffect(() => {
-    if (propertyData.category !== selectedType) {
-      setSelectedType(propertyData.category || '');
-    }
-  }, [propertyData.category, selectedType]);
-
-  const validateForm = useCallback(() => {
-    const newErrors = {};
-
-    if (!selectedType) {
-      newErrors.type = 'Please select a property type';
-    }
-
-    setErrors(newErrors);
-    const isValid = Object.keys(newErrors).length === 0;
+    const isValid = selectedType !== '';
     onValidationChange?.(isValid);
-    return isValid;
   }, [selectedType, onValidationChange]);
 
-  useEffect(() => {
-    validateForm();
-  }, [validateForm]);
-
   const handleTypeSelection = (typeId) => {
-    setSelectedType(typeId);
-    
-    const floors = typeId === 'Single Floor' ? 1 : 2;
-    
+    // Single Floor always gets 1 floor, Multi-Floor starts at 2
+    const total_floors = typeId === 'Single Floor' ? 1 : 2;
+
     updatePropertyData({
       category: typeId,
-      total_floors: floors,
+      total_floors,
       floors: {}
     });
   };
@@ -128,8 +109,8 @@ export default function PropertyTypeSelection({ onValidationChange }) {
         ))}
       </div>
 
-      {errors.type && (
-        <p className="text-red-500 text-sm">{errors.type}</p>
+      {!selectedType && (
+        <p className="text-red-500 text-sm">Please select a property type</p>
       )}
 
       {selectedType && (
@@ -147,7 +128,7 @@ export default function PropertyTypeSelection({ onValidationChange }) {
                 {propertyTypes.find(t => t.id === selectedType)?.title}
               </p>
               <p className="text-sm text-green-900/65">
-                {selectedType === 'Multi-Floor' 
+                {selectedType === 'Multi-Floor'
                   ? 'Multi-floor property - Layout will be configured in the next step'
                   : 'Single floor property'
                 }
