@@ -210,7 +210,7 @@ export default function SubscriptionPlansList() {
 function PlanCard({ plan, onEdit, onDelete }) {
   const enabledPermissions = Object.entries(plan.features || {})
     .filter(([, value]) => value === true)
-    .map(([key]) => PERMISSION_LABELS[key] || key);
+    .map(([key]) => PERMISSION_LABELS[key] || key.replace(/_/g, ' '));
 
   return (
     <Card className="flex flex-col">
@@ -255,7 +255,7 @@ function PlanCard({ plan, onEdit, onDelete }) {
           {enabledPermissions.length > 0 ? (
             <ul className="space-y-1">
               {enabledPermissions.map((label) => (
-                <li key={label} className="flex items-center gap-1.5 text-xs">
+                <li key={label} className="flex items-center gap-1.5 text-xs capitalize">
                   <Check className="h-3 w-3 text-primary shrink-0" />
                   {label}
                 </li>
@@ -269,7 +269,7 @@ function PlanCard({ plan, onEdit, onDelete }) {
 
       <CardFooter className="pt-0 flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium">{plan.active_subscriptions}</span> active
+          <span className="font-medium">{plan.active_subscriptions ?? 0}</span> active
         </p>
         <div className="flex gap-1.5">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(plan)}>
