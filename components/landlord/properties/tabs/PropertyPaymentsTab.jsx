@@ -35,8 +35,6 @@ import {
 import { usePaymentTabStore } from "@/stores/landlord/UsePaymentTabStore";
 import { toast } from "sonner";
 
-// Derives the type badge for a payment history row.
-// "partial" fires when amount < rent_amount (backend must include rent_amount on each row).
 function derivePaymentType(payment) {
   const notes = (payment.notes || "").toLowerCase();
   if (notes.includes("early")) return "early";
@@ -173,7 +171,6 @@ function PaymentHistoryTable({ columns, data, emptyMessage = "No payments found.
         </Table>
       </div>
 
-      {/* Pagination sits outside the bordered table wrapper */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
           <span>
@@ -763,8 +760,6 @@ function PaymentDetailDialog({ open, onOpenChange, payment }) {
   );
 }
 
-// Tenant state is owned by the store (fetchPropertyTenants) and refreshed
-// after every payment. The `tenants` prop seeds the initial render only.
 export default function PropertyPaymentsTab({ property, floorData, tenants: tenantsProp }) {
   const [showRecordDialog,  setShowRecordDialog]  = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -790,7 +785,6 @@ export default function PropertyPaymentsTab({ property, floorData, tenants: tena
     if (property?.id) initializeTab(property.id);
   }, [property?.id, initializeTab]);
 
-  // Store tenants are the live source; prop is the initial seed while fetching.
   const activeTenants = storeTenants.length > 0 ? storeTenants : (tenantsProp ?? []);
 
   const occupiedUnits = useMemo(() => {
@@ -798,23 +792,15 @@ export default function PropertyPaymentsTab({ property, floorData, tenants: tena
       return activeTenants
         .filter((t) => t.occupancy_status === "active")
         .map((t) => {
-          const rent        = parseFloat(t.rent_amount || 0);
-          const lastPayment = t.payment_details?.last_payment;
-          const lastPaid    = parseFloat(lastPayment?.amount || 0);
+          const rent = parseFloat(t.rent_amount || 0);
 
-          // Trust backend status; local fallback catches stale "paid" responses
-          // that should actually be "partial".
-          const backendStatus   = t.payment_status;
-          const effectiveStatus =
-            backendStatus === "paid" && lastPaid > 0 && lastPaid < rent
-              ? "partial"
-              : backendStatus;
-
-          const outstanding =
-            effectiveStatus === "partial"
-              ? parseFloat(t.payment_details?.amount_outstanding || 0) || (rent - lastPaid)
-              : 0;
-
+          /*
+           * Use backend status directly — no local overrides.
+           * Previously we re-derived "partial" from lastPaid < rent, but this
+           * caused stale cards because the override ran on every render using
+           * the old payment_details even after fetchPropertyTenants returned
+           * fresh data with the correct status from the server.
+           */
           return {
             unit_id:            t.unit_id,
             unit_name:          t.unit_name,
@@ -822,10 +808,10 @@ export default function PropertyPaymentsTab({ property, floorData, tenants: tena
             floor_name:         t.floor_name ?? `Floor ${t.floor_number}`,
             tenant_name:        t.tenant?.full_name ?? t.tenant_name ?? "—",
             rent_amount:        rent,
-            payment_status:     effectiveStatus,
+            payment_status:     t.payment_status,
             payment_details:    t.payment_details,
             next_payment_date:  t.next_payment_date,
-            amount_outstanding: outstanding,
+            amount_outstanding: parseFloat(t.payment_details?.amount_outstanding || 0),
           };
         });
     }
@@ -857,8 +843,13 @@ export default function PropertyPaymentsTab({ property, floorData, tenants: tena
     return result;
   }, [activeTenants, floorData]);
 
+  /*
+   * Only "overdue" and "partial" belong in Needs Attention.
+   * "due" is excluded — a tenant on time but not yet paid needs no landlord action.
+   * "paid" / early-paid tenants are settled and excluded naturally.
+   */
   const attentionUnits = useMemo(
-    () => occupiedUnits.filter((u) => ["overdue", "due", "partial"].includes(u.payment_status)),
+    () => occupiedUnits.filter((u) => ["overdue", "partial"].includes(u.payment_status)),
     [occupiedUnits]
   );
 
@@ -915,7 +906,6 @@ export default function PropertyPaymentsTab({ property, floorData, tenants: tena
         return (
           <div>
             <span className="font-semibold">{formatCurrency(paid)}</span>
-            {/* Show full cycle rent beneath the paid amount when partial */}
             {due > 0 && paid < due && (
               <p className="text-xs text-muted-foreground">of {formatCurrency(due)}</p>
             )}
