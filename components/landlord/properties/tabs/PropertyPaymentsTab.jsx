@@ -42,7 +42,16 @@ function derivePaymentType(payment) {
   const paid = parseFloat(payment.amount     || 0);
   const due  = parseFloat(payment.rent_amount || 0);
   if (due > 0 && paid < due) return "partial";
-  return null;
+  return "full";
+}
+
+function cleanNotes(raw) {
+  if (!raw) return null;
+  return raw
+    .replace(/\[Early payment[^\]]*\]/gi, "")
+    .replace(/\[Early payment recorded by landlord[^\]]*\]/gi, "")
+    .replace(/\[Note:[^\]]*\]/gi, "")
+    .trim();
 }
 
 function PaymentTypeBadge({ type }) {
@@ -90,6 +99,50 @@ function CycleProgressBar({ paid, total }) {
       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
       </div>
+    </div>
+  );
+}
+
+function AmountCell({ payment, formatCurrency }) {
+  const paid = parseFloat(payment.amount     || 0);
+  const due  = parseFloat(payment.rent_amount || 0);
+  const type = derivePaymentType(payment);
+
+  if (type === "partial" && due > 0) {
+    const pct       = Math.min(100, Math.round((paid / due) * 100));
+    const remaining = due - paid;
+    return (
+      <div className="space-y-1 min-w-[130px]">
+        <div className="flex items-baseline gap-1">
+          <span className="font-semibold text-sm">{formatCurrency(paid)}</span>
+          <span className="text-xs text-muted-foreground">/ {formatCurrency(due)}</span>
+        </div>
+        <div className="h-1 rounded-full bg-muted overflow-hidden w-full">
+          <div
+            className="h-full rounded-full bg-orange-400"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <p className="text-xs text-orange-700">{formatCurrency(remaining)} remaining</p>
+      </div>
+    );
+  }
+
+  if (type === "early" && due > 0) {
+    return (
+      <div className="min-w-[130px]">
+        <span className="font-semibold text-sm">{formatCurrency(paid)}</span>
+        <p className="text-xs text-muted-foreground">of {formatCurrency(due)} (advance)</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-w-[130px]">
+      <span className="font-semibold text-sm">{formatCurrency(paid)}</span>
+      {due > 0 && (
+        <p className="text-xs text-muted-foreground">Rent: {formatCurrency(due)}</p>
+      )}
     </div>
   );
 }
@@ -623,7 +676,7 @@ function ConfirmPaymentDialog({ open, onOpenChange, payment, action, onSubmit, l
                 <Separator />
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Tenant note</p>
-                  <p className="text-xs">{payment.notes}</p>
+                  <p className="text-xs">{cleanNotes(payment.notes)}</p>
                 </div>
               </>
             )}
@@ -673,7 +726,10 @@ function PaymentDetailDialog({ open, onOpenChange, payment }) {
   if (!payment) return null;
 
   const isLandlordEntry = payment.payment_method === "landlord_entry";
-  const type = derivePaymentType(payment);
+  const type            = derivePaymentType(payment);
+  const paid            = parseFloat(payment.amount      || 0);
+  const due             = parseFloat(payment.rent_amount  || 0);
+  const notes           = cleanNotes(payment.notes);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -703,27 +759,57 @@ function PaymentDetailDialog({ open, onOpenChange, payment }) {
               </div>
             )}
 
-            {type && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Type</span>
-                <PaymentTypeBadge type={type} />
-              </div>
-            )}
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Type</span>
+              <PaymentTypeBadge type={type} />
+            </div>
 
             <Separator />
 
-            {[
-              [<><User         className="h-3.5 w-3.5 inline mr-1.5" />Tenant</>  , payment.tenant_name],
-              [<><Building2    className="h-3.5 w-3.5 inline mr-1.5" />Unit</>    , `${payment.unit_name}${payment.floor_number != null ? ` · Floor ${payment.floor_number}` : ""}`],
-              [<><Banknote     className="h-3.5 w-3.5 inline mr-1.5" />Amount</>  , <span key="a" className="font-semibold text-base">{formatCurrency(payment.amount)}</span>],
-              [<><CalendarDays className="h-3.5 w-3.5 inline mr-1.5" />Period</>  , `${new Date(payment.payment_period_start).toLocaleDateString()} – ${new Date(payment.payment_period_end).toLocaleDateString()}`],
-              ["Recorded on"                                                        , new Date(payment.created_at).toLocaleDateString()],
-            ].map(([label, value], i) => (
-              <div key={i} className="flex justify-between">
-                <span className="text-muted-foreground">{label}</span>
-                <span className="font-medium">{value}</span>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground"><User className="h-3.5 w-3.5 inline mr-1.5" />Tenant</span>
+              <span className="font-medium">{payment.tenant_name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground"><Building2 className="h-3.5 w-3.5 inline mr-1.5" />Unit</span>
+              <span className="font-medium">{payment.unit_name}{payment.floor_number != null ? ` · Floor ${payment.floor_number}` : ""}</span>
+            </div>
+
+            <div className="flex justify-between items-start">
+              <span className="text-muted-foreground"><Banknote className="h-3.5 w-3.5 inline mr-1.5" />Amount paid</span>
+              <div className="text-right">
+                <span className="font-semibold text-base">{formatCurrency(paid)}</span>
+                {due > 0 && (
+                  <p className="text-xs text-muted-foreground">of {formatCurrency(due)} rent</p>
+                )}
               </div>
-            ))}
+            </div>
+
+            {type === "partial" && due > 0 && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Remaining this cycle</span>
+                  <span className="font-medium text-orange-700">{formatCurrency(due - paid)}</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-orange-400"
+                    style={{ width: `${Math.min(100, Math.round((paid / due) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-between">
+              <span className="text-muted-foreground"><CalendarDays className="h-3.5 w-3.5 inline mr-1.5" />Period</span>
+              <span className="font-medium">
+                {new Date(payment.payment_period_start).toLocaleDateString()} – {new Date(payment.payment_period_end).toLocaleDateString()}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Recorded on</span>
+              <span className="font-medium">{new Date(payment.created_at).toLocaleDateString()}</span>
+            </div>
 
             {payment.auto_confirmed && (
               <div className="flex justify-between">
@@ -742,12 +828,12 @@ function PaymentDetailDialog({ open, onOpenChange, payment }) {
               </>
             )}
 
-            {payment.notes && (
+            {notes && (
               <>
                 <Separator />
                 <div>
                   <p className="text-muted-foreground mb-1">Notes</p>
-                  <p>{payment.notes}</p>
+                  <p>{notes}</p>
                 </div>
               </>
             )}
@@ -791,29 +877,18 @@ export default function PropertyPaymentsTab({ property, floorData, tenants: tena
     if (Array.isArray(activeTenants) && activeTenants.length > 0) {
       return activeTenants
         .filter((t) => t.occupancy_status === "active")
-        .map((t) => {
-          const rent = parseFloat(t.rent_amount || 0);
-
-          /*
-           * Use backend status directly — no local overrides.
-           * Previously we re-derived "partial" from lastPaid < rent, but this
-           * caused stale cards because the override ran on every render using
-           * the old payment_details even after fetchPropertyTenants returned
-           * fresh data with the correct status from the server.
-           */
-          return {
-            unit_id:            t.unit_id,
-            unit_name:          t.unit_name,
-            floor_number:       t.floor_number,
-            floor_name:         t.floor_name ?? `Floor ${t.floor_number}`,
-            tenant_name:        t.tenant?.full_name ?? t.tenant_name ?? "—",
-            rent_amount:        rent,
-            payment_status:     t.payment_status,
-            payment_details:    t.payment_details,
-            next_payment_date:  t.next_payment_date,
-            amount_outstanding: parseFloat(t.payment_details?.amount_outstanding || 0),
-          };
-        });
+        .map((t) => ({
+          unit_id:            t.unit_id,
+          unit_name:          t.unit_name,
+          floor_number:       t.floor_number,
+          floor_name:         t.floor_name ?? `Floor ${t.floor_number}`,
+          tenant_name:        t.tenant?.full_name ?? t.tenant_name ?? "—",
+          rent_amount:        parseFloat(t.rent_amount || 0),
+          payment_status:     t.payment_status,
+          payment_details:    t.payment_details,
+          next_payment_date:  t.next_payment_date,
+          amount_outstanding: parseFloat(t.payment_details?.amount_outstanding || 0),
+        }));
     }
 
     if (!floorData) return [];
@@ -843,11 +918,6 @@ export default function PropertyPaymentsTab({ property, floorData, tenants: tena
     return result;
   }, [activeTenants, floorData]);
 
-  /*
-   * Only "overdue" and "partial" belong in Needs Attention.
-   * "due" is excluded — a tenant on time but not yet paid needs no landlord action.
-   * "paid" / early-paid tenants are settled and excluded naturally.
-   */
   const attentionUnits = useMemo(
     () => occupiedUnits.filter((u) => ["overdue", "partial"].includes(u.payment_status)),
     [occupiedUnits]
@@ -899,26 +969,12 @@ export default function PropertyPaymentsTab({ property, floorData, tenants: tena
       ),
     },
     {
-      header: "Amount", accessor: "amount", sortable: true,
-      cell: (row) => {
-        const paid = parseFloat(row.amount     || 0);
-        const due  = parseFloat(row.rent_amount || 0);
-        return (
-          <div>
-            <span className="font-semibold">{formatCurrency(paid)}</span>
-            {due > 0 && paid < due && (
-              <p className="text-xs text-muted-foreground">of {formatCurrency(due)}</p>
-            )}
-          </div>
-        );
-      },
+      header: "Amount / Rent", accessor: "amount", sortable: true,
+      cell: (row) => <AmountCell payment={row} formatCurrency={formatCurrency} />,
     },
     {
       header: "Type", accessor: "payment_method",
-      cell: (row) => {
-        const t = derivePaymentType(row);
-        return t ? <PaymentTypeBadge type={t} /> : <span className="text-xs text-muted-foreground">—</span>;
-      },
+      cell: (row) => <PaymentTypeBadge type={derivePaymentType(row)} />,
     },
     {
       header: "Period", accessor: "payment_period_start", sortable: true,
