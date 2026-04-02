@@ -75,7 +75,7 @@ export const usePaymentTabStore = create((set, get) => ({
     try {
       set({ tenantsLoading: true, tenantsError: null });
       const response = await axios.get(
-        `${TENANT_BASE}/property/${propertyId}/`,
+        `${TENANT_BASE}/property/${propertyId}/tenants/`,
         { headers: getAuthHeaders() }
       );
       if (response.data?.tenants) {
