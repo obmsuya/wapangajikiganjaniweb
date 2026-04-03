@@ -375,22 +375,19 @@ function ManagerRow({ manager, property, onEdit, onDelete }) {
 // ── Property accordion item ───────────────────────────────────────────────────
 
 function PropertyAccordionItem({ property }) {
-  const { propertyManagers, fetchPropertyManagers, removeFromProperty, actionLoading } =
+  const { propertyManagers, fetchPropertyManagers, removeFromProperty, loading, actionLoading } =
     useManagerStore();
 
-  const [loaded,       setLoaded]       = useState(false);
   const [assignOpen,   setAssignOpen]   = useState(false);
   const [editTarget,   setEditTarget]   = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const managers = propertyManagers[property.id] || [];
 
-  const handleOpen = async () => {
-    if (!loaded) {
-      await fetchPropertyManagers(property.id);
-      setLoaded(true);
-    }
-  };
+  // Fetch on mount so data is ready when accordion opens
+  useEffect(() => {
+    fetchPropertyManagers(property.id);
+  }, [property.id]);
 
   const handleRemove = async () => {
     const res = await removeFromProperty(deleteTarget.id, property.id);
@@ -401,7 +398,6 @@ function PropertyAccordionItem({ property }) {
     <>
       <AccordionItem value={String(property.id)} className="border-none">
         <AccordionTrigger
-          onClick={handleOpen}
           className="px-5 py-4 hover:no-underline hover:bg-muted/40 rounded-lg data-[state=open]:bg-muted/40 transition-colors"
         >
           <div className="flex items-center gap-3 flex-1 min-w-0 pr-3">
@@ -444,20 +440,8 @@ function PropertyAccordionItem({ property }) {
         </AccordionTrigger>
 
         <AccordionContent className="px-5 pb-5 pt-2">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-xs text-muted-foreground">
-              {managers.length > 0
-                ? `${managers.length} manager${managers.length !== 1 ? 's' : ''} with access`
-                : 'No one can manage this property yet'}
-            </p>
-            <Button size="sm" onClick={() => setAssignOpen(true)}>
-              <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-              Assign manager
-            </Button>
-          </div>
-
-          {!loaded ? (
-            <div className="space-y-2">
+          {loading ? (
+            <div className="space-y-2 py-2">
               <Skeleton className="h-14 w-full rounded-md" />
               <Skeleton className="h-14 w-full rounded-md" />
             </div>
