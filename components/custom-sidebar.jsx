@@ -185,6 +185,12 @@ export function CustomSidebar({ role = "admin", user }) {
           href: "/landlord/payments/confirmations",
           active: pathname.includes("/landlord/payments/confirmations"),
         },
+        {
+          label:"Managers",
+          icon:Users,
+          href:"/landlord/managers",
+          active:pathname.includes("/landlord/managers"),
+        }
       ];
     }
 
