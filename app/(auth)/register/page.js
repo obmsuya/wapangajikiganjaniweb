@@ -177,10 +177,11 @@ export default function RegisterPage() {
 
     setIsLoading(true);
     try {
-      const { confirm_password, referral_code, ...registrationData } = formData;
+      const { confirm_password, referral_code, phone_number, ...registrationData } = formData;
       const joinedReferral = referralCodeDigitsRef.current.join("").trim();
       const userData = {
         ...registrationData,
+        phone_number: `+255${phone_number}`,
         user_type: "landlord",
         ...(joinedReferral ? { referral_code: joinedReferral } : {}),
       };
