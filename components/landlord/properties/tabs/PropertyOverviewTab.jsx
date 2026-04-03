@@ -12,7 +12,7 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
-  TrendingUp,
+  Coins,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -72,6 +72,15 @@ const STATUS_CONFIG = {
     badgeClass: "bg-gray-100 text-gray-800 border-gray-200",
     Icon: Home,
     iconClass: "text-gray-500",
+  },
+  partial: {
+    bg: "#f97316",
+    border: "#ea580c",
+    text: "#ffffff",
+    label: "Partial",
+    badgeClass: "bg-orange-100 text-orange-800 border-orange-200",
+    Icon: Coins,
+    iconClass: "text-orange-600",
   },
 };
 
@@ -226,10 +235,12 @@ export default function PropertyOverviewTab({ property, floorData }) {
         const gridCells = floor.units
           .map((unit) => {
             const tenantRecord = tenantsByUnitId.get(unit.id);
-            const paymentStatus =
+            const rawStatus =
               tenantRecord?.payment_status ??
               tenantRecord?.full_unit_info?.payment_status ??
               (unit.current_tenant ? "due" : "vacant");
+
+            const paymentStatus = rawStatus === "early" ? "paid" : rawStatus;
 
             return {
               cellIndex: unit.svg_id,
@@ -284,7 +295,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
     const maxX = Math.max(...positions.map((p) => p.x));
     const maxY = Math.max(...positions.map((p) => p.y));
 
-    floor.layoutWidth  = (maxX - minX + 1) * CELL_SIZE;
+    floor.layoutWidth = (maxX - minX + 1) * CELL_SIZE;
     floor.layoutHeight = (maxY - minY + 1) * CELL_SIZE;
 
     return floor.units.map((unit, index) => {
@@ -352,9 +363,9 @@ export default function PropertyOverviewTab({ property, floorData }) {
       : null;
 
   const lastPayment = selectedUnit?.paymentDetails?.last_payment;
-  const amountPaid  = lastPayment ? parseFloat(lastPayment.amount) : 0;
-  const amountDue   = parseFloat(selectedUnit?.rentAmount || 0);
-  const remaining   = Math.max(0, amountDue - amountPaid);
+  const amountPaid = lastPayment ? parseFloat(lastPayment.amount) : 0;
+  const amountDue = parseFloat(selectedUnit?.rentAmount || 0);
+  const remaining = Math.max(0, amountDue - amountPaid);
 
   return (
     <div className="space-y-6">
@@ -392,7 +403,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
                   <div
                     className="relative rounded-lg p-4"
                     style={{
-                      width:  (floor.layoutWidth  || GRID_SIZE * CELL_SIZE) + 20,
+                      width: (floor.layoutWidth || GRID_SIZE * CELL_SIZE) + 20,
                       height: (floor.layoutHeight || GRID_SIZE * CELL_SIZE) + 20,
                     }}
                   >
@@ -406,12 +417,13 @@ export default function PropertyOverviewTab({ property, floorData }) {
                 </div>
 
                 {/* Per-floor stats */}
-                <div className="grid grid-cols-4 gap-2 text-center pt-2 border-t">
+                <div className="grid grid-cols-5 gap-2 text-center pt-2 border-t">
                   {[
-                    { status: "paid",    label: "Paid",    color: "text-green-600"  },
-                    { status: "due",     label: "Due",     color: "text-orange-600" },
-                    { status: "overdue", label: "Overdue", color: "text-red-600"    },
-                    { status: "vacant",  label: "Vacant",  color: "text-gray-600"   },
+                    { status: "paid", label: "Paid", color: "text-green-600" },
+                    { status: "due", label: "Due", color: "text-orange-600" },
+                    { status: "overdue", label: "Overdue", color: "text-red-600" },
+                    { status: "vacant", label: "Vacant", color: "text-gray-600" },
+                    { status: "partial", label: "Partial", color: "text-orange-600" },
                   ].map(({ status, label, color }) => (
                     <div key={status}>
                       <div className={`font-semibold ${color}`}>
@@ -484,14 +496,14 @@ export default function PropertyOverviewTab({ property, floorData }) {
 
                       {(selectedUnit.tenant.phone_number ??
                         selectedUnit.tenant?.tenant?.phone_number) && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          <p className="text-sm">
-                            {selectedUnit.tenant.phone_number ??
-                              selectedUnit.tenant?.tenant?.phone_number}
-                          </p>
-                        </div>
-                      )}
+                          <div className="flex items-center gap-3">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <p className="text-sm">
+                              {selectedUnit.tenant.phone_number ??
+                                selectedUnit.tenant?.tenant?.phone_number}
+                            </p>
+                          </div>
+                        )}
                     </div>
                   )}
 
