@@ -396,7 +396,7 @@ export default function ManagersPage() {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <div className="space-y-6 pb-16 max-w-5xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Managers</h1>
