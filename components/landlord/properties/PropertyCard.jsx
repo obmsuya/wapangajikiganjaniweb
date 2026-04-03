@@ -272,197 +272,198 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
         className="group relative overflow-hidden border-border/50 bg-card transition-all duration-300 hover:border-border hover:shadow-lg cursor-pointer"
         onClick={handleCardClick}
       >
-      <div className="flex flex-col">
-        {/* Image Section */}
-        <div className="relative h-36 md:h-48 flex-shrink-0 overflow-hidden rounded-3xl">
-          {propertyImage && !imageError ? (
-            <>
-              {imageLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                  <div className="h-8 w-8 rounded-full border-2 border-muted-foreground/20 border-t-foreground animate-spin" />
+        <div className="flex flex-col">
+          {/* Image Section */}
+          <div className="relative h-36 md:h-48 flex-shrink-0 overflow-hidden rounded-3xl">
+            {propertyImage && !imageError ? (
+              <>
+                {imageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                    <div className="h-8 w-8 rounded-full border-2 border-muted-foreground/20 border-t-foreground animate-spin" />
+                  </div>
+                )}
+                <img
+                  src={propertyImage}
+                  alt={propertyName}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  onError={handleImageError}
+                  onLoad={handleImageLoad}
+                />
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-muted">
+                <Building2 className="h-12 w-12 text-muted-foreground/40" />
+              </div>
+            )}
+
+            {/* Category Badge - Positioned on image */}
+            <div className="absolute top-2 left-2">
+              <Badge
+                variant="secondary"
+                className={`${getCategoryStyle(propertyCategory)} border font-medium text-xs`}
+              >
+                {propertyCategory}
+              </Badge>
+            </div>
+
+            {/* Occupancy indicator on image - mobile only */}
+            <div className="absolute bottom-3 left-3 right-3 sm:hidden">
+              <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm">
+                <div
+                  className={`h-2 w-2 rounded-full ${getOccupancyColor(occupancyData.occupancyRate)}`}
+                />
+                <span className="text-sm font-medium text-foreground">
+                  {occupancyData.occupancyRate}% Occupied
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Content Section */}
+          <div className="flex-1 py-4 sm:p-5 flex flex-col">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-foreground truncate text-base md:text-lg group-hover:text-primary transition-colors">
+                  {propertyName}
+                </h3>
+                <div className="flex items-center gap-1.5 text-muted-foreground mt-1">
+                  <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="truncate text-sm">{propertyLocation}</span>
                 </div>
-              )}
-              <img
-                src={propertyImage}
-                alt={propertyName}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                onError={handleImageError}
-                onLoad={handleImageLoad}
-              />
-            </>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted">
-              <Building2 className="h-12 w-12 text-muted-foreground/40" />
-            </div>
-          )}
+              </div>
 
-          {/* Category Badge - Positioned on image */}
-          <div className="absolute top-2 left-2">
-            <Badge
-              variant="secondary"
-              className={`${getCategoryStyle(propertyCategory)} border font-medium text-xs`}
-            >
-              {propertyCategory}
-            </Badge>
-          </div>
-
-          {/* Occupancy indicator on image - mobile only */}
-          <div className="absolute bottom-3 left-3 right-3 sm:hidden">
-            <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm">
-              <div
-                className={`h-2 w-2 rounded-full ${getOccupancyColor(occupancyData.occupancyRate)}`}
-              />
-              <span className="text-sm font-medium text-foreground">
-                {occupancyData.occupancyRate}% Occupied
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Section */}
-        <div className="flex-1 py-4 sm:p-5 flex flex-col">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-foreground truncate text-base md:text-lg group-hover:text-primary transition-colors">
-                {propertyName}
-              </h3>
-              <div className="flex items-center gap-1.5 text-muted-foreground mt-1">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="truncate text-sm">{propertyLocation}</span>
+              {/* Desktop occupancy badge */}
+              <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+                <div
+                  className={`h-2.5 w-2.5 rounded-full ${getOccupancyColor(occupancyData.occupancyRate)}`}
+                />
+                <span className="text-sm font-medium text-foreground">
+                  {occupancyData.occupancyRate}%
+                </span>
               </div>
             </div>
 
-            {/* Desktop occupancy badge */}
-            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-              <div
-                className={`h-2.5 w-2.5 rounded-full ${getOccupancyColor(occupancyData.occupancyRate)}`}
-              />
-              <span className="text-sm font-medium text-foreground">
-                {occupancyData.occupancyRate}%
-              </span>
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="flex flex-col items-center sm:items-start p-2.5 sm:p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-                <Home className="h-3.5 w-3.5 max-xl:hidden" />
-                <span className="text-xs font-mediu m hidden sm:inline">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="flex flex-col items-center sm:items-start p-2.5 sm:p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                  <Home className="h-3.5 w-3.5 max-xl:hidden" />
+                  <span className="text-xs font-mediu m hidden sm:inline">
+                    Units
+                  </span>
+                </div>
+                <span className="text-lg sm:text-xl font-bold text-foreground">
+                  {occupancyData.totalUnits}
+                </span>
+                <span className="text-xs text-muted-foreground sm:hidden">
                   Units
                 </span>
               </div>
-              <span className="text-lg sm:text-xl font-bold text-foreground">
-                {occupancyData.totalUnits}
-              </span>
-              <span className="text-xs text-muted-foreground sm:hidden">
-                Units
-              </span>
-            </div>
 
-            <div className="flex flex-col items-center sm:items-start p-2.5 sm:p-3 bg-emerald-500/10 rounded-lg">
-              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-1">
-                <Users className="h-3.5 w-3.5 max-xl:hidden" />
-                <span className="text-xs font-medium  hidden sm:inline">
+              <div className="flex flex-col items-center sm:items-start p-2.5 sm:p-3 bg-emerald-500/10 rounded-lg">
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-1">
+                  <Users className="h-3.5 w-3.5 max-xl:hidden" />
+                  <span className="text-xs font-medium  hidden sm:inline">
+                    Occupied
+                  </span>
+                </div>
+                <span className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                  {occupancyData.occupiedUnits}
+                </span>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 sm:hidden">
                   Occupied
                 </span>
               </div>
-              <span className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-400">
-                {occupancyData.occupiedUnits}
-              </span>
-              <span className="text-xs text-emerald-600 dark:text-emerald-400 sm:hidden">
-                Occupied
-              </span>
             </div>
-          </div>
 
-          {/* Occupancy Progress Bar - Desktop */}
-          {occupancyData.totalUnits > 0 && (
-            <div className="hidden sm:block mb-4">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                <span>Occupancy Rate</span>
-                <span className="font-medium text-foreground">
-                  {occupancyData.occupiedUnits} of {occupancyData.totalUnits}{" "}
-                  units
-                </span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${getOccupancyColor(occupancyData.occupancyRate)}`}
-                  style={{ width: `${occupancyData.occupancyRate}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Revenue Section */}
-          {occupancyData.actualRent > 0 && (
-            <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg border border-emerald-200 dark:border-emerald-500/20 mb-4 max-md:hidden">
-              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                <Banknote className="h-4 w-4" />
-                <span className="text-sm font-medium">Monthly Revenue</span>
-              </div>
-              <div className="text-right">
-                <span className="font-bold text-emerald-700 dark:text-emerald-400">
-                  {formatCurrency(occupancyData.actualRent)}
-                </span>
-                {occupancyData.actualRent < occupancyData.totalRent && (
-                  <span className="block text-xs text-emerald-600/70 dark:text-emerald-400/70">
-                    Potential: {formatCurrency(occupancyData.totalRent)}
+            {/* Occupancy Progress Bar - Desktop */}
+            {occupancyData.totalUnits > 0 && (
+              <div className="hidden sm:block mb-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                  <span>Occupancy Rate</span>
+                  <span className="font-medium text-foreground">
+                    {occupancyData.occupiedUnits} of {occupancyData.totalUnits}{" "}
+                    units
                   </span>
-                )}
+                </div>
+                <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${getOccupancyColor(occupancyData.occupancyRate)}`}
+                    style={{ width: `${occupancyData.occupancyRate}%` }}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Action Button */}
-          <div className="mt-auto">
-            <Button
-              variant="outline"
-              className="w-full group/btn"
-              onClick={handleViewDetails}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              View Details
-              <ChevronRight className="h-4 w-4 ml-auto opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
-            </Button>
-            {/* DELETE BUTTON */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="px-3 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-              onClick={handleDeleteClick}
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {/* Revenue Section */}
+            {occupancyData.actualRent > 0 && (
+              <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg border border-emerald-200 dark:border-emerald-500/20 mb-4 max-md:hidden">
+                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                  <Banknote className="h-4 w-4" />
+                  <span className="text-sm font-medium">Monthly Revenue</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                    {formatCurrency(occupancyData.actualRent)}
+                  </span>
+                  {occupancyData.actualRent < occupancyData.totalRent && (
+                    <span className="block text-xs text-emerald-600/70 dark:text-emerald-400/70">
+                      Potential: {formatCurrency(occupancyData.totalRent)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Action Button */}
+            <div className="mt-auto flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 group/btn"
+                onClick={handleViewDetails}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View Details
+                <ChevronRight className="h-4 w-4 ml-auto opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="px-3 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-900 dark:hover:bg-red-950"
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    </Card>
-    {/* Delete Confirmation Dialog */ }
-  <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Delete "{propertyName}"?</AlertDialogTitle>
-        <AlertDialogDescription>
-          This will permanently delete the property along with all its floors, units,
-          and any tenants exclusively linked to it. This action cannot be undone.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-        <AlertDialogAction
-          onClick={handleConfirmDelete}
-          disabled={isDeleting}
-          className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-        >
-          {isDeleting ? "Deleting..." : "Yes, delete property"}
-        </AlertDialogAction>
-      </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      </Card>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="max-w-sm w-[calc(100%-2rem)]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete property?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-medium text-foreground">"{propertyName}"</span> and all its floors, units, and linked tenants will be permanently removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2 sm:gap-2">
+            <AlertDialogCancel disabled={isDeleting} className="flex-1 mt-0">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="flex-1 bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
