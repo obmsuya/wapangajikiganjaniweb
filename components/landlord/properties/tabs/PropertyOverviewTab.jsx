@@ -56,7 +56,7 @@ const STATUS_CONFIG = {
     iconClass: "text-red-600",
   },
   due: {
-    bg: "#f59e0b",
+    bg: "#eab308",
     border: "#d97706",
     text: "#ffffff",
     label: "Rent Due",
