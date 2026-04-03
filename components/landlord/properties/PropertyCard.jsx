@@ -15,19 +15,30 @@ import {
   DoorOpen,
   Banknote,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import PropertyService from "@/services/landlord/property";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export default function PropertyCard({
-  property,
-  subscriptionContext,
-  isVisible = true,
-}) {
+export default function PropertyCard({ property, subscriptionContext, isVisible = true, onDelete }) {
   const router = useRouter();
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Calculate accurate occupancy from property floor data
   const occupancyData = useMemo(() => {
@@ -129,6 +140,7 @@ export default function PropertyCard({
     setImageLoading(false);
   };
 
+
   const getCategoryStyle = (category) => {
     const styles = {
       "multi-floor": "bg-blue-500/10 text-blue-700 dark:text-blue-400",
@@ -160,6 +172,30 @@ export default function PropertyCard({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation(); // prevent card navigation
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await PropertyService.deleteProperty(property.id);
+      toast.success("Property deleted", {
+        description: `"${propertyName}" and all associated data have been removed.`,
+      });
+      // Tell the parent list to remove this card
+      if (onDelete) onDelete(property.id);
+    } catch (error) {
+      toast.error("Delete failed", {
+        description: error?.response?.data?.error || "Something went wrong. Please try again.",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
   };
 
   // Locked state card
@@ -231,10 +267,11 @@ export default function PropertyCard({
   }
 
   return (
-    <Card
-      className="group relative overflow-hidden border-border/50 bg-card transition-all duration-300 hover:border-border hover:shadow-lg cursor-pointer"
-      onClick={handleCardClick}
-    >
+    <>
+      <Card
+        className="group relative overflow-hidden border-border/50 bg-card transition-all duration-300 hover:border-border hover:shadow-lg cursor-pointer"
+        onClick={handleCardClick}
+      >
       <div className="flex flex-col">
         {/* Image Section */}
         <div className="relative h-36 md:h-48 flex-shrink-0 overflow-hidden rounded-3xl">
@@ -390,9 +427,42 @@ export default function PropertyCard({
               View Details
               <ChevronRight className="h-4 w-4 ml-auto opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
             </Button>
+            {/* DELETE BUTTON */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="px-3 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+              onClick={handleDeleteClick}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
     </Card>
+    {/* Delete Confirmation Dialog */ }
+  <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Delete "{propertyName}"?</AlertDialogTitle>
+        <AlertDialogDescription>
+          This will permanently delete the property along with all its floors, units,
+          and any tenants exclusively linked to it. This action cannot be undone.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+        <AlertDialogAction
+          onClick={handleConfirmDelete}
+          disabled={isDeleting}
+          className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+        >
+          {isDeleting ? "Deleting..." : "Yes, delete property"}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
