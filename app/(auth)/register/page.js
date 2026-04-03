@@ -26,7 +26,7 @@ import { useTheme } from "@/components/theme-provider";
 const registerSchema = z
   .object({
     full_name: z.string().min(2, "Name must be at least 2 characters"),
-    phone_number: z.string().min(10, "Phone number must be at least 10 digits").max(10, "Phone number cannot exceed 10 digits"),
+    phone_number: z.string().min(9, "Phone number must be exactly 9 digits").max(9, "Phone number must be exactly 9 digits"),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")
@@ -289,17 +289,27 @@ export default function RegisterPage() {
                   >
                     Phone Number *
                   </label>
-                  <Input
-                    id="phone_number"
-                    name="phone_number"
-                    placeholder="+255 XXX XXX XXX"
-                    value={formData.phone_number}
-                    onChange={handleChange}
-                    className="h-12"
-                  />
+                  <div className="relative">
+                    <div className="absolute left-0 top-0 bottom-0 flex items-center px-3 border-r border-input bg-muted/50 rounded-l-md pointer-events-none text-muted-foreground">
+                      <span className="text-base mr-1">🇹🇿</span>
+                      <span className="text-sm font-medium">+255</span>
+                    </div>
+                    <Input
+                      id="phone_number"
+                      name="phone_number"
+                      placeholder="7XX XXX XXX"
+                      value={formData.phone_number}
+                      onChange={handleChange}
+                      className="h-12 pl-[90px]"
+                      maxLength={9}
+                    />
+                  </div>
                   {errors.phone_number && (
                     <p className="text-red-500 text-sm mt-1">{errors.phone_number}</p>
                   )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enter your 9-digit number without the leading zero (e.g., 712345678)
+                  </p>
                 </div>
               </div>
 
