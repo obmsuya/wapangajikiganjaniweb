@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import api from '@/lib/api/api-client';
 import { toast } from 'sonner';
 
-const BASE = '/api/v1/accounts/managers';
+const BASE = 'https://backend.wapangaji.com/api/vi/accounts/managers';
 
 const classifyError = (error) => {
   if (!error) return 'Something went wrong';
