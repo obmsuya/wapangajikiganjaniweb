@@ -421,7 +421,16 @@ function PropertyAccordionItem({ property }) {
               </div>
             </div>
 
-            <div className="ml-auto shrink-0">
+            <div className="ml-auto flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={e => { e.stopPropagation(); setAssignOpen(true); }}
+              >
+                <UserPlus className="h-3 w-3 mr-1" />
+                Assign
+              </Button>
               <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                 managers.length > 0
                   ? 'bg-primary/10 text-primary'
