@@ -14,6 +14,7 @@ import {
   Eye,
   Home,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -342,7 +343,103 @@ export default function PaymentsPage() {
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" className="w-full sm:w-fit text-sm">
+              <Button
+                variant="outline"
+                className="w-full sm:w-fit text-sm"
+                onClick={() => {
+                  // 1. Shape the data rows
+                  const rows = filteredPayments.map((p) => ({
+                    Tenant: p.tenant_name || "N/A",
+                    Phone: p.tenant_phone || "N/A",
+                    Property: p.property_name || "N/A",
+                    Unit: p.unit_name || "N/A",
+                    Floor: p.floor_number ? `Floor ${p.floor_number}` : "",
+                    "Amount (TZS)": p.amount || 0,
+                    "Period Start": p.payment_period_start
+                      ? new Date(p.payment_period_start).toLocaleDateString()
+                      : "",
+                    "Period End": p.payment_period_end
+                      ? new Date(p.payment_period_end).toLocaleDateString()
+                      : "",
+                    Status: p.status || "N/A",
+                    Date: p.created_at
+                      ? new Date(p.created_at).toLocaleDateString()
+                      : "",
+                  }));
+
+                  // 2. Create workbook + worksheet
+                  const wb = XLSX.utils.book_new();
+                  const ws = XLSX.utils.json_to_sheet(rows);
+
+                  // 3. Column widths
+                  ws["!cols"] = [
+                    { wch: 24 }, // Tenant
+                    { wch: 16 }, // Phone
+                    { wch: 26 }, // Property
+                    { wch: 14 }, // Unit
+                    { wch: 10 }, // Floor
+                    { wch: 16 }, // Amount
+                    { wch: 14 }, // Period Start
+                    { wch: 14 }, // Period End
+                    { wch: 12 }, // Status
+                    { wch: 14 }, // Date
+                  ];
+
+                  // 4. Style header row (row 1)
+                  const headerKeys = Object.keys(rows[0] || {});
+                  headerKeys.forEach((_, colIdx) => {
+                    const cellRef = XLSX.utils.encode_cell({ r: 0, c: colIdx });
+                    if (!ws[cellRef]) return;
+                    ws[cellRef].s = {
+                      font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+                      fill: { fgColor: { rgb: "1E3A5F" } }, // dark navy — Wapangaji brand-ish
+                      alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                      border: {
+                        bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+                      },
+                    };
+                  });
+
+                  // 5. Style data rows — alternate row shading + status colour on Status column
+                  const statusColIdx = headerKeys.indexOf("Status");
+                  const statusColors = {
+                    completed: "D1FAE5", // green-100
+                    pending: "FEF9C3", // yellow-100
+                    failed: "FEE2E2", // red-100
+                  };
+
+                  rows.forEach((row, rowIdx) => {
+                    const excelRow = rowIdx + 1; // +1 because row 0 is the header
+                    const isEven = rowIdx % 2 === 0;
+
+                    headerKeys.forEach((_, colIdx) => {
+                      const cellRef = XLSX.utils.encode_cell({ r: excelRow, c: colIdx });
+                      if (!ws[cellRef]) return;
+
+                      const isStatusCol = colIdx === statusColIdx;
+                      const statusKey = (row["Status"] || "").toLowerCase();
+
+                      ws[cellRef].s = {
+                        fill: {
+                          fgColor: {
+                            rgb: isStatusCol && statusColors[statusKey]
+                              ? statusColors[statusKey]
+                              : isEven ? "F8FAFC" : "FFFFFF",
+                          },
+                        },
+                        alignment: { vertical: "center" },
+                        border: {
+                          bottom: { style: "hair", color: { rgb: "E2E8F0" } },
+                        },
+                      };
+                    });
+                  });
+
+                  // 6. Append sheet and trigger download
+                  XLSX.utils.book_append_sheet(wb, ws, "Payments");
+                  XLSX.writeFile(wb, `wapangaji-payments-${new Date().toISOString().slice(0, 10)}.xlsx`);
+                }}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Export</span>
                 <span className="sm:hidden">Export</span>
@@ -359,8 +456,8 @@ export default function PaymentsPage() {
               </h3>
               <p className="text-xs sm:text-sm text-slate-600">
                 {filters.search ||
-                filters.status !== "all" ||
-                filters.period !== "all"
+                  filters.status !== "all" ||
+                  filters.period !== "all"
                   ? "Try adjusting your filters to see more results"
                   : "Payment history will appear here once tenants start making payments"}
               </p>
@@ -454,11 +551,10 @@ export default function PaymentsPage() {
                     key={provider.value}
                     onClick={() => setWithdrawalMethod(provider.value)}
                     className={`p-2 sm:p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 sm:gap-2
-                  ${
-                    withdrawalMethod === provider.value
-                      ? "border-primary bg-primary/5"
-                      : "border-slate-200 hover:border-slate-300"
-                  }`}
+                  ${withdrawalMethod === provider.value
+                        ? "border-primary bg-primary/5"
+                        : "border-slate-200 hover:border-slate-300"
+                      }`}
                     disabled={isProcessing}
                   >
                     <img
