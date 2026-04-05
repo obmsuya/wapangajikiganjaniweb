@@ -256,6 +256,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
               nextPaymentDate: tenantRecord?.next_payment_date ?? null,
               paymentFrequency: tenantRecord?.payment_frequency ?? null,
               floorNumber: parseInt(floorNum, 10),
+              floorName: tenantRecord?.floor_name ?? null,   // ← pull floor_name from tenant record
             };
           })
           .filter((u) => u.cellIndex !== undefined && u.cellIndex !== null)
@@ -266,6 +267,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
         return {
           floorNumber: parseInt(floorNum),
           floorNo: floor.floor_no,
+          floorName: gridCells.find((c) => c.floorName)?.floorName ?? `Floor ${parseInt(floorNum)}`,  // ← use floor_name from data
           units: gridCells,
           totalUnits: floor.units_total || gridCells.length,
           occupiedUnits: occupiedCount,
@@ -394,7 +396,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
         {processedFloors.map((floor) => (
           <Card key={floor.floorNumber}>
             <CardHeader
-              title={`Floor ${floor.floorNumber}`}
+              title={floor.floorName}
               subtitle={`${floor.totalUnits} units • ${floor.occupancyRate}% occupied`}
             />
             <CardContent>
