@@ -430,8 +430,7 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
 
               <Button
                 variant="outline"
-                size="sm"
-                className="px-3 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-900 dark:hover:bg-red-950"
+                className="flex-1 group/btn border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-900 dark:hover:bg-red-950"
                 onClick={handleDeleteClick}
                 disabled={isDeleting}
               >
