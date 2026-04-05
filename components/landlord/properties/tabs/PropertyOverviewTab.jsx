@@ -395,10 +395,12 @@ export default function PropertyOverviewTab({ property, floorData }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {processedFloors.map((floor) => (
           <Card key={floor.floorNumber}>
-            <CardHeader
-              title={floor.floorName}
-              subtitle={`${floor.totalUnits} units • ${floor.occupancyRate}% occupied`}
-            />
+            <CardHeader>
+              <div>
+                <p className="text-base font-semibold">{floor.floorName}</p>
+                <p className="text-sm text-muted-foreground">{floor.totalUnits} units • {floor.occupancyRate}% occupied</p>
+              </div>
+            </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-center">
