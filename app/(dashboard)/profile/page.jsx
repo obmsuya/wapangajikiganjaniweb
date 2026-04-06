@@ -630,13 +630,14 @@ export default function ProfilePage() {
             <Button
               variant="outline"
               onClick={() => setShowPasswordDialog(false)}
+              className="w-auto"
             >
               Cancel
             </Button>
             <Button
               onClick={handlePasswordSubmit}
               disabled={loading}
-              className="gap-2"
+              className="gap-2 w-auto"
             >
               <Save className="size-3.5" />
               {loading ? "Changing…" : "Update Password"}
