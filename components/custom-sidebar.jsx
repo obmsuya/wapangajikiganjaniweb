@@ -211,6 +211,35 @@ export function CustomSidebar({ role = "admin", user }) {
       ];
     }
 
+    if (user?.user_type === "manager" || role === "manager") {
+      const routes = [
+        {
+          label: "Properties",
+          icon: Building2,
+          href: "/manager/properties",
+          active: pathname.includes("/manager/properties"),
+        },
+        {
+          label: "Maintenance",
+          icon: Wrench,
+          href: "/manager/maintenance",
+          active: pathname === "/manager/maintenance",
+        },
+      ];
+
+      // Only add Payments if the manager has the permission
+      if (user?.can_collect_payments) {
+        routes.push({
+          label: "Payments",
+          icon: Banknote,
+          href: "/manager/payments",
+          active: pathname.includes("/manager/payments"),
+        });
+      }
+
+      return routes;
+    }
+
     if (user?.user_type === "partner" || role === "partner") {
       return [
         {
