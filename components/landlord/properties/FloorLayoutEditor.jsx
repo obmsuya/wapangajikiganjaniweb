@@ -59,47 +59,81 @@ export default function FloorLayoutEditor({
   const isTablet = useIsMobile("(max-width: 1024px)");
   const CELL_SIZE = getCellSize(isMobile, isTablet);
 
-  // Extract grid data from existing layout
-  const extractGridDataFromLayout = useCallback((layout) => {
-    if (!layout) return [];
+const extractGridDataFromLayout = useCallback((layout) => {
+  if (!layout) return [];
 
-    // Try different sources for grid data
-    let gridCells = [];
+  let gridCells = [];
 
-    // 1. Check for grid_configuration (from useFloorPlan hook)
-    if (layout.grid_configuration?.selected_cells) {
-      gridCells = layout.grid_configuration.selected_cells;
-    }
-    // 2. Check for units_ids (from floorMemory)
-    else if (layout.units_ids?.length > 0) {
-      gridCells = layout.units_ids;
-    }
-    // 3. Extract from units data (svg_id)
-    else if (layout.units?.length > 0) {
-      gridCells = layout.units
-        .map((unit) => unit.svg_id)
-        .filter((id) => id !== undefined && id !== null)
-        .sort((a, b) => a - b);
-    }
-    // 4. Try to parse from layout_data SVG
-    else if (layout.layout_data && typeof layout.layout_data === "string") {
-      try {
-        // Extract unit_X ids from SVG
-        const unitMatches = layout.layout_data.match(/id="unit_(\d+)"/g);
-        if (unitMatches) {
-          gridCells = unitMatches
-            .map((match) => parseInt(match.match(/\d+/)[0]))
-            .filter((id) => !isNaN(id))
-            .sort((a, b) => a - b);
+  // Source 1 — grid_configuration selected_cells (web, only trust if non-empty)
+  if (layout.grid_configuration?.selected_cells?.length > 0) {
+    gridCells = layout.grid_configuration.selected_cells;
+  }
+
+  // Source 2 — units_ids array (web fallback)
+  else if (layout.units_ids?.length > 0) {
+    gridCells = layout.units_ids;
+  }
+
+  // Source 3 — units[].svg_id (works for BOTH web and mobile)
+  // Mobile saves svg_id directly, web also has svg_id on units
+  else if (layout.units?.length > 0) {
+    gridCells = layout.units
+      .map((unit) => {
+        // Trust svg_id if present and valid
+        if (unit.svg_id !== undefined && unit.svg_id !== null && !isNaN(unit.svg_id)) {
+          return unit.svg_id;
         }
-      } catch (err) {
-        console.warn("Failed to parse grid data from SVG:", err);
+        // Mobile fallback — derive svg_id from svg_geom "x, y" string
+        // svg_geom is "col*CELL_SIZE, row*CELL_SIZE"
+        // svg_id = row * GRID_SIZE + col
+        if (unit.svg_geom && typeof unit.svg_geom === 'string') {
+          const parts = unit.svg_geom.split(',').map(p => parseInt(p.trim()));
+          if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            const col = Math.round(parts[0] / 40); // CELL_SIZE = 40
+            const row = Math.round(parts[1] / 40);
+            return row * GRID_SIZE + col;
+          }
+        }
+        return null;
+      })
+      .filter((id) => id !== null && id !== undefined && !isNaN(id))
+      .sort((a, b) => a - b);
+  }
+
+  // Source 4 — parse SVG layout_data (web only, mobile SVG has no id="unit_X")
+  else if (layout.layout_data && typeof layout.layout_data === 'string') {
+    // Web SVG has id="unit_X", mobile SVG has no ids — parse rect positions instead
+    const unitIdMatches = layout.layout_data.match(/id="unit_(\d+)"/g);
+    if (unitIdMatches?.length > 0) {
+      // Web path — extract unit_X ids
+      gridCells = unitIdMatches
+        .map((match) => parseInt(match.match(/\d+/)[0]))
+        .filter((id) => !isNaN(id))
+        .sort((a, b) => a - b);
+    } else {
+      // Mobile path — parse rect x/y attributes to derive svg_id
+      const rectMatches = layout.layout_data.match(/<rect[^>]*>/g);
+      if (rectMatches) {
+        gridCells = rectMatches
+          .map((rect) => {
+            const xMatch = rect.match(/x="(\d+)"/);
+            const yMatch = rect.match(/y="(\d+)"/);
+            if (xMatch && yMatch) {
+              const col = Math.round(parseInt(xMatch[1]) / 40);
+              const row = Math.round(parseInt(yMatch[1]) / 40);
+              return row * GRID_SIZE + col;
+            }
+            return null;
+          })
+          .filter((id) => id !== null && !isNaN(id))
+          .sort((a, b) => a - b);
       }
     }
+  }
 
-    console.log("Extracted grid cells:", gridCells);
-    return gridCells;
-  }, []);
+  console.log('Extracted grid cells:', gridCells);
+  return gridCells;
+}, []);
 
   // Initialize with existing layout data
   useEffect(() => {
