@@ -156,10 +156,7 @@ export default function PropertyDetailsPage({ params }) {
       Array.isArray(processedProperty.property_floor)
     ) {
       processedProperty.property_floor.forEach((floor) => {
-        const rawFloorNo = floor.floor_no;
-        const floorNumber = rawFloorNo === 0 || rawFloorNo < processedProperty.total_floors
-          ? rawFloorNo + 1          // web: 0-indexed → add 1
-          : rawFloorNo;             
+        const floorNumber = floor.floor_no + 1;
         if (floors[floorNumber]) {
           const units = floor.units_floor || [];
 
