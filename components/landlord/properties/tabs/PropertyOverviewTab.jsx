@@ -267,7 +267,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
         return {
           floorNumber: parseInt(floorNum),
           floorNo: floor.floor_no,
-          floorName: gridCells.find((c) => c.floorName)?.floorName ?? `Floor ${parseInt(floorNum)}`,  // ← use floor_name from data
+          floorName: gridCells.find((c) => c.floorName)?.floorName ?? parseInt(floorNum) === 0 ? 'Ground Floor' : `Floor ${parseInt(floorNum)}`,  // ← use floor_name from data
           units: gridCells,
           totalUnits: floor.units_total || gridCells.length,
           occupiedUnits: occupiedCount,

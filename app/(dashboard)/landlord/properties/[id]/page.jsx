@@ -135,7 +135,7 @@ export default function PropertyDetailsPage({ params }) {
     const floors = {};
 
     // Initialize all floors first
-    for (let i = 1; i <= processedProperty.total_floors; i++) {
+    for (let i = 0; i <= processedProperty.total_floors; i++) {
       floors[i] = {
         floor_number: i,
         floor_no: i - 1,
@@ -156,7 +156,7 @@ export default function PropertyDetailsPage({ params }) {
       Array.isArray(processedProperty.property_floor)
     ) {
       processedProperty.property_floor.forEach((floor) => {
-        const floorNumber = floor.floor_no + 1;
+        const floorNumber = floor.floor_no;
         if (floors[floorNumber]) {
           const units = floor.units_floor || [];
 
