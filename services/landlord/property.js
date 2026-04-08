@@ -69,8 +69,15 @@ const PropertyService = {
             });
           }
         });
+        const totalFloors = response.total_floors || 1;
+        const isOneIndexed = response.property_floor.some(
+          f => f.floor_no === totalFloors
+        );
+
+        // Step 2 — normalize floor_no to always be 0-indexed, then map the rest
         response.property_floor = response.property_floor.map(floor => ({
           ...floor,
+          floor_no: isOneIndexed ? floor.floor_no - 1 : floor.floor_no,
           units_floor: floor.units_floor ? floor.units_floor.map(unit => ({
             ...unit,
             current_tenant: unit.current_tenant || null
