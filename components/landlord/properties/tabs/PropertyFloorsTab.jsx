@@ -106,7 +106,7 @@ export default function PropertyFloorsTab({
           return (
             <CloudflareCard key={floor.floor_number}>
               <CloudflareCardHeader 
-                title={`Floor ${floor.floor_number}`}
+                title={floor.floor_number === 0 ? 'Ground Floor' : `Floor ${floor.floor_number}`}
                 actions={
                   <div className="flex gap-2">
                     <Button
@@ -219,7 +219,7 @@ export default function PropertyFloorsTab({
 
       <Sheet open={showLayoutEditor} onOpenChange={setShowLayoutEditor} className="z-50">
          <SheetContent className="w-full max-w-screen-lg max-h-[90vh] overflow-y-auto p-6">
-          {editingFloor && (
+          {editingFloor !== null && editingFloor !== undefined && (
             <FloorLayoutEditor
               propertyId={property.id}
               floorNumber={editingFloor}

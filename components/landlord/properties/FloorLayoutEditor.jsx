@@ -258,7 +258,7 @@ export default function FloorLayoutEditor({
             coordinates: { x: x * CELL_SIZE, y: y * CELL_SIZE },
             area_sqm: 150,
             status: "available",
-            floor_number: floorNumber - 1, // Backend expects 0-based
+            floor_number: floorNumber, // Backend expects 0-based
             unit_name: `${String.fromCharCode(65 + Math.floor(idx / 26))}${(idx % 26) + 1}`,
             rent_amount: 0,
             rooms: 1,
