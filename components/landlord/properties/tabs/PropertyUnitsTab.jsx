@@ -55,7 +55,7 @@ export default function PropertyUnitsTab({
           units.push({
             ...unit,
             unique_unit_id: `${floor.floor_number}-${unit.unit_name}`,
-            floor_name: `Floor ${floor.floor_number}`,
+            floor_name: floor.floor_number === 0 ? 'Ground Floor' : `Floor ${floor.floor_number}`,
             floor_number: floor.floor_number,
             current_tenant: associatedTenant || unit.current_tenant || null,
             occupancy_id: associatedTenant?.occupancy_id || unit.occupancy_id || null,
