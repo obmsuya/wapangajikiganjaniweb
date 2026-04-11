@@ -135,7 +135,7 @@ export default function PropertyDetailsPage({ params }) {
     const floors = {};
 
     // Initialize all floors first
-    for (let i = 0; i <= processedProperty.total_floors; i++) {
+    for (let i = 0; i < processedProperty.total_floors; i++) {
       floors[i] = {
         floor_number: i,
         floor_no: i - 1,
