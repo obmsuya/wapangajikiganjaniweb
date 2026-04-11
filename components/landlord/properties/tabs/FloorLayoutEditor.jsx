@@ -1,119 +1,233 @@
 // components/landlord/properties/FloorLayoutEditor.jsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
+  Grid3X3,
   Save,
   Trash2,
   Eye,
   RefreshCw,
   AlertCircle,
   Check,
-  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/components/cloudflare/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useFloorPlan } from "@/hooks/properties/useProperties";
-import PropertyService from "@/services/landlord/property";
-import FloorPlanGrid from "./FloorPlanGrid";
-import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const GRID_SIZE = 8;
+
+const getCellSize = (isMobile, isTablet) => {
+  if (isMobile) return 28;
+  if (isTablet) return 32;
+  return 40;
+};
 
 export default function FloorLayoutEditor({
   propertyId,
   floorNumber,
   existingLayout,
   onSave,
-  onCancel
+  onCancel,
 }) {
-  const {
-    selectedUnits,
-    toggleUnit,
-    clearSelection,
-    generateLayoutPreview,
-    validateUnitDeletion,
-    saveFloorPlan
-  } = useFloorPlan(
-    () => { }, // updateFloorData callback
-    existingLayout ? { [floorNumber]: existingLayout } : {},
-    { id: propertyId } // existingProperty
-  );
-
+  const [selectedUnits, setSelectedUnits] = useState([]);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [layoutData, setLayoutData] = useState({
+    layout_type: "rectangular",
+    creation_method: "manual",
+    units_total: 0,
+    layout_data: "",
+    notes: "",
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [previewMode, setPreviewMode] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
 
-  // Initialize selected units from existing layout
-  useEffect(() => {
-    if (existingLayout?.units) {
-      const existingUnitIds = existingLayout.units.map(unit => unit.svg_id);
-      // Set initial selected units based on existing layout
-      existingUnitIds.forEach(unitId => {
-        if (!selectedUnits.includes(unitId)) {
-          toggleUnit(unitId);
-        }
-      });
-    }
-  }, [existingLayout]);
+  const isMobile = useIsMobile("(max-width: 640px)");
+  const isTablet = useIsMobile("(max-width: 1024px)");
+  const CELL_SIZE = getCellSize(isMobile, isTablet);
 
-  const handleCellClick = useCallback(async (cellIndex) => {
-    if (previewMode) return;
+  const extractGridDataFromLayout = useCallback((layout) => {
+    if (!layout) return [];
 
-    // Check if unit has tenant before allowing deletion
-    if (selectedUnits.includes(cellIndex) && existingLayout?.units) {
-      const existingUnit = existingLayout.units.find(unit => unit.svg_id === cellIndex);
-      if (existingUnit?.current_tenant) {
-        try {
-          const validation = await validateUnitDeletion(floorNumber, cellIndex);
-          if (validation && validation.has_tenant) {
-            toast.error("Cannot Remove Unit", {
-              description: `${validation.message}. Please vacate the tenant first.`
-            });
-            return;
+    let gridCells = [];
+
+    if (layout.grid_configuration?.selected_cells?.length > 0) {
+      gridCells = layout.grid_configuration.selected_cells;
+    } else if (layout.units_ids?.length > 0) {
+      gridCells = layout.units_ids;
+    } else if (layout.units?.length > 0) {
+      gridCells = layout.units
+        .map((unit) => {
+          if (unit.svg_id !== undefined && unit.svg_id !== null && !isNaN(unit.svg_id)) {
+            return unit.svg_id;
           }
-        } catch (error) {
-          console.error('Error validating unit deletion:', error);
-          toast.error("Validation Error", {
-            description: "Unable to validate unit deletion. Please try again."
-          });
-          return;
+          if (unit.svg_geom && typeof unit.svg_geom === "string") {
+            const parts = unit.svg_geom.split(",").map((p) => parseInt(p.trim()));
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+              const col = Math.round(parts[0] / 40);
+              const row = Math.round(parts[1] / 40);
+              return row * GRID_SIZE + col;
+            }
+          }
+          return null;
+        })
+        .filter((id) => id !== null && id !== undefined && !isNaN(id))
+        .sort((a, b) => a - b);
+    } else if (layout.layout_data && typeof layout.layout_data === "string") {
+      const unitIdMatches = layout.layout_data.match(/id="unit_(\d+)"/g);
+      if (unitIdMatches?.length > 0) {
+        gridCells = unitIdMatches
+          .map((match) => parseInt(match.match(/\d+/)[0]))
+          .filter((id) => !isNaN(id))
+          .sort((a, b) => a - b);
+      } else {
+        const rectMatches = layout.layout_data.match(/<rect[^>]*>/g);
+        if (rectMatches) {
+          gridCells = rectMatches
+            .map((rect) => {
+              const xMatch = rect.match(/x="(\d+)"/);
+              const yMatch = rect.match(/y="(\d+)"/);
+              if (xMatch && yMatch) {
+                const col = Math.round(parseInt(xMatch[1]) / 40);
+                const row = Math.round(parseInt(yMatch[1]) / 40);
+                return row * GRID_SIZE + col;
+              }
+              return null;
+            })
+            .filter((id) => id !== null && !isNaN(id))
+            .sort((a, b) => a - b);
         }
       }
     }
 
-    toggleUnit(cellIndex);
-    setHasChanges(true);
-  }, [selectedUnits, existingLayout, floorNumber, previewMode, toggleUnit, validateUnitDeletion]);
+    return gridCells;
+  }, []);
 
-  const handlePreview = useCallback(() => {
-    if (selectedUnits.length === 0) {
-      toast.error("No Units Selected", {
-        description: "Please select at least one unit to preview the layout."
+  useEffect(() => {
+    if (existingLayout) {
+      setLayoutData({
+        layout_type: existingLayout.layout_type || "rectangular",
+        creation_method: existingLayout.creation_method || "manual",
+        units_total: existingLayout.units_total || 0,
+        layout_data: existingLayout.layout_data || "",
+        notes: existingLayout.notes || "",
       });
-      return;
+
+      const extractedUnits = extractGridDataFromLayout(existingLayout);
+      setSelectedUnits(extractedUnits);
     }
+  }, [existingLayout, extractGridDataFromLayout]);
 
-    try {
-      const preview = generateLayoutPreview(selectedUnits, floorNumber);
-      if (preview) {
-        setPreviewMode(true);
-        toast.success("Preview Generated", {
-          description: `Floor ${floorNumber} layout preview ready`
-        });
-      }
-    } catch (error) {
-      toast.error("Preview Failed", {
-        description: "Unable to generate layout preview"
+  const handleCellClick = useCallback(
+    (cellIndex) => {
+      if (previewMode) return;
+
+      setSelectedUnits((prev) => {
+        const newSelected = prev.includes(cellIndex)
+          ? prev.filter((id) => id !== cellIndex)
+          : [...prev, cellIndex];
+
+        setLayoutData((prevData) => ({
+          ...prevData,
+          units_total: newSelected.length,
+        }));
+
+        return newSelected;
       });
-    }
-  }, [selectedUnits, floorNumber, generateLayoutPreview]);
+    },
+    [previewMode],
+  );
 
-  const handleSave = useCallback(async () => {
+  const handleClearSelection = () => {
+    setSelectedUnits([]);
+    setLayoutData((prev) => ({ ...prev, units_total: 0 }));
+  };
+
+  const generateSVGString = useCallback(
+    (units) => {
+      if (!units || units.length === 0) return "";
+
+      const svgElements = units
+        .map((cellIndex, idx) => {
+          const x = (cellIndex % GRID_SIZE) * CELL_SIZE;
+          const y = Math.floor(cellIndex / GRID_SIZE) * CELL_SIZE;
+
+          return `<rect width="${CELL_SIZE}" height="${CELL_SIZE}" x="${x}" y="${y}" id="unit_${cellIndex}" fill="#3b82f6" stroke="#1e40af" stroke-width="2" />
+              <text x="${x + CELL_SIZE / 2}" y="${y + CELL_SIZE / 2}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="12" font-weight="bold">${idx + 1}</text>`;
+        })
+        .join("\n");
+
+      return `<svg width="${GRID_SIZE * CELL_SIZE}" height="${GRID_SIZE * CELL_SIZE}" xmlns="http://www.w3.org/2000/svg">
+              ${svgElements}
+            </svg>`;
+    },
+    [CELL_SIZE],
+  );
+
+  const generateLayoutPreview = useCallback(
+    (units) => {
+      if (!units || units.length === 0) return null;
+
+      const positions = units.map((cellIndex) => ({
+        x: cellIndex % GRID_SIZE,
+        y: Math.floor(cellIndex / GRID_SIZE),
+        cellIndex,
+      }));
+
+      const sortedUnits = [...units].sort((a, b) => a - b);
+      const minX = Math.min(...positions.map((p) => p.x));
+      const maxX = Math.max(...positions.map((p) => p.x));
+      const minY = Math.min(...positions.map((p) => p.y));
+      const maxY = Math.max(...positions.map((p) => p.y));
+
+      const width = maxX - minX + 1;
+      const height = maxY - minY + 1;
+
+      let layoutType = "custom";
+      if (width === 1) layoutType = "vertical_line";
+      else if (height === 1) layoutType = "horizontal_line";
+      else if (width === height) layoutType = "square";
+      else if (width > height * 1.5) layoutType = "wide_rectangle";
+      else if (height > width * 1.5) layoutType = "tall_rectangle";
+      else layoutType = "rectangle";
+
+      return {
+        svg: generateSVGString(units),
+        units_count: units.length,
+        layout_type: layoutType,
+        dimensions: { width, height },
+        coverage_area: width * height,
+        density: (units.length / (width * height)) * 100,
+        unit_positions: positions,
+        sorted_units: sortedUnits,
+        metadata: {
+          min_coordinates: { x: minX, y: minY },
+          max_coordinates: { x: maxX, y: maxY },
+          total_cells_used: units.length,
+          layout_efficiency: (
+            (units.length / (GRID_SIZE * GRID_SIZE)) *
+            100
+          ).toFixed(1),
+        },
+      };
+    },
+    [generateSVGString],
+  );
+
+  const handleSaveLayout = async () => {
     if (selectedUnits.length === 0) {
-      toast.error("No Units Selected", {
-        description: "Please select at least one unit before saving."
-      });
+      setError("Please select at least one unit before saving");
       return;
     }
 
@@ -121,257 +235,395 @@ export default function FloorLayoutEditor({
     setError(null);
 
     try {
-      // Use the hook's save function
-      await saveFloorPlan(propertyId, floorNumber, selectedUnits);
+      const svgString = generateSVGString(selectedUnits);
+      const layoutPreview = generateLayoutPreview(selectedUnits);
 
-      // Prepare layout data for parent component
-      const layoutData = {
-        floor_no: floorNumber - 1,
+      // FIX: floorNumber is 0-indexed (floor_no from the backend, e.g. 0 for Ground Floor).
+      // handleSaveFloorLayout in PropertyDetailsPage passes this directly as the key to
+      // bulkUpdateFloorLayout. The backend view does: floor_no = int(key) - 1.
+      // So we must send key = floorNumber + 1 to land on the correct floor_no.
+      // units_details[].floor_number stays as floorNumber (0-indexed) — that's what
+      // the Unit model column stores directly.
+      const keyForBackend = floorNumber + 1;
+
+      const floorData = {
+        // ← this is the key the parent will use when calling bulkUpdateFloorLayout
+        floor_number: keyForBackend,
+
         units_total: selectedUnits.length,
-        layout_type: 'manual_grid',
-        creation_method: 'manual',
-        layout_data: generateLayoutPreview(selectedUnits, floorNumber)?.svg || '',
-        units: selectedUnits.map((cellIndex, arrayIndex) => {
-          const x = cellIndex % 8;
-          const y = Math.floor(cellIndex / 8);
+        layout_type: layoutData.layout_type,
+        creation_method: layoutData.creation_method,
+        layout_data: svgString,
+
+        grid_configuration: {
+          grid_size: GRID_SIZE,
+          cell_size: CELL_SIZE,
+          selected_cells: selectedUnits,
+          layout_type: "manual_grid",
+          created_at: new Date().toISOString(),
+        },
+
+        layout_preview: layoutPreview,
+
+        units_details: selectedUnits.map((cellIndex, idx) => {
+          const x = cellIndex % GRID_SIZE;
+          const y = Math.floor(cellIndex / GRID_SIZE);
           return {
             svg_id: cellIndex,
-            unit_name: `F${floorNumber}U${arrayIndex + 1}`,
+            unit_number: idx + 1,
+            grid_position: { x, y },
+            coordinates: { x: x * CELL_SIZE, y: y * CELL_SIZE },
             area_sqm: 150,
-            rooms: 1,
+            status: "available",
+            floor_number: floorNumber, // 0-indexed — correct for the Unit model column
+            unit_name: `${String.fromCharCode(65 + Math.floor(idx / 26))}${(idx % 26) + 1}`,
             rent_amount: 0,
-            floor_number: floorNumber - 1,
-            status: 'available',
-            svg_geom: `M${x * 40},${y * 40} L${(x + 1) * 40},${y * 40} L${(x + 1) * 40},${(y + 1) * 40} L${x * 40},${(y + 1) * 40} Z`
+            rooms: 1,
+            utilities: {
+              electricity: false,
+              water: false,
+              wifi: false,
+            },
+            svg_geom: `M${x * CELL_SIZE},${y * CELL_SIZE} L${(x + 1) * CELL_SIZE},${y * CELL_SIZE} L${(x + 1) * CELL_SIZE},${(y + 1) * CELL_SIZE} L${x * CELL_SIZE},${(y + 1) * CELL_SIZE} Z`,
           };
-        })
+        }),
       };
 
-      onSave?.(layoutData);
-      setHasChanges(false);
-
-      toast.success("Layout Saved", {
-        description: `Floor ${floorNumber} layout has been saved successfully`
-      });
-    } catch (error) {
-      console.error('Error saving floor layout:', error);
-      setError(error.message || 'Failed to save floor layout');
-      toast.error("Save Failed", {
-        description: error.message || "Failed to save floor layout"
-      });
+      await onSave(floorData);
+    } catch (err) {
+      console.error("Error saving floor layout:", err);
+      setError(err.message || "Failed to save floor layout");
     } finally {
       setIsLoading(false);
     }
-  }, [selectedUnits, propertyId, floorNumber, saveFloorPlan, generateLayoutPreview, onSave]);
+  };
 
-  const handleClearAll = useCallback(() => {
-    clearSelection();
-    setHasChanges(true);
-  }, [clearSelection]);
+  const gridCells = useMemo(() => {
+    const cells = [];
+    for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+      const isSelected = selectedUnits.includes(i);
+      const x = (i % GRID_SIZE) * CELL_SIZE;
+      const y = Math.floor(i / GRID_SIZE) * CELL_SIZE;
 
-  const handleSelectAll = useCallback(() => {
-    // Select all 64 cells (8x8 grid)
-    const allCells = Array.from({ length: 64 }, (_, i) => i);
-    allCells.forEach(cellIndex => {
-      if (!selectedUnits.includes(cellIndex)) {
-        toggleUnit(cellIndex);
-      }
-    });
-    setHasChanges(true);
-  }, [selectedUnits, toggleUnit]);
+      cells.push(
+        <div
+          key={i}
+          onClick={() => handleCellClick(i)}
+          className={`
+            border-2 rounded cursor-pointer transition-all duration-200 relative flex-shrink-0
+            ${
+              isSelected
+                ? "bg-blue-500 border-blue-600 shadow-lg transform scale-105"
+                : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+            }
+            ${previewMode ? "cursor-default" : "hover:shadow-md"}
+          `}
+          style={{
+            position: "absolute",
+            left: x,
+            top: y,
+            width: CELL_SIZE,
+            height: CELL_SIZE,
+          }}
+        >
+          {isSelected && (
+            <div className="w-full h-full flex items-center justify-center">
+              <span
+                className="text-white font-bold"
+                style={{ fontSize: Math.max(10, CELL_SIZE * 0.4) }}
+              >
+                {selectedUnits.indexOf(i) + 1}
+              </span>
+            </div>
+          )}
+          {isSelected && !previewMode && (
+            <div
+              className="absolute bg-green-400 rounded-full"
+              style={{
+                top: -CELL_SIZE * 0.15,
+                right: -CELL_SIZE * 0.15,
+                width: CELL_SIZE * 0.3,
+                height: CELL_SIZE * 0.3,
+              }}
+            ></div>
+          )}
+        </div>,
+      );
+    }
+    return cells;
+  }, [selectedUnits, previewMode, handleCellClick, CELL_SIZE]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="px-2 sm:px-0">
+        <h3 className="text-lg sm:text-xl font-semibold">
+          {/* Display uses +1 so Ground Floor shows as "Floor 1", not "Floor 0" */}
+          Floor {floorNumber + 1} Layout Editor
+        </h3>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          {existingLayout && existingLayout.configured
+            ? "Edit the existing floor layout"
+            : "Create a new floor layout by selecting units on the grid"}
+        </p>
+        {existingLayout && existingLayout.configured && (
+          <div className="mt-2 text-xs sm:text-sm text-green-600">
+            ✓ Loaded existing layout with {selectedUnits.length} units
+          </div>
+        )}
+      </div>
+
+      {/* Error Alert */}
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mx-2 sm:mx-0">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Floor Plan Grid */}
-        <div className="lg:col-span-2">
-          <CloudflareCard>
-            <CloudflareCardHeader
-              title={`Floor ${floorNumber} Layout Editor`}
-              actions={
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearAll}
-                    disabled={selectedUnits.length === 0 || previewMode}
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Clear All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAll}
-                    disabled={previewMode}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Select All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePreview}
-                    disabled={selectedUnits.length === 0}
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    {previewMode ? 'Previewing' : 'Preview'}
-                  </Button>
-                </div>
-              }
-            />
-            <CloudflareCardContent>
-              <div className="space-y-4">
-                {!previewMode && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Instructions</h4>
-                    <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                      <li>• Click on grid cells to select/deselect units</li>
-                      <li>• Selected cells (green) will become units</li>
-                      <li>• Red cells have tenants and cannot be removed</li>
-                      <li>• Blue cells are already configured</li>
-                      <li>• Click "Preview" to see the layout</li>
-                    </ul>
-                  </div>
-                )}
-
-                <FloorPlanGrid
-                  selectedUnits={selectedUnits}
-                  onCellClick={handleCellClick}
-                  existingUnits={existingLayout?.units || []}
-                  gridSize={8}
-                  cellSize={40}
-                  readonly={previewMode}
-                />
-
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Selected Units: {selectedUnits.length}</span>
-                  <span>Grid Size: 8x8 cells</span>
-                </div>
-              </div>
-            </CloudflareCardContent>
-          </CloudflareCard>
-        </div>
-
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 px-2 sm:px-0">
         {/* Configuration Panel */}
-        <div className="space-y-6">
-          {/* Floor Stats */}
-          <CloudflareCard>
-            <CloudflareCardHeader title="Floor Statistics" />
-            <CloudflareCardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Selected Units:</span>
-                  <span className="font-medium">{selectedUnits.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Existing Units:</span>
-                  <span className="font-medium">
-                    {existingLayout?.units?.length || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">With Tenants:</span>
-                  <span className="font-medium">
-                    {existingLayout?.units?.filter(unit => unit.current_tenant)?.length || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Changes Made:</span>
-                  <span className="font-medium">
-                    {hasChanges ? 'Yes' : 'No'}
-                  </span>
-                </div>
-              </div>
-            </CloudflareCardContent>
-          </CloudflareCard>
-
-          {/* Actions */}
-          <CloudflareCard>
-            <CloudflareCardHeader title="Actions" />
-            <CloudflareCardContent>
-              <div className="space-y-3">
-                <Button
-                  onClick={handleSave}
-                  disabled={isLoading || selectedUnits.length === 0 || !hasChanges}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Layout Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="w-full">
+                <Label htmlFor="layout_type" className="mb-2">
+                  Layout Type
+                </Label>
+                <Select
+                  value={layoutData.layout_type}
+                  onValueChange={(value) =>
+                    setLayoutData((prev) => ({ ...prev, layout_type: value }))
+                  }
                   className="w-full"
                 >
-                  {isLoading ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Layout
-                    </>
-                  )}
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select layout type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rectangular">Rectangular</SelectItem>
+                    <SelectItem value="l_shaped">L-Shaped</SelectItem>
+                    <SelectItem value="u_shaped">U-Shaped</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="mb-2" htmlFor="creation_method">
+                  Creation Method
+                </Label>
+                <Select
+                  value={layoutData.creation_method}
+                  onValueChange={(value) =>
+                    setLayoutData((prev) => ({
+                      ...prev,
+                      creation_method: value,
+                    }))
+                  }
+                  className="w-full"
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select creation method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manual Selection</SelectItem>
+                    <SelectItem value="auto">Auto-Generated</SelectItem>
+                    <SelectItem value="template">From Template</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="notes" className="mb-2">
+                  Notes (Optional)
+                </Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Add any notes about this floor layout..."
+                  value={layoutData.notes}
+                  onChange={(e) =>
+                    setLayoutData((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
+                  className="text-sm"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Units Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Units Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Total Units:
+                </span>
+                <Badge variant="outline">{selectedUnits.length}</Badge>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Grid Utilization:
+                </span>
+                <Badge variant="outline">
+                  {(
+                    (selectedUnits.length / (GRID_SIZE * GRID_SIZE)) *
+                    100
+                  ).toFixed(1)}
+                  %
+                </Badge>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearSelection}
+                  disabled={selectedUnits.length === 0}
+                  className="w-fit"
+                >
+                  <Trash2 />
+                  Clear All
                 </Button>
 
                 <Button
                   variant="outline"
-                  onClick={onCancel}
-                  disabled={isLoading}
-                  className="w-full"
+                  size="sm"
+                  onClick={() => setPreviewMode(!previewMode)}
+                  className="w-fit"
                 >
-                  Cancel
+                  <Eye />
+                  {previewMode ? "Edit Mode" : "Preview Mode"}
                 </Button>
+              </div>
 
-                {previewMode && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setPreviewMode(false)}
-                    className="w-full"
+              {selectedUnits.length === 0 && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Click on grid cells to select units for this floor.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Grid Designer */}
+        <div className="lg:col-span-2">
+          <Card className="px-0">
+            <CardHeader className="px-3 sm:px-6">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Grid3X3 className="w-4 sm:w-5 h-4 sm:h-5" />
+                  <span className="text-base sm:text-lg">Floor Layout Grid</span>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  <span className="text-gray-500">
+                    {GRID_SIZE}x{GRID_SIZE} Grid
+                  </span>
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6">
+              <div className="space-y-4 sm:space-y-8">
+                {/* Grid Instructions */}
+                <div
+                  className={`p-3 sm:p-4 border rounded-lg sm:rounded-3xl text-xs sm:text-sm ${previewMode ? "bg-green-50 border-green-700" : "bg-blue-50 border-blue-700"}`}
+                >
+                  <p
+                    className={`${previewMode ? "text-green-800" : "text-blue-800"}`}
                   >
-                    Exit Preview
-                  </Button>
+                    {previewMode ? (
+                      <>
+                        <strong>Preview Mode:</strong> This is how your floor
+                        layout will look. Switch to Edit Mode to make changes.
+                      </>
+                    ) : (
+                      <>
+                        <strong>Edit Mode:</strong> Click on grid cells to
+                        select/deselect units. Selected cells will become units
+                        in your floor plan.
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                {/* Grid Container */}
+                <div className="flex justify-center overflow-x-auto">
+                  <div
+                    className={`relative flex-shrink-0 ${previewMode ? "border-green-300 bg-green-50" : " "}`}
+                    style={{
+                      width: GRID_SIZE * CELL_SIZE,
+                      height: GRID_SIZE * CELL_SIZE,
+                    }}
+                  >
+                    {gridCells}
+                  </div>
+                </div>
+
+                {/* Grid Legend */}
+                <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-6 text-xs sm:text-sm flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded"></div>
+                    <span>Selected Unit</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-background border rounded"></div>
+                    <span>Available Space</span>
+                  </div>
+                  {previewMode && (
+                    <div className="flex items-center gap-2">
+                      <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                      <span>Preview Mode Active</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Layout Preview SVG */}
+                {selectedUnits.length > 0 && (
+                  <div className="mt-4 sm:mt-6">
+                    <h4 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2">
+                      Layout Preview (SVG Export)
+                    </h4>
+                    <div className="border rounded-lg p-3 sm:p-4 overflow-x-auto">
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: generateSVGString(selectedUnits),
+                        }}
+                        className="flex justify-center flex-shrink-0"
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
-            </CloudflareCardContent>
-          </CloudflareCard>
-
-          {/* Layout Info */}
-          <CloudflareCard>
-            <CloudflareCardHeader title="Layout Information" />
-            <CloudflareCardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Layout Type:</span>
-                  <span>Manual Grid</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Grid Size:</span>
-                  <span>8x8</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Cell Size:</span>
-                  <span>40px</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Floor Number:</span>
-                  <span>{floorNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Last Modified:</span>
-                  <span>
-                    {existingLayout?.updated_at
-                      ? new Date(existingLayout.updated_at).toLocaleDateString()
-                      : 'Never'
-                    }
-                  </span>
-                </div>
-              </div>
-            </CloudflareCardContent>
-          </CloudflareCard>
+            </CardContent>
+          </Card>
         </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-4 px-2 sm:px-0">
+        <Button variant="outline" onClick={onCancel} className="w-full sm:w-fit px-4 sm:px-6">
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSaveLayout}
+          disabled={isLoading || selectedUnits.length === 0}
+          className="w-full sm:w-fit px-4 sm:px-6"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {isLoading ? "Saving..." : "Save Layout"}
+        </Button>
       </div>
     </div>
   );
