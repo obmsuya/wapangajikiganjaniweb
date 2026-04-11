@@ -238,16 +238,9 @@ export default function FloorLayoutEditor({
       const svgString = generateSVGString(selectedUnits);
       const layoutPreview = generateLayoutPreview(selectedUnits);
 
-      // FIX: floorNumber is 0-indexed (floor_no from the backend, e.g. 0 for Ground Floor).
-      // handleSaveFloorLayout in PropertyDetailsPage passes this directly as the key to
-      // bulkUpdateFloorLayout. The backend view does: floor_no = int(key) - 1.
-      // So we must send key = floorNumber + 1 to land on the correct floor_no.
-      // units_details[].floor_number stays as floorNumber (0-indexed) — that's what
-      // the Unit model column stores directly.
       const keyForBackend = floorNumber + 1;
 
       const floorData = {
-        // ← this is the key the parent will use when calling bulkUpdateFloorLayout
         floor_number: keyForBackend,
 
         units_total: selectedUnits.length,
