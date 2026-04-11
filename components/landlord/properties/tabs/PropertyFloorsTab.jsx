@@ -2,10 +2,10 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Grid, 
-  Edit, 
-  Eye, 
+import {
+  Grid,
+  Edit,
+  Eye,
   Plus,
   AlertTriangle,
   CheckCircle,
@@ -18,9 +18,9 @@ import FloorLayoutEditor from "@/components/landlord/properties/FloorLayoutEdito
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-export default function PropertyFloorsTab({ 
-  property, 
-  floorData, 
+export default function PropertyFloorsTab({
+  property,
+  floorData,
   onEditFloor,
   onSaveFloorLayout,
   refreshProperty
@@ -36,9 +36,9 @@ export default function PropertyFloorsTab({
   const handleSaveLayout = async (layoutData) => {
     try {
       console.log('Saving layout data:', layoutData);
-      
+
       await onSaveFloorLayout?.(editingFloor, layoutData);
-      
+
       setShowLayoutEditor(false);
       setEditingFloor(null);
       refreshProperty?.();
@@ -62,7 +62,7 @@ export default function PropertyFloorsTab({
       layout_data: floor.layout_data || '',
       units_total: floor.units_total || 0,
       notes: floor.notes || '',
-      
+
       units: floor.units || [],
       grid_configuration: floor.grid_configuration || null,
       units_ids: floor.units_ids || null,
@@ -81,7 +81,7 @@ export default function PropertyFloorsTab({
         icon: <AlertTriangle className="h-4 w-4 text-yellow-500" />
       };
     }
-    
+
     if (floor.units_total === 0) {
       return {
         status: 'no_units',
@@ -89,7 +89,7 @@ export default function PropertyFloorsTab({
         icon: <AlertTriangle className="h-4 w-4 text-red-500" />
       };
     }
-    
+
     return {
       status: 'configured',
       badge: <Badge variant="success">Configured</Badge>,
@@ -102,10 +102,10 @@ export default function PropertyFloorsTab({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-4">
         {Object.values(floorData).map((floor) => {
           const statusInfo = getFloorStatusInfo(floor);
-          
+
           return (
             <CloudflareCard key={floor.floor_number}>
-              <CloudflareCardHeader 
+              <CloudflareCardHeader
                 title={floor.floor_number === 0 ? 'Ground Floor' : `Floor ${floor.floor_number}`}
                 actions={
                   <div className="flex gap-2">
@@ -120,7 +120,7 @@ export default function PropertyFloorsTab({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {}}
+                        onClick={() => { }}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -173,7 +173,7 @@ export default function PropertyFloorsTab({
                     <div className="flex justify-between">
                       <span className="text-gray-600">Last Modified:</span>
                       <span className="font-medium">
-                        {floor.updated_at 
+                        {floor.updated_at
                           ? new Date(floor.updated_at).toLocaleDateString()
                           : 'Never'
                         }
@@ -218,11 +218,12 @@ export default function PropertyFloorsTab({
       </div>
 
       <Sheet open={showLayoutEditor} onOpenChange={setShowLayoutEditor} className="z-50">
-         <SheetContent className="w-full max-w-screen-lg max-h-[90vh] overflow-y-auto p-6">
+        <SheetContent>
           {editingFloor !== null && editingFloor !== undefined && (
             <FloorLayoutEditor
               propertyId={property.id}
-              floorNumber={editingFloor}
+              floorNumber={editingFloor}           // 0-indexed, used for save key
+              displayFloorNumber={editingFloor + 1} // 1-indexed, used for labels only
               existingLayout={prepareExistingLayout(floorData[editingFloor])}
               onSave={handleSaveLayout}
               onCancel={() => {
@@ -233,6 +234,6 @@ export default function PropertyFloorsTab({
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </div >
   );
 }

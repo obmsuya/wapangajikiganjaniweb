@@ -55,27 +55,33 @@ export default function PropertyDetailsPage({ params }) {
   };
 
   const handleSaveFloorLayout = async (floorNumber, layoutData) => {
-  try {
-    // floorNumber here is 0-indexed (floor_no from backend)
-    // bulkUpdateFloorLayout backend does int(key) - 1, so we pass key as floorNumber + 1
-    const oneIndexedKey = floorNumber + 1;
-    
-    await PropertyService.bulkUpdateFloorLayout(unwrappedParams.id, {
-      [oneIndexedKey]: layoutData,
-    });
+    try {
+      const keyForBackend = floorNumber + 1;
 
-    toast.success("Floor Updated", {
-      description: `Floor layout has been saved successfully`,
-    });
+      await PropertyService.bulkUpdateFloorLayout(unwrappedParams.id, {
+        [keyForBackend]: {
+          ...layoutData,
+          units_details: layoutData.units_details?.map(unit => ({
+            ...unit,
+            floor_number: floorNumber,
+          })) ?? [],
+        },
+      });
 
-    refreshProperty();
-  } catch (error) {
-    console.error("Error saving floor layout:", error);
-    toast.error("Save Failed", {
-      description: error.message || "Failed to save floor layout",
-    });
-  }
-};
+      toast.success("Floor Updated", {
+        description: `Floor layout has been saved successfully`,
+      });
+
+      refreshProperty();
+    } catch (error) {
+      console.error("Error saving floor layout:", error);
+      toast.error("Save Failed", {
+        description: error.message || "Failed to save floor layout",
+      });
+    }
+  };
+
+
   const handleAssignTenant = (unit) => {
     setSelectedUnit(unit);
     setShowAssignDialog(true);

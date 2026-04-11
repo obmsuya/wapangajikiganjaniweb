@@ -22,6 +22,7 @@ import { toast } from "sonner";
 export default function FloorLayoutEditor({
   propertyId,
   floorNumber,
+  displayFloorNumber,
   existingLayout,
   onSave,
   onCancel
@@ -39,6 +40,7 @@ export default function FloorLayoutEditor({
     { id: propertyId } // existingProperty
   );
 
+  const label = displayFloorNumber ?? floorNumber + 1;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [previewMode, setPreviewMode] = useState(false);
@@ -194,7 +196,7 @@ export default function FloorLayoutEditor({
         <div className="lg:col-span-2">
           <CloudflareCard>
             <CloudflareCardHeader
-              title={`Floor ${floorNumber} Layout Editor`}
+              title={`Floor ${label} Layout Editor`}
               actions={
                 <div className="flex gap-2">
                   <Button
