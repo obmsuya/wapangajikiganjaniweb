@@ -36,7 +36,7 @@ export function Hero() {
 
       {/* Subtle dot-grid pattern — visible in both modes */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.04] dark:opacity-[0.07]"
+        className="absolute inset-0 pointer-events-none opacity-[0.2] dark:opacity-[0.07]"
         style={{
           backgroundImage:
             "radial-gradient(circle, #3b82f6 1px, transparent 1px)",
@@ -57,14 +57,14 @@ export function Hero() {
         <motion.div
           {...fadeUp(0)}
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8
-            bg-blue-50 border border-blue-200 text-blue-700
-            dark:bg-blue-900/40 dark:border-blue-700/60 dark:text-blue-300"
+            bg-blue-50 border border-blue-200 text-primary
+            dark:bg-blue-900/40 dark:border-blue-700/60"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span className="text-sm font-medium tracking-wide">
             Trusted by 100+ landlords
           </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
         </motion.div>
 
         {/* Headline */}
@@ -100,8 +100,8 @@ export function Hero() {
         {/* Subheadline */}
         <motion.p
           {...fadeUp(0.55)}
-          className="text-lg sm:text-xl max-w-xl mx-auto mb-10 leading-relaxed
-              text-gray-500 dark:text-gray-400"
+          className="text-base max-w-xl mx-auto mb-10 leading-relaxed
+              text-muted-foreground"
         >
           Simplify your property management with automated rent collection,
           tenant management, and real-time analytics.

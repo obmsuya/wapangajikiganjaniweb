@@ -68,7 +68,7 @@ export function MobileApp() {
 
       {/* Dot grid */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.035] dark:opacity-[0.06]"
+        className="absolute inset-0 pointer-events-none opacity-[0.175] dark:opacity-[0.07]"
         style={{
           backgroundImage: "radial-gradient(circle, #3b82f6 1px, transparent 1px)",
           backgroundSize: "28px 28px",
