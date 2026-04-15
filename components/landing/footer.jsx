@@ -15,8 +15,8 @@ export function Footer() {
   const isInView = useInView(ref, { once: true, margin: "-50px" })
 
   return (
-    <footer ref={ref} className="bg-background">
-      <div className="border-t border-border max-w-6xl mx-auto px-4 py-16">
+    <footer ref={ref} className="border-t border-border/35 bg-background">
+      <div className="max-w-6xl mx-auto px-4 py-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -61,7 +61,7 @@ export function Footer() {
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-16 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4"
+          className="mt-16 pt-8 border-t border-border/35 flex flex-col sm:flex-row items-center justify-between gap-4"
         >
           <p className="text-sm text-muted-foreground">&copy; {new Date().getFullYear()} Wapangaji Kiganjani, Inc. All rights reserved.</p>
           <div className="flex items-center gap-6">
