@@ -28,11 +28,15 @@ export function Navbar() {
         className="relative flex items-center justify-between px-4 py-3 rounded-full backdrop-blur-md border border-primary/50 bg-background/50"
       >
         {/* Logo */}
-        <a href="#" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-white font-bold text-sm">W</span>
+        <a href="/" className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-primary flex items-center justify-center">
+            <img
+              src="/logo.png"
+              alt="logo"
+              className="w-full h-full object-cover"
+            />
           </div>
-          <span className="font-semibold text-foreground hidden sm:block">
+          <span className="text-foreground hidden sm:block">
             Wapangaji Kiganjani
           </span>
         </a>
@@ -43,7 +47,7 @@ export function Navbar() {
             <a
               key={item.label}
               href={item.href}
-              className="relative py-2 px-4 text-sm text-foreground hover:text-white dark:hover:text-[#2B4B80] transition-colors"
+              className="relative py-1 px-2 text-xs text-foreground hover:text-white dark:hover:text-[#2B4B80] transition-colors"
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
             >

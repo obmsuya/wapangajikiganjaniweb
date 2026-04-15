@@ -56,7 +56,7 @@ export function Hero() {
         {/* Badge */}
         <motion.div
           {...fadeUp(0)}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4
             bg-blue-50 border border-blue-200 text-primary
             dark:bg-blue-900/40 dark:border-blue-700/60"
         >
@@ -110,7 +110,7 @@ export function Hero() {
         {/* CTAs */}
         <motion.div
           {...fadeUp(0.7)}
-          className="flex flex-row items-center justify-center gap-3 max-w-[12rem] w-full mx-auto"
+          className="flex flex-row items-center justify-center gap-3 sm:max-w-[12rem] w-full mx-auto max-sm:flex-wrap"
         >
           <Button asChild className="gap-2">
             <a href="/register">
