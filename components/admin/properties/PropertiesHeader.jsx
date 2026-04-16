@@ -1,100 +1,129 @@
 'use client';
 
 import { useDashboardSummary } from '@/hooks/admin/useAdminProperties';
-import { Building, Home, UserCheck, User } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Building, Home, UserCheck, User, TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 /**
- * Header component for the Properties Dashboard
- * Displays key property metrics in card format
+ * Stats card data type
  */
+const StatCard = {
+  title: string,
+  value: number,
+  icon: React.ReactNode
+};
+
 export default function PropertiesHeader({ title }) {
   const { summary, loading } = useDashboardSummary();
 
-  // Prepare stats cards data
+  // All stat cards defined in one place — easy to add/remove
   const statsCards = [
     {
       title: 'Total Properties',
       value: summary?.properties?.total_properties || 0,
-      icon: <Building className="h-8 w-8 text-blue-500" />,
-      className: 'bg-blue-50 dark:bg-blue-950 border-blue-100 dark:border-blue-900'
+      icon: <Building className="h-5 w-5 text-muted-foreground" />,
     },
     {
       title: 'Total Units',
       value: summary?.units?.total_units || 0,
-      icon: <Home className="h-8 w-8 text-emerald-500" />,
-      className: 'bg-emerald-50 dark:bg-emerald-950 border-emerald-100 dark:border-emerald-900'
+      icon: <Home className="h-5 w-5 text-muted-foreground" />,
     },
     {
       title: 'Total Tenants',
       value: summary?.tenants?.total_tenants || 0,
-      icon: <UserCheck className="h-8 w-8 text-purple-500" />,
-      className: 'bg-purple-50 dark:bg-purple-950 border-purple-100 dark:border-purple-900'
+      icon: <UserCheck className="h-5 w-5 text-muted-foreground" />,
     },
     {
       title: 'Total Landlords',
       value: summary?.landlords?.total_landlords || 0,
-      icon: <User className="h-8 w-8 text-amber-500" />,
-      className: 'bg-amber-50 dark:bg-amber-950 border-amber-100 dark:border-amber-900'
-    }
+      icon: <User className="h-5 w-5 text-muted-foreground" />,
+    },
   ];
 
+  // Occupancy stats derived from summary
+  const occupancyRate = summary?.tenants?.occupancy_rate;
+  const occupiedCount = summary?.units?.units_by_status?.find(s => s.status === 'occupied')?.count || 0;
+  const vacantCount = summary?.units?.units_by_status?.find(s => s.status === 'available')?.count || 0;
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+    <div className="space-y-6">
+
+      {/* Page title */}
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">Live overview of property metrics</p>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsCards.map((card, index) => (
-          <Card key={index} className={`border ${card.className}`}>
-            <CardContent className="flex justify-between items-center p-4">
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{card.title}</p>
-                {loading ? (
-                  <Skeleton className="h-8 w-20 mt-1" />
-                ) : (
-                  <h3 className="text-2xl font-bold mt-1">{card.value}</h3>
-                )}
-              </div>
-              <div className="p-2 rounded-full bg-background dark:bg-gray-800 shadow-sm">
-                {card.icon}
-              </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statsCards.map((card) => (
+          <Card key={card.title}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {card.title}
+              </CardTitle>
+              {card.icon}
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <p className="text-3xl font-bold">{card.value}</p>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
-      
-      {summary?.tenants?.occupancy_rate && (
-        <div className="bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg p-4 shadow-md">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-sm font-medium text-blue-100">Overall Occupancy Rate</p>
-              {loading ? (
-                <Skeleton className="h-8 w-20 mt-1 bg-blue-200/50" />
-              ) : (
-                <h3 className="text-2xl font-bold mt-1">{summary.tenants.occupancy_rate}%</h3>
-              )}
+
+      {/* Occupancy card — only shown when data exists */}
+      {occupancyRate && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Overall Occupancy Rate
+            </CardTitle>
+            <TrendingUp className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              {/* Rate */}
+              <div>
+                {loading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <p className="text-3xl font-bold">{occupancyRate}%</p>
+                )}
+              </div>
+
+              <Separator orientation="vertical" className="h-10" />
+
+              {/* Occupied vs Vacant */}
+              <div className="flex items-center gap-4 text-sm">
+                {loading ? (
+                  <Skeleton className="h-5 w-32" />
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
+                        Occupied
+                      </Badge>
+                      <span className="font-medium">{occupiedCount}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="bg-muted text-muted-foreground border-0">
+                        Vacant
+                      </Badge>
+                      <span className="font-medium">{vacantCount}</span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="text-sm">
-              {loading ? (
-                <Skeleton className="h-16 w-28 bg-blue-200/50" />
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="block w-3 h-3 rounded-full bg-green-400"></span>
-                    <span>Occupied: {summary?.units?.units_by_status?.find(s => s.status === 'occupied')?.count || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="block w-3 h-3 rounded-full bg-yellow-400"></span>
-                    <span>Vacant: {summary?.units?.units_by_status?.find(s => s.status === 'available')?.count || 0}</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
