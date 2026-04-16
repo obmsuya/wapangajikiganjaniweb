@@ -130,18 +130,6 @@ export default function PartnerAnalyticsDashboard() {
             Performance metrics and commission activity
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 flex-none"
-          onClick={refreshPerformance}
-          disabled={loading}
-        >
-          <RefreshCw
-            className={`size-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
       </div>
 
       {/* Primary stat cards */}
