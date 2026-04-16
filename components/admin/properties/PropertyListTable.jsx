@@ -236,13 +236,13 @@ export default function PropertyListTable() {
 
       {/* Toolbar */}
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
             placeholder="Search properties..."
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="pl-8 h-8 text-sm"
+            className="w-full pl-8 h-8 text-sm"
           />
         </div>
         {globalFilter && (
