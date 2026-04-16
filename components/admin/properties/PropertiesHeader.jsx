@@ -7,25 +7,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-/**
- * Stats card data type
- */
-const StatCard = {
-  title: string,
-  value: number,
-  icon: React.ReactNode
-};
 
 export default function PropertiesHeader({ title }) {
   const { summary, loading } = useDashboardSummary();
 
   // All stat cards defined in one place — easy to add/remove
   const statsCards = [
-    {
-      title: 'Total Properties',
-      value: summary?.properties?.total_properties || 0,
-      icon: <Building className="h-5 w-5 text-muted-foreground" />,
-    },
+  {
+    title: 'Total Properties',
+    value: summary?.properties?.total_properties || 0,
+    icon: <Building className="h-5 w-5 text-muted-foreground" />,
+  },
     {
       title: 'Total Units',
       value: summary?.units?.total_units || 0,
