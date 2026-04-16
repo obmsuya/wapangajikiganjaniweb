@@ -528,7 +528,7 @@ export default function LandlordSubscriptionsList() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      {/* <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <SummaryCard label="Total" value={summary.total} icon={Users} />
         <SummaryCard
           label="Active"
@@ -541,7 +541,7 @@ export default function LandlordSubscriptionsList() {
           icon={AlertCircle}
         />
         <SummaryCard label="Expired" value={summary.expired} icon={XCircle} />
-      </div>
+      </div> */}
 
       {error && (
         <Alert variant="destructive">

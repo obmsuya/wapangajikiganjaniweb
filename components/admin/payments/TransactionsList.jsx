@@ -292,12 +292,12 @@ export default function TransactionsList() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      {/* <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <SummaryCard label="Total"     value={summary.total}                          sub={formatCurrency(summary.totalAmount)} />
         <SummaryCard label="Completed" value={summary.completed}                      sub={formatCurrency(summary.subAmount) + ' subscriptions'} />
         <SummaryCard label="Pending"   value={summary.pending} />
         <SummaryCard label="Failed"    value={summary.failed} />
-      </div>
+      </div> */}
 
       {error && (
         <Alert variant="destructive">
