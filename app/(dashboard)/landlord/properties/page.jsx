@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { Plus, Search, Building2, AlertCircle, Crown, Users, Home, TrendingUp, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CloudflarePageHeader } from "@/components/cloudflare/Breadcrumbs";
 import { useDashboard } from "@/hooks/landlord/useDashboard";
 import { useSubscriptionStore } from "@/stores/landlord/useSubscriptionStore";
+import AuthService from "@/services/auth";
 import PropertyCard from "@/components/landlord/properties/PropertyCard";
 import UpgradeModal from "@/components/landlord/subscription/UpgradeModal";
 
