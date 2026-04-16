@@ -259,25 +259,11 @@ export function CustomSidebar({ role = "admin", user }) {
     }
 
     return [
-      {
-        label: "Dashboard",
-        icon: LayoutDashboard,
-        href: "/admin/dashboard",
-        active: pathname === "/admin/dashboard",
-      },
-      {
-        label: "Users",
+     {
+        label: "Users",       
         icon: Users,
-        href: "#",
+        href: "/admin/users",
         active: pathname.includes("/admin/users"),
-        submenuKey: "users",
-        children: [
-          {
-            label: "All Users",
-            href: "/admin/users",
-            active: pathname === "/admin/users",
-          },
-        ],
       },
       {
         label: "Properties",
