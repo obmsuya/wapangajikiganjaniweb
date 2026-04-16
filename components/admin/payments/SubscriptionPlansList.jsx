@@ -118,19 +118,18 @@ export default function SubscriptionPlansList() {
   return (
     <div className="flex flex-col gap-6">
 
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
           <h2 className="text-base font-medium">Subscription plans</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground truncate">
             {plans.length} {plans.length === 1 ? 'plan' : 'plans'} · {totalSubs} active subscribers
           </p>
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
+        <Button size="sm" className="shrink-0" onClick={() => setCreateOpen(true)}>
           <Plus data-icon="inline-start" />
           Add plan
         </Button>
       </div>
-
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="size-4" />
