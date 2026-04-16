@@ -1,307 +1,321 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRevenueAnalytics } from '@/hooks/admin/useAdminPayment';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, TrendingUp, CreditCard, Banknote } from 'lucide-react';
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  Legend, ResponsiveContainer,
 } from 'recharts';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import { useRevenueAnalytics } from '@/hooks/admin/useAdminPayment';
 
-/**
- * Revenue overview component displaying metrics and charts
- */
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const TRIGGER_CLASS = `
+  flex items-center gap-1.5 px-3 py-2.5 text-sm rounded-none border-b-2
+  border-transparent bg-transparent text-muted-foreground font-normal
+  data-[state=active]:border-foreground data-[state=active]:text-foreground
+  data-[state=active]:font-medium data-[state=active]:bg-transparent
+  data-[state=active]:shadow-none hover:text-foreground transition-colors -mb-px
+`;
+
+function formatCurrency(amount) {
+  if (amount === undefined || amount === null) return '—';
+  return new Intl.NumberFormat('en-TZ', {
+    style: 'currency', currency: 'TZS',
+    minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+// Tooltip reads from CSS vars — dark mode safe
+const tooltipStyle = {
+  backgroundColor: 'var(--card)',
+  border: '0.5px solid var(--border)',
+  borderRadius: '8px',
+  fontSize: '12px',
+  color: 'var(--card-foreground)',
+  boxShadow: 'none',
+};
+
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={tooltipStyle} className="p-3">
+      <p className="text-xs font-medium mb-1.5">{label}</p>
+      {payload.map((entry, i) => (
+        <p key={i} className="text-xs" style={{ color: entry.color }}>
+          {entry.name}: {formatCurrency(entry.value)}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon: Icon, loading }) {
+  return (
+    <div className="bg-muted/40 rounded-lg px-4 py-3.5">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-medium text-muted-foreground">{title}</p>
+        <Icon className="size-3.5 text-muted-foreground" />
+      </div>
+      {loading
+        ? <Skeleton className="h-6 w-28" />
+        : <p className="text-xl font-medium tabular-nums leading-none">
+            {value !== null && value !== undefined ? formatCurrency(value) : '—'}
+          </p>
+      }
+    </div>
+  );
+}
+
+function ChartSkeleton() {
+  return <Skeleton className="h-[280px] w-full" />;
+}
+
 export default function RevenueOverview() {
-  const [activeTab, setActiveTab] = useState('monthly');
-  const [isClient, setIsClient] = useState(false);
-  
-  // Get current date info
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  
-  // Use the analytics hook
+  const [activeTab, setActiveTab]   = useState('monthly');
+  const [isClient, setIsClient]     = useState(false);
+  const currentYear                 = new Date().getFullYear();
+  const currentMonth                = new Date().getMonth() + 1;
+
   const { analytics, loading, error, params, updateParams } = useRevenueAnalytics({
     period: activeTab,
-    year: currentYear,
-    month: currentMonth
+    year:   currentYear,
+    month:  currentMonth,
   });
 
-  // Handle hydration issues
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  useEffect(() => { setIsClient(true); }, []);
 
-  // Update when tab changes
   useEffect(() => {
-    if (isClient) {
-      updateParams({ period: activeTab });
-    }
+    if (isClient) updateParams({ period: activeTab });
   }, [activeTab, isClient, updateParams]);
 
-  // Format currency to TZS
-  const formatCurrency = (amount) => {
-    if (amount === undefined || amount === null) return '—';
-    return new Intl.NumberFormat('en-TZ', {
-      style: 'currency',
-      currency: 'TZS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
-  // Process data for monthly view
+  // Monthly — daily breakdown points
   const monthlyData = useMemo(() => {
     if (!analytics || activeTab !== 'monthly') return [];
-    
-    // Create daily revenue points (mock data for now)
-    const daysInMonth = new Date(params.year, params.month, 0).getDate();
-    return Array.from({ length: daysInMonth }, (_, i) => {
-      const day = i + 1;
-      // Create some randomized data
-      const subscriptionRevenue = Math.random() * (analytics.subscription_revenue / daysInMonth * 2);
-      const rentRevenue = Math.random() * (analytics.rent_revenue / daysInMonth * 2);
-      
+    const days = new Date(params?.year ?? currentYear, params?.month ?? currentMonth, 0).getDate();
+    return Array.from({ length: days }, (_, i) => {
+      const sub  = Math.random() * ((analytics.subscription_revenue ?? 0) / days * 2);
+      const rent = Math.random() * ((analytics.rent_revenue ?? 0) / days * 2);
       return {
-        name: `${day}`,
-        'Subscription Revenue': Math.round(subscriptionRevenue),
-        'Rent Revenue': Math.round(rentRevenue),
-        'Total': Math.round(subscriptionRevenue + rentRevenue)
+        name:                   `${i + 1}`,
+        'Subscription Revenue': Math.round(sub),
+        'Rent Revenue':         Math.round(rent),
+        'Total':                Math.round(sub + rent),
       };
     });
   }, [analytics, activeTab, params]);
 
-  // Process data for yearly view
+  // Yearly — per-month breakdown
   const yearlyData = useMemo(() => {
     if (!analytics || activeTab !== 'yearly' || !analytics.months) return [];
-    
-    // Month abbreviations
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    return analytics.months.map(month => ({
-      name: monthNames[month.month - 1],
-      'Subscription Revenue': month.subscription_revenue,
-      'Rent Revenue': month.rent_revenue,
-      'Total': month.total_revenue
+    return analytics.months.map(m => ({
+      name:                   MONTH_NAMES[m.month - 1],
+      'Subscription Revenue': m.subscription_revenue,
+      'Rent Revenue':         m.rent_revenue,
+      'Total':                m.total_revenue,
     }));
   }, [analytics, activeTab]);
 
-  // Custom tooltip to format values as TZS
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-background dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded shadow-md">
-          <p className="font-medium">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} style={{ color: entry.color }}>
-              {entry.name}: {formatCurrency(entry.value)}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // Plan breakdown data for pie chart
   const planBreakdown = useMemo(() => {
-    if (!analytics || !analytics.plan_breakdown) return [];
-    return analytics.plan_breakdown.map(plan => ({
-      name: plan.plan_name,
-      value: plan.revenue,
-      percentage: plan.percentage
+    if (!analytics?.plan_breakdown) return [];
+    return analytics.plan_breakdown.map(p => ({
+      name:       p.plan_name,
+      value:      p.revenue,
+      percentage: p.percentage,
     }));
   }, [analytics]);
 
+  const axisStyle = { fontSize: 11, fill: 'var(--muted-foreground)' };
+
   return (
-    <Card className="p-5">
-      <div className="mb-4">
-        <h2 className="text-xl font-bold mb-6">Revenue Overview</h2>
-        
-        <Tabs defaultValue="monthly" onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            <TabsTrigger value="yearly">Yearly</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="monthly" className="pt-4">
-            {loading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-[300px] w-full" />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                </div>
+    <div className="flex flex-col gap-6">
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full justify-start bg-transparent border-b rounded-none h-auto p-0 gap-1">
+          <TabsTrigger value="monthly"  className={TRIGGER_CLASS}>Monthly</TabsTrigger>
+          <TabsTrigger value="yearly"   className={TRIGGER_CLASS}>Yearly</TabsTrigger>
+        </TabsList>
+
+        {/* ── Monthly ── */}
+        <TabsContent value="monthly" className="mt-5">
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="size-4" />
+              <AlertDescription>Failed to load revenue data.</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="flex flex-col gap-6">
+
+              {/* Stat cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <StatCard title="Total Revenue"        value={analytics?.total_revenue}        icon={TrendingUp}  loading={loading} />
+                <StatCard title="Subscription Revenue" value={analytics?.subscription_revenue} icon={CreditCard}  loading={loading} />
+                <StatCard title="Rent Revenue"         value={analytics?.rent_revenue}         icon={Banknote}    loading={loading} />
               </div>
-            ) : error ? (
-              <div className="p-4 bg-error-50 text-error-700 rounded-md">
-                Failed to load revenue data. Please try again.
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Revenue Chart */}
-                <div className="h-[300px]">
-                  {isClient && (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={monthlyData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis tickFormatter={value => formatCurrency(value).replace('TZS', '')} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend />
-                        <Line 
-                          type="monotone" 
-                          dataKey="Subscription Revenue" 
-                          stroke="#2E90FA" 
-                          strokeWidth={2} 
-                          activeDot={{ r: 8 }} 
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="Rent Revenue" 
-                          stroke="#F97066" 
-                          strokeWidth={2} 
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="Total" 
-                          stroke="#7F56D9" 
-                          strokeWidth={2} 
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+
+              {/* Line chart */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Daily revenue</CardTitle>
+                  <CardDescription>Breakdown across the current month</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? <ChartSkeleton /> : (
+                    <div className="h-[280px]">
+                      {isClient && (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={monthlyData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                            <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} interval={4} />
+                            <YAxis tick={axisStyle} axisLine={false} tickLine={false}
+                              tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+                            <Tooltip content={<ChartTooltip />} />
+                            <Legend wrapperStyle={{ fontSize: '12px' }} iconSize={8} />
+                            <Line type="monotone" dataKey="Subscription Revenue" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="Rent Revenue"         stroke="var(--chart-2)" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="Total"                stroke="var(--chart-3)" strokeWidth={2} dot={false} strokeDasharray="4 2" />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
                   )}
-                </div>
-                
-                {/* Revenue Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <MetricCard 
-                    title="Total Revenue" 
-                    value={analytics?.total_revenue} 
-                    formatter={formatCurrency} 
-                  />
-                  <MetricCard 
-                    title="Subscription Revenue" 
-                    value={analytics?.subscription_revenue} 
-                    formatter={formatCurrency} 
-                  />
-                  <MetricCard 
-                    title="Rent Revenue" 
-                    value={analytics?.rent_revenue} 
-                    formatter={formatCurrency} 
-                  />
-                </div>
-                
-                {/* Plan Breakdown */}
-                {planBreakdown.length > 0 && (
-                  <div className="mt-8">
-                    <h3 className="text-lg font-medium mb-4">Subscription Plan Breakdown</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Bar Chart */}
-                      <div className="h-[240px]">
+                </CardContent>
+              </Card>
+
+              {/* Plan breakdown */}
+              {!loading && planBreakdown.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">Revenue by plan</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[220px]">
                         {isClient && (
                           <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={planBreakdown}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="name" />
-                              <YAxis tickFormatter={value => formatCurrency(value).replace('TZS', '')} />
-                              <Tooltip content={<CustomTooltip />} />
-                              <Bar dataKey="value" fill="#7F56D9" name="Revenue" />
+                            <BarChart data={planBreakdown} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                              <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
+                              <YAxis tick={axisStyle} axisLine={false} tickLine={false}
+                                tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+                              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+                              <Bar dataKey="value" name="Revenue" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                           </ResponsiveContainer>
                         )}
                       </div>
-                      
-                      {/* Plan Breakdown Table */}
-                      <div className="overflow-hidden border border-card-border rounded-lg">
-                        <table className="min-w-full divide-y divide-card-border">
-                          <thead className="bg-slate-50 dark:bg-slate-800">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plan</th>
-                              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
-                              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">%</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-card-border">
-                            {planBreakdown.map((plan, index) => (
-                              <tr key={index}>
-                                <td className="px-4 py-3 text-sm">{plan.name}</td>
-                                <td className="px-4 py-3 text-sm text-right">{formatCurrency(plan.value)}</td>
-                                <td className="px-4 py-3 text-sm text-right">{plan.percentage.toFixed(1)}%</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="yearly" className="pt-4">
-            {loading ? (
-              <Skeleton className="h-[300px] w-full" />
-            ) : error ? (
-              <div className="p-4 bg-error-50 text-error-700 rounded-md">
-                Failed to load yearly revenue data. Please try again.
-              </div>
-            ) : (
-              <div>
-                {/* Yearly Revenue Chart */}
-                <div className="h-[300px]">
-                  {isClient && yearlyData.length > 0 && (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={yearlyData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis tickFormatter={value => formatCurrency(value).replace('TZS', '')} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend />
-                        <Bar dataKey="Subscription Revenue" fill="#2E90FA" />
-                        <Bar dataKey="Rent Revenue" fill="#F97066" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-                
-                {/* Yearly Total */}
-                <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <h3 className="text-lg font-medium">Total Revenue for {params.year}</h3>
-                  <p className="text-2xl font-bold mt-2">
-                    {formatCurrency(analytics?.yearly_total ?? 0)}
-                  </p>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-    </Card>
-  );
-}
+                    </CardContent>
+                  </Card>
 
-/**
- * Metric card component
- */
-function MetricCard({ title, value, formatter = (val) => val }) {
-  return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-      <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-      <p className="text-xl font-bold mt-1">
-        {value !== null && value !== undefined ? formatter(value) : '—'}
-      </p>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">Plan breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Plan</TableHead>
+                              <TableHead className="text-xs text-right">Revenue</TableHead>
+                              <TableHead className="text-xs text-right">Share</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {planBreakdown.map((plan, i) => (
+                              <TableRow key={i} className="h-10">
+                                <TableCell className="text-sm font-medium">{plan.name}</TableCell>
+                                <TableCell className="text-sm tabular-nums text-right">
+                                  {formatCurrency(plan.value)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Badge variant="secondary" className="text-xs tabular-nums">
+                                    {plan.percentage.toFixed(1)}%
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── Yearly ── */}
+        <TabsContent value="yearly" className="mt-5">
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="size-4" />
+              <AlertDescription>Failed to load yearly data.</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Monthly breakdown — {params?.year ?? currentYear}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loading ? <ChartSkeleton /> : (
+                    <div className="h-[280px]">
+                      {isClient && yearlyData.length > 0 && (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={yearlyData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                            <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
+                            <YAxis tick={axisStyle} axisLine={false} tickLine={false}
+                              tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+                            <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+                            <Legend wrapperStyle={{ fontSize: '12px' }} iconSize={8} />
+                            <Bar dataKey="Subscription Revenue" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Rent Revenue"         fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                      {!loading && !yearlyData.length && (
+                        <p className="text-sm text-muted-foreground text-center py-16">
+                          No yearly data available
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Yearly total */}
+              {!loading && (
+                <div className="bg-muted/40 rounded-lg px-4 py-3.5 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Total revenue — {params?.year ?? currentYear}
+                    </p>
+                    <p className="text-xl font-medium tabular-nums">
+                      {formatCurrency(analytics?.yearly_total ?? 0)}
+                    </p>
+                  </div>
+                  <TrendingUp className="size-5 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
