@@ -1,171 +1,179 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useTenantsList } from '@/hooks/admin/useAdminProperties';
-import { CloudflareTable } from '@/components/cloudflare/Table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useState, useMemo } from 'react';
+import { useTenantsList, useDeleteTenant } from '@/hooks/admin/useAdminProperties';
+import {
+  flexRender, getCoreRowModel, getSortedRowModel,
+  getFilteredRowModel, getPaginationRowModel, useReactTable,
+} from '@tanstack/react-table';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import { Slider } from '@/components/ui/slider';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Trash2 } from 'lucide-react';
-import { useDeleteTenant } from '@/hooks/admin/useAdminProperties';
-import { 
-  User, 
-  Phone, 
-  Home, 
-  Calendar as CalendarIcon, 
-  DollarSign, 
-  Filter, 
-  Building, 
-  MapPin
+import {
+  Trash2, Search, User, Phone, Home, Building,
+  DollarSign, Calendar as CalendarIcon, ChevronUp, ChevronDown,
+  ChevronsUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  Filter, X,
 } from 'lucide-react';
 
-export default function PropertyTenantsTable() {
-  const [selectedFilters, setSelectedFilters] = useState({});
-  const {remove} = useDeleteTenant();
-  const { 
-    tenants, 
-    limit, 
-    loading, 
-    filters, 
-    updateFilters, 
-  } = useTenantsList();
+// Status badge — maps to shadcn Badge variants only
+function StatusBadge({ status }) {
+  const variant =
+    status === 'active'   ? 'default'     :
+    status === 'inactive' ? 'destructive' : 'secondary';
+  return <Badge variant={variant} className="capitalize">{status}</Badge>;
+}
 
-  const handleDelete = async(tenantId, tenantName) => {
+function SortIcon({ sorted }) {
+  if (sorted === 'asc')  return <ChevronUp className="ml-1 size-3.5 shrink-0" />;
+  if (sorted === 'desc') return <ChevronDown className="ml-1 size-3.5 shrink-0" />;
+  return <ChevronsUpDown className="ml-1 size-3.5 shrink-0 text-muted-foreground/50" />;
+}
+
+export default function PropertyTenantsTable() {
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [sorting, setSorting]           = useState([{ id: 'created_at', desc: true }]);
+
+  const { tenants, limit, loading, filters, updateFilters } = useTenantsList();
+  const { remove } = useDeleteTenant();
+
+  const handleDelete = async (id, name) => {
     try {
-      await remove(tenantId);
-      toast.success(`Tenant ${tenantName} deleted successfully`);
-    } catch (error) {
-      toast.error(`Failed to delete tenant ${tenantName}`);
+      await remove(id);
+      toast.success(`${name} removed`);
+    } catch {
+      toast.error('Delete failed');
     }
   };
 
-  const columns = [
+  const columns = useMemo(() => [
     {
-      header: 'Tenant Name',
-      accessor: 'full_name',
-      sortable: true,
-      filterable: true,
-      cell: (row) => (
-        <div className="flex items-center">
-          <User className="h-4 w-4 mr-2 text-gray-400" />
-          <span className="font-medium">{row.full_name}</span>
+      accessorKey: 'full_name',
+      header: ({ column }) => (
+        <button className="flex items-center text-xs font-medium"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Tenant <SortIcon sorted={column.getIsSorted()} />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <User className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="font-medium">{row.original.full_name}</span>
         </div>
       ),
     },
     {
-      header: 'Phone Number',
-      accessor: 'phone_number',
-      sortable: true,
-      cell: (row) => (
-        <div className="flex items-center">
-          <Phone className="h-4 w-4 mr-2 text-gray-400" />
-          <span>{row.phone_number}</span>
+      accessorKey: 'phone_number',
+      header: 'Phone',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Phone className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="tabular-nums text-sm">{row.original.phone_number}</span>
         </div>
       ),
     },
     {
+      accessorKey: 'status',
       header: 'Status',
-      accessor: 'status',
-      sortable: true,
-      filterable: true,
-      filterOptions: [
-        { value: 'active', label: 'Active' },
-        { value: 'inactive', label: 'Inactive' },
-        { value: 'pending', label: 'Pending' },
-      ],
-      cell: (row) => {
-        let color = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-        if (row.status === 'active') {
-          color = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-        } else if (row.status === 'inactive') {
-          color = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-        } else if (row.status === 'pending') {
-          color = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-        }
-        
-        return (
-          <Badge className={`capitalize ${color}`}>
-            {row.status}
-          </Badge>
-        );
-      },
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
     {
-      header: 'Current Property',
-      accessor: 'current_property',
-      sortable: true,
-      filterable: true,
-      cell: (row) => (
-        <div className="flex items-center">
-          <Building className="h-4 w-4 mr-2 text-gray-400" />
-          <span>{row.current_property || 'None'}</span>
+      accessorKey: 'current_property',
+      header: 'Property',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Building className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="text-sm">{row.original.current_property || '—'}</span>
         </div>
       ),
     },
     {
-      header: 'Current Unit',
-      accessor: 'current_unit',
-      sortable: true,
-      cell: (row) => (
-        <div className="flex items-center">
-          <Home className="h-4 w-4 mr-2 text-gray-400" />
-          <span>{row.current_unit || 'None'}</span>
+      accessorKey: 'current_unit',
+      header: 'Unit',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Home className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="text-sm">{row.original.current_unit || '—'}</span>
         </div>
       ),
     },
     {
-      header: 'Rent Amount',
-      accessor: 'rent_amount',
-      sortable: true,
-      cell: (row) => (
-        <div className="flex items-center">
-          <DollarSign className="h-4 w-4 mr-2 text-gray-400" />
-          <span>{row.rent_amount ? `$${row.rent_amount}` : 'N/A'}</span>
+      accessorKey: 'rent_amount',
+      header: ({ column }) => (
+        <button className="flex items-center text-xs font-medium"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Rent <SortIcon sorted={column.getIsSorted()} />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5">
+          <DollarSign className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="tabular-nums text-sm">
+            {row.original.rent_amount
+              ? Number(row.original.rent_amount).toLocaleString()
+              : '—'}
+          </span>
         </div>
       ),
     },
     {
-      header: 'Registration Date',
-      accessor: 'created_at',
-      sortable: true,
-      type: 'date',
-      cell: (row) => (
-        <div className="flex items-center">
-          <CalendarIcon className="h-4 w-4 mr-2 text-gray-400" />
-          <span>{new Date(row.created_at).toLocaleDateString()}</span>
-        </div>
+      accessorKey: 'created_at',
+      header: ({ column }) => (
+        <button className="flex items-center text-xs font-medium"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Registered <SortIcon sorted={column.getIsSorted()} />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <span className="tabular-nums text-sm">
+          {new Date(row.original.created_at).toLocaleDateString()}
+        </span>
       ),
     },
     {
-      header: 'Actions',
-      accessor: 'id',
-      cell: (row) => (
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="sm" className="text-red-600">
-              <Trash2 className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive">
+              <Trash2 className="size-4" />
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogTitle>Delete {row.original.full_name}?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete {row.full_name} and every related record
-                (payments, schedules, occupancies, user account). The phone number
-                will be available again immediately.
+                This permanently removes the tenant and all related records — payments,
+                schedules, occupancies, and their user account. Their phone number
+                becomes available immediately.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => handleDelete(row.id, row.full_name)}
+                onClick={() => handleDelete(row.original.id, row.original.full_name)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 Delete
               </AlertDialogAction>
@@ -174,295 +182,297 @@ export default function PropertyTenantsTable() {
         </AlertDialog>
       ),
     },
-  ];
+  ], []);
+
+  const table = useReactTable({
+    data: tenants ?? [],
+    columns,
+    state: { sorting, globalFilter },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: limit ?? 10 } },
+  });
+
+  // Active filter chips
+  const activeFilters = Object.entries(filters).filter(([, v]) => v !== '' && v !== null);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold tracking-tight">Tenants</h2>
-      </div>
+    <div className="flex flex-col gap-4">
 
-      {/* Application of filters */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {Object.keys(filters).length > 0 && (
-          <div className="flex items-center flex-wrap gap-2">
-            {Object.entries(filters).map(([key, value]) => (
-              <Badge key={key} variant="secondary" className="px-3 py-1">
-                {key}: {value}
-                <button 
-                  className="ml-2 text-gray-500 hover:text-gray-700"
-                  onClick={() => {
-                    const newFilters = { ...filters };
-                    delete newFilters[key];
-                    updateFilters(newFilters);
-                  }}
-                >
-                  ×
-                </button>
-              </Badge>
-            ))}
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => updateFilters({})}
-            >
-              Clear all
-            </Button>
-          </div>
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search tenants..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-8 h-8 text-sm"
+          />
+        </div>
+        {globalFilter && (
+          <Button variant="ghost" size="sm" onClick={() => setGlobalFilter('')}>Clear</Button>
         )}
       </div>
 
-      {/* Tenants Table */}
-      <CloudflareTable
-        data={tenants}
-        columns={columns}
-        loading={loading}
-        initialSort={{ field: 'created_at', direction: 'desc' }}
-        initialFilters={filters}
-        pagination={true}
-        searchable={true}
-        rowsPerPageOptions={[10, 25, 50, 100]}
-        initialRowsPerPage={limit}
-        onRowClick={(row) => console.log('Tenant clicked:', row.id)}
-        emptyMessage="No tenants found"
-      />
+      {/* Active filter chips */}
+      {activeFilters.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {activeFilters.map(([key, value]) => (
+            <Badge key={key} variant="secondary" className="gap-1.5 pr-1.5">
+              {key}: {value}
+              <button
+                onClick={() => {
+                  const next = { ...filters };
+                  delete next[key];
+                  updateFilters(next);
+                }}
+                className="rounded-sm hover:bg-muted"
+              >
+                <X className="size-3" />
+              </button>
+            </Badge>
+          ))}
+          <Button variant="ghost" size="sm" onClick={() => updateFilters({})}>
+            Clear all
+          </Button>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map(hg => (
+              <TableRow key={hg.id}>
+                {hg.headers.map(header => (
+                  <TableHead key={header.id} className="text-xs h-10">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              Array(6).fill(0).map((_, i) => (
+                <TableRow key={i}>
+                  {columns.map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map(row => (
+                <TableRow key={row.id} className="h-12">
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id} className="text-sm">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground text-sm">
+                  No tenants found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span>
+          {table.getFilteredRowModel().rows.length} tenant{table.getFilteredRowModel().rows.length !== 1 ? 's' : ''}
+        </span>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="size-8"
+            onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+            <ChevronsLeft className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-8"
+            onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="px-2">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          </span>
+          <Button variant="ghost" size="icon" className="size-8"
+            onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            <ChevronRight className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-8"
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
+            <ChevronsRight className="size-4" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
 
-/**
- * PropertyFilters Component
- * Advanced filtering controls for the properties list
- */
+// ─── PropertyFilters ────────────────────────────────────────────────────────
+
 export function PropertyFilters({ filters, updateFilters, loading, propertyCategories, owners, locations }) {
-  const [localFilters, setLocalFilters] = useState({
-    owner_id: filters.owner_id || '',
-    category: filters.category || '',
-    location: filters.location || '',
-    occupancy_min: filters.occupancy_min || 0,
-    occupancy_max: filters.occupancy_max || 100,
-    created_after: filters.created_after || null,
-    created_before: filters.created_before || null
+  const [local, setLocal] = useState({
+    owner_id:       filters.owner_id       || '',
+    category:       filters.category       || '',
+    location:       filters.location       || '',
+    occupancy_min:  filters.occupancy_min  ?? 0,
+    occupancy_max:  filters.occupancy_max  ?? 100,
+    created_after:  filters.created_after  || null,
+    created_before: filters.created_before || null,
   });
+
   const [dateRange, setDateRange] = useState({
-    from: filters.created_after ? new Date(filters.created_after) : null,
-    to: filters.created_before ? new Date(filters.created_before) : null
+    from: filters.created_after  ? new Date(filters.created_after)  : null,
+    to:   filters.created_before ? new Date(filters.created_before) : null,
   });
 
-  // Format date for API
-  const formatDate = (date) => {
-    if (!date) return null;
-    return date.toISOString().split('T')[0];
+  const formatDate = (d) => d?.toISOString().split('T')[0] ?? null;
+
+  const apply = () => {
+    // Strip empty values before sending
+    const next = Object.fromEntries(
+      Object.entries({
+        ...local,
+        created_after:  formatDate(dateRange.from),
+        created_before: formatDate(dateRange.to),
+      }).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    updateFilters(next);
   };
 
-  // Apply filters
-  const applyFilters = () => {
-    const newFilters = { ...localFilters };
-    
-    // Remove empty filters
-    Object.keys(newFilters).forEach(key => {
-      if (newFilters[key] === '' || newFilters[key] === null) {
-        delete newFilters[key];
-      }
-    });
-    
-    // Add date range if set
-    if (dateRange.from) {
-      newFilters.created_after = formatDate(dateRange.from);
-    }
-    if (dateRange.to) {
-      newFilters.created_before = formatDate(dateRange.to);
-    }
-    
-    updateFilters(newFilters);
-  };
-
-  // Reset filters
-  const resetFilters = () => {
-    setLocalFilters({
-      owner_id: '',
-      category: '',
-      location: '',
-      occupancy_min: 0,
-      occupancy_max: 100,
-      created_after: null,
-      created_before: null
-    });
+  const reset = () => {
+    setLocal({ owner_id: '', category: '', location: '', occupancy_min: 0, occupancy_max: 100, created_after: null, created_before: null });
     setDateRange({ from: null, to: null });
     updateFilters({});
   };
 
-  // Handle occupancy rate slider change
-  const handleOccupancyChange = (value) => {
-    setLocalFilters({
-      ...localFilters,
-      occupancy_min: value[0],
-      occupancy_max: value[1]
-    });
-  };
+  const set = (key, value) => setLocal(prev => ({ ...prev, [key]: value }));
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center">
-          <Filter className="h-5 w-5 mr-2" />
-          Property Filters
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <Filter className="size-3.5" /> Filters
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Owner/Landlord Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Owner/Landlord</label>
-            {loading ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Select
-                value={localFilters.owner_id}
-                onValueChange={(value) => setLocalFilters({ ...localFilters, owner_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Owners" />
-                </SelectTrigger>
+      <CardContent className="flex flex-col gap-5">
+
+        {/* Selects row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Owner</label>
+            {loading ? <Skeleton className="h-9 w-full" /> : (
+              <Select value={local.owner_id} onValueChange={(v) => set('owner_id', v)}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All owners" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Owners</SelectItem>
-                  {owners?.map((owner) => (
-                    <SelectItem key={owner.id} value={owner.id.toString()}>
-                      {owner.name}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectItem value="">All owners</SelectItem>
+                    {owners?.map(o => <SelectItem key={o.id} value={String(o.id)}>{o.name}</SelectItem>)}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             )}
           </div>
 
-          {/* Property Category Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Property Category</label>
-            {loading ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Select
-                value={localFilters.category}
-                onValueChange={(value) => setLocalFilters({ ...localFilters, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Category</label>
+            {loading ? <Skeleton className="h-9 w-full" /> : (
+              <Select value={local.category} onValueChange={(v) => set('category', v)}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All categories" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
-                  {propertyCategories?.map((category, index) => (
-                    <SelectItem key={index} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectItem value="">All categories</SelectItem>
+                    {propertyCategories?.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             )}
           </div>
 
-          {/* Location Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Location</label>
-            {loading ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Select
-                value={localFilters.location}
-                onValueChange={(value) => setLocalFilters({ ...localFilters, location: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Locations" />
-                </SelectTrigger>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Location</label>
+            {loading ? <Skeleton className="h-9 w-full" /> : (
+              <Select value={local.location} onValueChange={(v) => set('location', v)}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All locations" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Locations</SelectItem>
-                  {locations?.map((location, index) => (
-                    <SelectItem key={index} value={location}>
-                      {location}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectItem value="">All locations</SelectItem>
+                    {locations?.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             )}
           </div>
+
         </div>
 
-        {/* Occupancy Rate Range */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-medium">Occupancy Rate Range</label>
-            <span className="text-sm text-gray-500">
-              {localFilters.occupancy_min}% - {localFilters.occupancy_max}%
+        <Separator />
+
+        {/* Occupancy slider */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-muted-foreground">Occupancy range</label>
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {local.occupancy_min}% – {local.occupancy_max}%
             </span>
           </div>
-          {loading ? (
-            <Skeleton className="h-5 w-full" />
-          ) : (
+          {loading ? <Skeleton className="h-4 w-full" /> : (
             <Slider
-              defaultValue={[localFilters.occupancy_min, localFilters.occupancy_max]}
-              max={100}
-              min={0}
-              step={1}
-              onValueChange={handleOccupancyChange}
-              className="py-4"
+              value={[local.occupancy_min, local.occupancy_max]}
+              min={0} max={100} step={1}
+              onValueChange={([min, max]) => setLocal(p => ({ ...p, occupancy_min: min, occupancy_max: max }))}
             />
           )}
         </div>
 
-        {/* Date Range Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Creation Date Range</label>
-          <div className="flex flex-wrap gap-4">
+        <Separator />
+
+        {/* Date range */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Created between</label>
+          <div className="flex items-center gap-2 flex-wrap">
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full md:w-auto justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from ? (
-                    dateRange.to ? (
-                      <>
-                        {formatDate(dateRange.from)} - {formatDate(dateRange.to)}
-                      </>
-                    ) : (
-                      formatDate(dateRange.from)
-                    )
-                  ) : (
-                    <span>Pick a date range</span>
-                  )}
+                <Button variant="outline" size="sm" className="h-9 text-sm font-normal">
+                  <CalendarIcon data-icon="inline-start" />
+                  {dateRange.from
+                    ? dateRange.to
+                      ? `${formatDate(dateRange.from)} → ${formatDate(dateRange.to)}`
+                      : formatDate(dateRange.from)
+                    : 'Pick a date range'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  initialFocus
-                />
+                <Calendar mode="range" selected={dateRange} onSelect={setDateRange} initialFocus />
               </PopoverContent>
             </Popover>
-            
             {(dateRange.from || dateRange.to) && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setDateRange({ from: null, to: null })}
-              >
-                Clear dates
+              <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: null, to: null })}>
+                <X data-icon="inline-start" /> Clear dates
               </Button>
             )}
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={resetFilters}>
-            Reset Filters
-          </Button>
-          <Button onClick={applyFilters}>
-            Apply Filters
-          </Button>
+        <Separator />
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={reset}>Reset</Button>
+          <Button size="sm" onClick={apply}>Apply filters</Button>
         </div>
+
       </CardContent>
     </Card>
   );

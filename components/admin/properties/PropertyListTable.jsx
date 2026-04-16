@@ -1,52 +1,75 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { usePropertiesList, useDeleteProperty } from '@/hooks/admin/useAdminProperties';
 import {
-  usePropertiesList,
-  useDeleteProperty,
-} from '@/hooks/admin/useAdminProperties';
-import { CloudflareTable } from '@/components/cloudflare/Table';
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuGroup, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Eye, Trash2, Building, MapPin, User, Calendar } from 'lucide-react';
+import {
+  Eye, Trash2, MoreHorizontal, ChevronUp, ChevronDown,
+  ChevronsUpDown, Search, Building, MapPin, User, Calendar,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+} from 'lucide-react';
+
+// Occupancy badge — no hardcoded colors, uses semantic tokens via variant logic
+function OccupancyBadge({ rate = 0 }) {
+  const variant = rate >= 80 ? 'default' : rate >= 50 ? 'secondary' : 'destructive';
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all"
+          style={{ width: `${rate}%` }}
+        />
+      </div>
+      <Badge variant={variant} className="tabular-nums">{rate}%</Badge>
+    </div>
+  );
+}
+
+// Sort icon helper
+function SortIcon({ sorted }) {
+  if (sorted === 'asc')  return <ChevronUp className="ml-1 size-3.5 shrink-0" />;
+  if (sorted === 'desc') return <ChevronDown className="ml-1 size-3.5 shrink-0" />;
+  return <ChevronsUpDown className="ml-1 size-3.5 shrink-0 text-muted-foreground/50" />;
+}
 
 export default function PropertyListTable() {
-  /* ---------- local state ---------- */
-  const [selectedId, setSelectedId] = useState(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [idToDelete, setIdToDelete] = useState(null);
+  const [globalFilter, setGlobalFilter]   = useState('');
+  const [sorting, setSorting]             = useState([{ id: 'created_at', desc: true }]);
+  const [selectedProperty, setSelected]   = useState(null);
+  const [detailOpen, setDetailOpen]       = useState(false);
+  const [idToDelete, setIdToDelete]       = useState(null);
 
-  /* ---------- data ---------- */
-  const {
-    properties,
-    loading,
-    error,
-    filters,
-    updateFilters,
-    updatePagination,
-    limit,
-    refreshProperties,
-  } = usePropertiesList();
-
+  const { properties, loading, error, filters, updateFilters, updatePagination, limit } = usePropertiesList();
   const { remove } = useDeleteProperty();
 
-  /* ---------- delete flow ---------- */
-  const confirmDelete = (id) => setIdToDelete(id);
-  const cancelDelete = () => setIdToDelete(null);
   const proceedDelete = async () => {
     try {
       await remove(idToDelete);
@@ -54,209 +77,317 @@ export default function PropertyListTable() {
     } catch (e) {
       toast.error(e?.message || 'Delete failed');
     } finally {
-      cancelDelete();
+      setIdToDelete(null);
     }
   };
 
-  /* ---------- view detail ---------- */
-  const viewDetail = (row) => {
-    setSelectedId(row.id);
-    setDetailOpen(true);
-  };
-
-  /* ---------- columns ---------- */
-  const columns = [
+  // Column definitions
+  const columns = useMemo(() => [
     {
-      header: 'Name',
-      accessor: 'name',
-      sortable: true,
-      filterable: true,
-      cell: (row) => (
-        <div className="flex items-center">
-          <Building className="h-4 w-4 mr-2 text-gray-400" />
-          <span className="font-medium">{row.name}</span>
-        </div>
+      accessorKey: 'name',
+      header: ({ column }) => (
+        <button
+          className="flex items-center text-xs font-medium"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Property <SortIcon sorted={column.getIsSorted()} />
+        </button>
       ),
-    },
-    {
-      header: 'Category',
-      accessor: 'category',
-      sortable: true,
-      filterable: true,
-      cell: (row) => (
-        <Badge variant="outline" className="capitalize">
-          {row.category}
-        </Badge>
-      ),
-    },
-    {
-      header: 'Location',
-      accessor: 'location',
-      sortable: true,
-      filterable: true,
-      cell: (row) => (
-        <div className="flex items-center">
-          <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-          <span>{row.location}</span>
-        </div>
-      ),
-    },
-    {
-      header: 'Units',
-      accessor: 'total_units',
-      sortable: true,
-      cell: (row) => (
+      cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <span className="font-medium">{row.total_units}</span>
-          <span className="text-xs text-gray-500">
-            ({row.total_units
-              ? `${Math.round((row.occupancy_rate / 100) * row.total_units)} occupied`
-              : '0 occupied'})
-          </span>
+          <Building className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="font-medium">{row.original.name}</span>
         </div>
       ),
     },
     {
-      header: 'Occupancy',
-      accessor: 'occupancy_rate',
-      sortable: true,
-      cell: (row) => {
-        const rate = row.occupancy_rate || 0;
-        let color = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-        if (rate < 50) color = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-        else if (rate < 80) color = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-
+      accessorKey: 'category',
+      header: 'Category',
+      cell: ({ row }) => (
+        <Badge variant="outline" className="capitalize">{row.original.category}</Badge>
+      ),
+    },
+    {
+      accessorKey: 'location',
+      header: ({ column }) => (
+        <button
+          className="flex items-center text-xs font-medium"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Location <SortIcon sorted={column.getIsSorted()} />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <MapPin className="size-3.5 text-muted-foreground shrink-0" />
+          <span>{row.original.location}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'total_units',
+      header: ({ column }) => (
+        <button
+          className="flex items-center text-xs font-medium"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Units <SortIcon sorted={column.getIsSorted()} />
+        </button>
+      ),
+      cell: ({ row }) => {
+        const { total_units, occupancy_rate } = row.original;
+        const occupied = total_units ? Math.round((occupancy_rate / 100) * total_units) : 0;
         return (
-          <div className="flex items-center gap-2">
-            <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${rate}%` }} />
-            </div>
-            <Badge className={color}>{rate}%</Badge>
+          <div className="flex flex-col">
+            <span className="font-medium tabular-nums">{total_units}</span>
+            <span className="text-xs text-muted-foreground">{occupied} occupied</span>
           </div>
         );
       },
     },
     {
+      accessorKey: 'occupancy_rate',
+      header: ({ column }) => (
+        <button
+          className="flex items-center text-xs font-medium"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Occupancy <SortIcon sorted={column.getIsSorted()} />
+        </button>
+      ),
+      cell: ({ row }) => <OccupancyBadge rate={row.original.occupancy_rate || 0} />,
+    },
+    {
+      accessorKey: 'owner_name',
       header: 'Owner',
-      accessor: 'owner_name',
-      sortable: true,
-      filterable: true,
-      cell: (row) => (
-        <div className="flex items-center">
-          <User className="h-4 w-4 mr-2 text-gray-400" />
-          <span>{row.owner_name}</span>
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <User className="size-3.5 text-muted-foreground shrink-0" />
+          <span>{row.original.owner_name}</span>
         </div>
       ),
     },
     {
-      header: 'Created',
-      accessor: 'created_at',
-      sortable: true,
-      type: 'date',
-      cell: (row) => (
-        <div className="flex items-center">
-          <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-          <span>{new Date(row.created_at).toLocaleDateString()}</span>
+      accessorKey: 'created_at',
+      header: ({ column }) => (
+        <button
+          className="flex items-center text-xs font-medium"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Created <SortIcon sorted={column.getIsSorted()} />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Calendar className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="tabular-nums text-sm">
+            {new Date(row.original.created_at).toLocaleDateString()}
+          </span>
         </div>
       ),
     },
     {
-      header: 'Actions',
-      type: 'actions',
-      actions: [
-        {
-          label: 'View',
-          icon: <Eye className="h-4 w-4" />,
-          onClick: viewDetail,
-        },
-        {
-          label: 'Delete',
-          icon: <Trash2 className="h-4 w-4" />,
-          variant: 'destructive',
-          onClick: (row) => confirmDelete(row.id),
-        },
-      ],
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="size-8">
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={() => { setSelected(row.original); setDetailOpen(true); }}
+              >
+                <Eye data-icon="inline-start" />
+                View details
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => setIdToDelete(row.original.id)}
+              >
+                <Trash2 data-icon="inline-start" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
     },
-  ];
+  ], []);
 
-  /* ---------- render ---------- */
+  const table = useReactTable({
+    data: properties ?? [],
+    columns,
+    state: { sorting, globalFilter },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: limit ?? 10 } },
+  });
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold tracking-tight">Properties</h2>
-        {/* Admin does NOT add properties – button removed */}
+    <div className="flex flex-col gap-4">
+
+      {/* Toolbar */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search properties..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-8 h-8 text-sm"
+          />
+        </div>
+        {globalFilter && (
+          <Button variant="ghost" size="sm" onClick={() => setGlobalFilter('')}>
+            Clear
+          </Button>
+        )}
       </div>
 
-      <CloudflareTable
-        data={properties}
-        columns={columns}
-        loading={loading}
-        error={error}
-        initialSort={{ field: 'created_at', direction: 'desc' }}
-        initialFilters={filters}
-        pagination
-        searchable
-        rowsPerPageOptions={[10, 25, 50, 100]}
-        initialRowsPerPage={limit}
-        onFiltersChange={updateFilters}
-        onPaginationChange={updatePagination}
-        emptyMessage="No properties found"
-      />
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map(hg => (
+              <TableRow key={hg.id}>
+                {hg.headers.map(header => (
+                  <TableHead key={header.id} className="text-xs h-10">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              // Skeleton rows
+              Array(6).fill(0).map((_, i) => (
+                <TableRow key={i}>
+                  {columns.map((_, j) => (
+                    <TableCell key={j}>
+                      <Skeleton className="h-4 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map(row => (
+                <TableRow key={row.id} className="h-12">
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id} className="text-sm">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground text-sm">
+                  No properties found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-      {/* ---- detail dialog (read-only) ---- */}
+      {/* Pagination */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span>
+          {table.getFilteredRowModel().rows.length} result{table.getFilteredRowModel().rows.length !== 1 ? 's' : ''}
+        </span>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="size-8"
+            onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+            <ChevronsLeft className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-8"
+            onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="px-2 text-sm">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          </span>
+          <Button variant="ghost" size="icon" className="size-8"
+            onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            <ChevronRight className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-8"
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
+            <ChevronsRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Detail dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Property Details</DialogTitle>
+            <DialogDescription>Read-only overview of this property</DialogDescription>
           </DialogHeader>
-
-          {!selectedId || loading ? (
-            <Skeleton className="h-64 w-full" />
-          ) : (
-            <DetailPanel property={properties.find((p) => p.id === selectedId)} />
-          )}
+          {selectedProperty
+            ? <PropertyDetailPanel property={selectedProperty} />
+            : <Skeleton className="h-48 w-full" />
+          }
         </DialogContent>
       </Dialog>
 
-      {/* ---- delete confirm ---- */}
-      <AlertDialog open={!!idToDelete} onOpenChange={cancelDelete}>
+      {/* Delete confirm */}
+      <AlertDialog open={!!idToDelete} onOpenChange={() => setIdToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete this property?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The property will be permanently deleted.
+              This action cannot be undone. The property will be permanently removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={proceedDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={proceedDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }
 
-/* ---------- static detail panel ---------- */
-function DetailPanel({ property }) {
-  if (!property) return <p className="text-red-600">Property not found</p>;
+// Detail panel — labeled key-value pairs, no custom colors
+function PropertyDetailPanel({ property }) {
+  if (!property) return null;
+
+  const fields = [
+    { label: 'Name',           value: property.name },
+    { label: 'Category',       value: property.category },
+    { label: 'Location',       value: property.location },
+    { label: 'Total Floors',   value: property.total_floors },
+    { label: 'Total Units',    value: property.total_units },
+    { label: 'Occupancy Rate', value: `${property.occupancy_rate}%` },
+    { label: 'Owner',          value: property.owner_name, span: true },
+  ];
 
   return (
-    <div className="grid gap-4">
-      <Card>
-        <CardHeader><CardTitle className="text-base">Overview</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-          <div><p className="text-sm text-gray-500">Name</p><p className="font-medium">{property.name}</p></div>
-          <div><p className="text-sm text-gray-500">Category</p><p className="font-medium">{property.category}</p></div>
-          <div><p className="text-sm text-gray-500">Location</p><p className="font-medium">{property.location}</p></div>
-          <div><p className="text-sm text-gray-500">Total Floors</p><p className="font-medium">{property.total_floors}</p></div>
-          <div><p className="text-sm text-gray-500">Total Units</p><p className="font-medium">{property.total_units}</p></div>
-          <div><p className="text-sm text-gray-500">Occupancy Rate</p><p className="font-medium">{property.occupancy_rate}%</p></div>
-          <div className="col-span-2"><p className="text-sm text-gray-500">Owner</p><p className="font-medium">{property.owner_name}</p></div>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-2">
+      {fields.map(({ label, value, span }) => (
+        <div key={label} className={span ? 'col-span-2' : ''}>
+          <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+          <p className="text-sm font-medium">{value ?? '—'}</p>
+        </div>
+      ))}
     </div>
   );
 }
