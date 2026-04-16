@@ -1,355 +1,455 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { useState, useMemo } from "react";
+import {
+  Settings,
+  Save,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+  Edit,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
-import { CloudflareTable } from '@/components/cloudflare/Table';
-import { 
-  Settings, 
-  Save, 
-  RefreshCw, 
-  AlertTriangle,
-  CheckCircle2,
-  Edit
-} from 'lucide-react';
-import { useCommissionRates } from '@/hooks/admin/useAdminPartner';
-import { toast } from 'sonner';
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { useCommissionRates } from "@/hooks/admin/useAdminPartner";
+import { toast } from "sonner";
 
-/**
- * Commission Rates Manager Component
- * 
- * Manages commission rates for subscription plans in Cloudflare style
- */
-export default function CommissionRatesManager() {
-  const [editDialog, setEditDialog] = useState({ open: false, rates: [] });
-  const [bulkRates, setBulkRates] = useState({});
+function formatCurrency(amount) {
+  if (!amount) return "TZS 0";
+  return new Intl.NumberFormat("en-TZ", {
+    style: "currency",
+    currency: "TZS",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
 
-  const { rates, loading, updating, updateRates, refreshRates } = useCommissionRates();
+function SortButton({ column, label }) {
+  const sorted = column.getIsSorted();
+  return (
+    <button
+      className="flex items-center gap-1 text-xs font-medium"
+      onClick={() => column.toggleSorting(sorted === "asc")}
+    >
+      {label}
+      {sorted === "asc" ? (
+        <ChevronUp className="size-3" />
+      ) : sorted === "desc" ? (
+        <ChevronDown className="size-3" />
+      ) : (
+        <ChevronsUpDown className="size-3 text-muted-foreground/40" />
+      )}
+    </button>
+  );
+}
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    if (!amount) return 'TZS 0';
-    return new Intl.NumberFormat('en-TZ', {
-      style: 'currency',
-      currency: 'TZS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
-  // Handle bulk edit
-  const handleBulkEdit = () => {
-    const allPlans = [
-      ...(rates?.plans_with_rates || []),
-      ...(rates?.plans_without_rates || [])
-    ];
-    
-    const initialRates = {};
-    allPlans.forEach(plan => {
-      initialRates[plan.plan_id] = plan.commission_percentage || 0;
-    });
-    
-    setBulkRates(initialRates);
-    setEditDialog({ open: true, rates: allPlans });
-  };
-
-  // Handle rate change
-  const handleRateChange = (planId, value) => {
-    const numValue = parseFloat(value) || 0;
-    if (numValue < 0 || numValue > 100) {
-      toast.error('Commission rate must be between 0% and 100%');
-      return;
-    }
-    setBulkRates(prev => ({ ...prev, [planId]: numValue }));
-  };
-
-  // Save commission rates
-  const handleSaveRates = async () => {
-    try {
-      const ratesArray = Object.entries(bulkRates).map(([planId, rate]) => ({
-        plan_id: parseInt(planId),
-        commission_percentage: parseFloat(rate)
-      }));
-
-      await updateRates(ratesArray);
-      setEditDialog({ open: false, rates: [] });
-      setBulkRates({});
-    } catch (error) {
-      // Error handled by hook
-    }
-  };
-
-  // Table columns for configured rates
-  const configuredColumns = [
-    {
-      header: 'Plan',
-      accessor: 'plan_name',
-      sortable: true,
-      cell: (row) => (
-        <div>
-          <div className="font-medium">{row.plan_name}</div>
-          <div className="text-sm text-gray-500 capitalize">{row.plan_type}</div>
-        </div>
-      )
-    },
-    {
-      header: 'Price',
-      accessor: 'plan_price',
-      sortable: true,
-      cell: (row) => (
-        <div className="font-medium">
-          {formatCurrency(row.plan_price)}
-        </div>
-      )
-    },
-    {
-      header: 'Commission Rate',
-      accessor: 'commission_percentage',
-      sortable: true,
-      cell: (row) => (
-        <Badge className="bg-green-100 text-green-800">
-          {row.commission_percentage}%
-        </Badge>
-      )
-    },
-    {
-      header: 'Last Updated',
-      accessor: 'updated_at',
-      sortable: true,
-      cell: (row) => (
-        row.updated_at ? new Date(row.updated_at).toLocaleDateString() : '—'
-      )
-    },
-    {
-      header: 'Updated By',
-      accessor: 'created_by',
-      cell: (row) => (
-        <span className="text-sm text-gray-600">
-          {row.created_by || '—'}
-        </span>
-      )
-    }
-  ];
-
-  // Table columns for unconfigured rates
-  const unconfiguredColumns = [
-    {
-      header: 'Plan',
-      accessor: 'plan_name',
-      sortable: true,
-      cell: (row) => (
-        <div>
-          <div className="font-medium">{row.plan_name}</div>
-          <div className="text-sm text-gray-500 capitalize">{row.plan_type}</div>
-        </div>
-      )
-    },
-    {
-      header: 'Price',
-      accessor: 'plan_price',
-      sortable: true,
-      cell: (row) => (
-        <div className="font-medium">
-          {formatCurrency(row.plan_price)}
-        </div>
-      )
-    },
-    {
-      header: 'Commission Rate',
-      accessor: 'commission_percentage',
-      cell: () => (
-        <Badge variant="outline" className="border-amber-400 text-amber-600">
-          Not Configured
-        </Badge>
-      )
-    }
-  ];
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+function RatesTable({ data, loading, columns, emptyMessage }) {
+  const [sorting, setSorting] = useState([]);
+  const table = useReactTable({
+    data: data ?? [],
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Commission Rates Management</h3>
-          <p className="text-sm text-gray-500 mt-1">
+    <div className="rounded-md border overflow-hidden">
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((hg) => (
+            <TableRow key={hg.id} className="bg-muted/30">
+              {hg.headers.map((h) => (
+                <TableHead key={h.id} className="h-9 px-3">
+                  {h.isPlaceholder
+                    ? null
+                    : flexRender(h.column.columnDef.header, h.getContext())}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            Array(3)
+              .fill(0)
+              .map((_, i) => (
+                <TableRow key={i}>
+                  {columns.map((_, j) => (
+                    <TableCell key={j} className="px-3 py-2">
+                      <Skeleton className="h-4 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+          ) : table.getRowModel().rows.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id} className="h-12">
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id} className="px-3 text-sm">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="h-16 text-center text-sm text-muted-foreground"
+              >
+                {emptyMessage}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+export default function CommissionRatesManager() {
+  const [editOpen, setEditOpen] = useState(false);
+  const [bulkRates, setBulkRates] = useState({});
+
+  const { rates, loading, updating, updateRates, refreshRates } =
+    useCommissionRates();
+
+  const allPlans = useMemo(
+    () => [
+      ...(rates?.plans_with_rates ?? []),
+      ...(rates?.plans_without_rates ?? []),
+    ],
+    [rates],
+  );
+
+  const handleBulkEdit = () => {
+    const initial = {};
+    allPlans.forEach((p) => {
+      initial[p.plan_id] = p.commission_percentage ?? 0;
+    });
+    setBulkRates(initial);
+    setEditOpen(true);
+  };
+
+  const handleRateChange = (planId, value) => {
+    const num = parseFloat(value) || 0;
+    if (num < 0 || num > 100) {
+      toast.error("Rate must be between 0% and 100%");
+      return;
+    }
+    setBulkRates((prev) => ({ ...prev, [planId]: num }));
+  };
+
+  const handleSave = async () => {
+    try {
+      await updateRates(
+        Object.entries(bulkRates).map(([id, rate]) => ({
+          plan_id: parseInt(id),
+          commission_percentage: parseFloat(rate),
+        })),
+      );
+      setEditOpen(false);
+      setBulkRates({});
+    } catch {
+      // handled by hook
+    }
+  };
+
+  const handleClose = () => {
+    setEditOpen(false);
+    setBulkRates({});
+  };
+
+  // Configured columns
+  const configuredCols = useMemo(
+    () => [
+      {
+        accessorKey: "plan_name",
+        header: ({ column }) => <SortButton column={column} label="Plan" />,
+        cell: ({ row }) => (
+          <div className="flex flex-col gap-0.5">
+            <span className="font-medium">{row.original.plan_name}</span>
+            <span className="text-xs text-muted-foreground capitalize">
+              {row.original.plan_type}
+            </span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "plan_price",
+        header: ({ column }) => <SortButton column={column} label="Price" />,
+        cell: ({ row }) => (
+          <span className="tabular-nums">
+            {formatCurrency(row.original.plan_price)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "commission_percentage",
+        header: ({ column }) => <SortButton column={column} label="Rate" />,
+        cell: ({ row }) => (
+          <Badge variant="default" className="tabular-nums">
+            {row.original.commission_percentage}%
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "updated_at",
+        header: ({ column }) => <SortButton column={column} label="Updated" />,
+        cell: ({ row }) => (
+          <span className="tabular-nums text-sm">
+            {row.original.updated_at
+              ? new Date(row.original.updated_at).toLocaleDateString()
+              : "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "created_by",
+        header: "Updated by",
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {row.original.created_by ?? "—"}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  // Unconfigured columns
+  const unconfiguredCols = useMemo(
+    () => [
+      {
+        accessorKey: "plan_name",
+        header: "Plan",
+        cell: ({ row }) => (
+          <div className="flex flex-col gap-0.5">
+            <span className="font-medium">{row.original.plan_name}</span>
+            <span className="text-xs text-muted-foreground capitalize">
+              {row.original.plan_type}
+            </span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "plan_price",
+        header: "Price",
+        cell: ({ row }) => (
+          <span className="tabular-nums">
+            {formatCurrency(row.original.plan_price)}
+          </span>
+        ),
+      },
+      {
+        id: "rate",
+        header: "Rate",
+        cell: () => (
+          <Badge
+            variant="outline"
+            className="text-warning border-warning text-xs"
+          >
+            Not configured
+          </Badge>
+        ),
+      },
+    ],
+    [],
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-medium">Commission rates</h2>
+          <p className="text-sm text-muted-foreground truncate">
             Configure commission percentages for subscription plans
           </p>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+        <div className="flex items-center gap-2 shrink-0 flex-none">
+          <Button
+            variant="outline"
+            size="sm"
             onClick={refreshRates}
             disabled={loading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`size-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
-          
-          <Button 
-            onClick={handleBulkEdit}
-            disabled={updating}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Rates
+          <Button size="sm" onClick={handleBulkEdit} disabled={updating}>
+            <Edit className="size-3.5 mr-1.5" />
+            Edit rates
           </Button>
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <div>
-              <div className="text-sm text-gray-500">Configured Plans</div>
-              <div className="text-xl font-bold">
-                {rates?.configured_plans || 0}
-              </div>
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        {[
+          {
+            label: "Configured",
+            value: rates?.configured_plans ?? 0,
+            icon: CheckCircle2,
+          },
+          {
+            label: "Unconfigured",
+            value: rates?.unconfigured_plans ?? 0,
+            icon: AlertTriangle,
+          },
+          {
+            label: "Total plans",
+            value: rates?.total_plans ?? 0,
+            icon: Settings,
+          },
+        ].map(({ label, value, icon: Icon }) => (
+          <div key={label} className="bg-muted/40 rounded-lg px-4 py-3.5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                {label}
+              </p>
+              <Icon className="size-3.5 text-muted-foreground" />
             </div>
+            {loading ? (
+              <Skeleton className="h-6 w-12" />
+            ) : (
+              <p className="text-xl font-medium tabular-nums leading-none">
+                {value}
+              </p>
+            )}
           </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
-            <div>
-              <div className="text-sm text-gray-500">Unconfigured Plans</div>
-              <div className="text-xl font-bold">
-                {rates?.unconfigured_plans || 0}
-              </div>
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <Settings className="h-5 w-5 text-blue-600" />
-            <div>
-              <div className="text-sm text-gray-500">Total Plans</div>
-              <div className="text-xl font-bold">
-                {rates?.total_plans || 0}
-              </div>
-            </div>
-          </div>
-        </Card>
+        ))}
       </div>
 
-      {/* Configured Plans */}
-      {rates?.plans_with_rates?.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="font-medium text-green-700">Configured Commission Rates</h4>
-          <CloudflareTable
-            data={rates.plans_with_rates}
-            columns={configuredColumns}
-            pagination={false}
-            searchable={false}
-            emptyMessage="No configured commission rates"
+      {/* Configured plans */}
+      {(loading || (rates?.plans_with_rates?.length ?? 0) > 0) && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-3.5 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Configured rates
+            </p>
+          </div>
+          <RatesTable
+            data={rates?.plans_with_rates}
+            loading={loading}
+            columns={configuredCols}
+            emptyMessage="No configured rates"
           />
         </div>
       )}
 
-      {/* Unconfigured Plans */}
-      {rates?.plans_without_rates?.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="font-medium text-amber-700">Plans Without Commission Rates</h4>
-          <CloudflareTable
-            data={rates.plans_without_rates}
-            columns={unconfiguredColumns}
-            pagination={false}
-            searchable={false}
-            emptyMessage="All plans have commission rates configured"
+      {/* Unconfigured plans */}
+      {(loading || (rates?.plans_without_rates?.length ?? 0) > 0) && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="size-3.5 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Not yet configured
+            </p>
+          </div>
+          <RatesTable
+            data={rates?.plans_without_rates}
+            loading={loading}
+            columns={unconfiguredCols}
+            emptyMessage="All plans are configured"
           />
         </div>
       )}
 
-      {/* Bulk Edit Dialog */}
-      <Dialog open={editDialog.open} onOpenChange={(open) => {
-        if (!open) {
-          setEditDialog({ open: false, rates: [] });
-          setBulkRates({});
-        }
-      }}>
-        <DialogContent className="max-w-2xl">
+      {/* Edit dialog */}
+      <Dialog
+        open={editOpen}
+        onOpenChange={(open) => {
+          if (!open) handleClose();
+        }}
+      >
+        <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Edit Commission Rates</DialogTitle>
+            <DialogTitle>Edit commission rates</DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-4 max-h-96 overflow-y-auto">
-            {editDialog.rates.map((plan) => (
-              <div key={plan.plan_id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex-1">
-                  <div className="font-medium">{plan.plan_name}</div>
-                  <div className="text-sm text-gray-500">
-                    {formatCurrency(plan.plan_price)} / {plan.plan_type}
-                  </div>
+
+          <div className="flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-1">
+            {allPlans.map((plan) => (
+              <div
+                key={plan.plan_id}
+                className="flex items-center justify-between rounded-lg border px-4 py-3"
+              >
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {plan.plan_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {formatCurrency(plan.plan_price)} ·{" "}
+                    <span className="capitalize">{plan.plan_type}</span>
+                  </p>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <Label htmlFor={`rate-${plan.plan_id}`} className="sr-only">
-                    Commission rate for {plan.plan_name}
-                  </Label>
+                <div className="flex items-center gap-2 shrink-0 ml-4">
                   <Input
-                    id={`rate-${plan.plan_id}`}
                     type="number"
                     min="0"
                     max="100"
                     step="0.1"
                     placeholder="0.0"
-                    value={bulkRates[plan.plan_id] || ''}
-                    onChange={(e) => handleRateChange(plan.plan_id, e.target.value)}
-                    className="w-20 text-center"
+                    value={bulkRates[plan.plan_id] ?? ""}
+                    onChange={(e) =>
+                      handleRateChange(plan.plan_id, e.target.value)
+                    }
+                    className="w-20 h-8 text-center text-sm tabular-nums"
                   />
-                  <span className="text-sm text-gray-500">%</span>
+                  <span className="text-sm text-muted-foreground w-4">%</span>
                 </div>
               </div>
             ))}
           </div>
-          
+
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setEditDialog({ open: false, rates: [] });
-                setBulkRates({});
-              }}
-            >
+            <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleSaveRates}
-              disabled={updating}
-            >
+            <Button onClick={handleSave} disabled={updating}>
               {updating ? (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
+                  <RefreshCw className="size-3.5 mr-1.5 animate-spin" />
+                  Saving…
                 </>
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Rates
+                  <Save className="size-3.5 mr-1.5" />
+                  Save rates
                 </>
               )}
             </Button>
