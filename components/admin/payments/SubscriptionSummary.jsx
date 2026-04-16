@@ -184,7 +184,7 @@ export default function RevenueOverview() {
                 </div>
                 
                 {/* Revenue Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <MetricCard 
                     title="Total Revenue" 
                     value={analytics?.total_revenue} 
@@ -200,7 +200,7 @@ export default function RevenueOverview() {
                     value={analytics?.rent_revenue} 
                     formatter={formatCurrency} 
                   />
-                </div>
+                </div> */}
                 
                 {/* Plan Breakdown */}
                 {planBreakdown.length > 0 && (
