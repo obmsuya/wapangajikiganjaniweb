@@ -1,378 +1,330 @@
 'use client';
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CloudflareTable } from '@/components/cloudflare/Table';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  DollarSign, 
-  Activity,
-  RefreshCw,
-  Calendar,
-  Award
+import { useMemo } from 'react';
+import {
+  TrendingUp, TrendingDown, Users, DollarSign,
+  Activity, RefreshCw, Calendar, Award,
+  UserCheck, UserX, Clock, BarChart4,
+  ChevronUp, ChevronDown, ChevronsUpDown,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
 import { usePartnerPerformance } from '@/hooks/admin/useAdminPartner';
 
-/**
- * Partner Analytics Dashboard Component
- * 
- * Displays comprehensive partner performance analytics in Cloudflare style
- */
+function formatCurrency(amount) {
+  if (!amount) return 'TZS 0';
+  return new Intl.NumberFormat('en-TZ', {
+    style: 'currency', currency: 'TZS',
+    minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString();
+}
+
+function formatPct(v) {
+  if (!v) return '0%';
+  return `${parseFloat(v).toFixed(1)}%`;
+}
+
+// Stat card — muted bg, no color hardcoding
+function StatCard({ title, value, icon: Icon, loading, sub }) {
+  return (
+    <div className="bg-muted/40 rounded-lg px-4 py-3.5">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-medium text-muted-foreground">{title}</p>
+        <Icon className="size-3.5 text-muted-foreground" />
+      </div>
+      {loading
+        ? <Skeleton className="h-6 w-24" />
+        : <p className="text-xl font-medium leading-none tabular-nums">{value}</p>
+      }
+      {sub && !loading && (
+        <p className="text-xs text-muted-foreground mt-1.5">{sub}</p>
+      )}
+    </div>
+  );
+}
+
+// Labeled key-value row inside a card
+function InfoRow({ label, value, valueClass = '' }) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className={`text-sm font-medium tabular-nums ${valueClass}`}>{value ?? '—'}</span>
+    </div>
+  );
+}
+
+// Rank badge for top partners
+function RankBadge({ rank }) {
+  const labels = { 1: '🥇', 2: '🥈', 3: '🥉' };
+  if (labels[rank]) {
+    return <span className="text-base leading-none">{labels[rank]}</span>;
+  }
+  return (
+    <span className="size-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+      {rank}
+    </span>
+  );
+}
+
 export default function PartnerAnalyticsDashboard() {
   const { performance, loading, refreshPerformance } = usePartnerPerformance();
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    if (!amount) return 'TZS 0';
-    return new Intl.NumberFormat('en-TZ', {
-      style: 'currency',
-      currency: 'TZS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  const stats      = performance?.partner_stats   ?? {};
+  const financials = performance?.financial_stats  ?? {};
+  const topPartners    = performance?.top_partners    ?? [];
+  const recentActivity = performance?.recent_activity ?? [];
 
-  // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return '—';
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  // Get performance indicator
-  const getPerformanceIndicator = (value, isGood = true) => {
-    if (!value || value === 0) return null;
-    
-    const Icon = isGood ? TrendingUp : TrendingDown;
-    const colorClass = isGood ? 'text-green-600' : 'text-red-600';
-    
-    return <Icon className={`h-4 w-4 ${colorClass}`} />;
-  };
-
-  // Top partners table columns
-  const topPartnersColumns = [
-    {
-      header: 'Rank',
-      accessor: 'rank',
-      cell: (row, index) => (
-        <div className="flex items-center gap-2">
-          <div className={`
-            w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-            ${index === 0 ? 'bg-yellow-100 text-yellow-800' : 
-              index === 1 ? 'bg-gray-100 text-gray-800' : 
-              index === 2 ? 'bg-amber-100 text-amber-800' : 
-              'bg-blue-100 text-blue-800'}
-          `}>
-            {index + 1}
-          </div>
-          {index < 3 && <Award className="h-4 w-4 text-amber-500" />}
-        </div>
-      )
-    },
-    {
-      header: 'Partner',
-      accessor: 'partner_name',
-      sortable: true,
-      cell: (row) => (
-        <div>
-          <div className="font-medium">{row.partner_name}</div>
-          <Badge variant="outline" className="text-xs font-mono">
-            {row.referral_code}
-          </Badge>
-        </div>
-      )
-    },
-    {
-      header: 'Total Earned',
-      accessor: 'total_earned',
-      sortable: true,
-      cell: (row) => (
-        <div className="text-right font-medium">
-          {formatCurrency(row.total_earned)}
-        </div>
-      )
-    },
-    {
-      header: 'Transactions',
-      accessor: 'transaction_count',
-      sortable: true,
-      cell: (row) => (
-        <div className="text-center">
-          <span className="font-medium">{row.transaction_count}</span>
-        </div>
-      )
-    },
-    {
-      header: 'Status',
-      accessor: 'is_active',
-      cell: (row) => (
-        <Badge className={row.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-          {row.is_active ? 'Active' : 'Suspended'}
-        </Badge>
-      )
-    },
-    {
-      header: 'Joined',
-      accessor: 'created_at',
-      cell: (row) => formatDate(row.created_at)
-    }
-  ];
-
-  // Recent activity table columns
-  const recentActivityColumns = [
-    {
-      header: 'Partner',
-      accessor: 'partner_name',
-      cell: (row) => (
-        <span className="font-medium">{row.partner_name}</span>
-      )
-    },
-    {
-      header: 'Commission',
-      accessor: 'amount',
-      cell: (row) => (
-        <div className="font-medium text-green-600">
-          {formatCurrency(row.amount)}
-        </div>
-      )
-    },
-    {
-      header: 'Rate',
-      accessor: 'commission_rate',
-      cell: (row) => (
-        row.commission_rate ? (
-          <Badge variant="outline">
-            {parseFloat(row.commission_rate).toFixed(1)}%
-          </Badge>
-        ) : '—'
-      )
-    },
-    {
-      header: 'Landlord',
-      accessor: 'landlord_name',
-      cell: (row) => (
-        <span className="text-sm">{row.landlord_name || '—'}</span>
-      )
-    },
-    {
-      header: 'Plan',
-      accessor: 'plan_name',
-      cell: (row) => (
-        row.plan_name ? (
-          <div>
-            <span className="text-sm">{row.plan_name}</span>
-            <div className="text-xs text-gray-500 capitalize">
-              {row.plan_type}
-            </div>
-          </div>
-        ) : '—'
-      )
-    },
-    {
-      header: 'Date',
-      accessor: 'created_at',
-      cell: (row) => (
-        <span className="text-sm">{formatDate(row.created_at)}</span>
-      )
-    }
-  ];
-
-  const stats = performance?.partner_stats || {};
-  const financials = performance?.financial_stats || {};
-  const topPartners = performance?.top_partners || [];
-  const recentActivity = performance?.recent_activity || [];
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+  // Highest earner for progress bar context
+  const maxEarned = useMemo(() =>
+    topPartners.reduce((m, p) => Math.max(m, p.total_earned ?? 0), 0),
+  [topPartners]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Partner Analytics</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Comprehensive partner performance metrics and insights
+    <div className="flex flex-col gap-6">
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-medium">Partner overview</h2>
+          <p className="text-sm text-muted-foreground">
+            Performance metrics and commission activity
           </p>
         </div>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={refreshPerformance}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+        <Button variant="outline" size="sm" className="shrink-0"
+          onClick={refreshPerformance} disabled={loading}>
+          <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
 
-      {/* Key Performance Indicators */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Active Partners</div>
-              <div className="text-2xl font-bold">{stats.active_partners || 0}</div>
-            </div>
-            <div className="flex items-center gap-1">
-              {getPerformanceIndicator(stats.active_partners)}
-              <Users className="h-5 w-5 text-blue-600" />
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Total Referrals</div>
-              <div className="text-2xl font-bold">{stats.total_referrals || 0}</div>
-            </div>
-            <div className="flex items-center gap-1">
-              {getPerformanceIndicator(stats.total_referrals)}
-              <Activity className="h-5 w-5 text-green-600" />
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Conversion Rate</div>
-              <div className="text-2xl font-bold">
-                {stats.conversion_rate ? `${parseFloat(stats.conversion_rate).toFixed(1)}%` : '0%'}
+      {/* Primary stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <StatCard title="Total partners"     value={stats.total_partners     ?? 0}                  icon={Users}     loading={loading} sub={`${stats.active_partners ?? 0} active`} />
+        <StatCard title="Total referrals"    value={stats.total_referrals    ?? 0}                  icon={Activity}  loading={loading} sub={`${stats.partners_with_referrals ?? 0} partners referred`} />
+        <StatCard title="Conversion rate"    value={formatPct(stats.conversion_rate)}               icon={TrendingUp} loading={loading} />
+        <StatCard title="Commissions paid"   value={formatCurrency(financials.total_commissions_paid)} icon={DollarSign} loading={loading} />
+        <StatCard title="Pending payouts"    value={formatCurrency(financials.outstanding_balance)} icon={Clock}     loading={loading} />
+        <StatCard title="Lifetime earned"    value={formatCurrency(financials.lifetime_earned)}     icon={BarChart4} loading={loading} />
+      </div>
+
+      {/* Partner health row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        {[
+          { label: 'Active',    value: stats.active_partners    ?? 0, total: stats.total_partners ?? 0, icon: UserCheck },
+          { label: 'Suspended', value: stats.suspended_partners ?? 0, total: stats.total_partners ?? 0, icon: UserX },
+          { label: 'With referrals', value: stats.partners_with_referrals ?? 0, total: stats.total_partners ?? 0, icon: Award },
+        ].map(({ label, value, total, icon: Icon }) => {
+          const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+          return (
+            <div key={label} className="bg-muted/40 rounded-lg px-4 py-3.5 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Icon className="size-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">{label}</span>
+                </div>
+                <span className="text-xs tabular-nums text-muted-foreground">{pct}%</span>
               </div>
+              {loading ? <Skeleton className="h-5 w-16" /> : (
+                <p className="text-lg font-medium tabular-nums leading-none">{value}</p>
+              )}
+              <Progress value={pct} className="h-1" />
             </div>
-            <div className="flex items-center gap-1">
-              {getPerformanceIndicator(stats.conversion_rate)}
-              <TrendingUp className="h-5 w-5 text-purple-600" />
+          );
+        })}
+      </div>
+
+      {/* Financial + Activity detail */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <DollarSign className="size-3.5 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Financial summary</CardTitle>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent className="flex flex-col divide-y">
+            {loading ? (
+              Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-4 w-full my-2" />)
+            ) : (
+              <>
+                <InfoRow label="Lifetime earned"    value={formatCurrency(financials.lifetime_earned)} />
+                <InfoRow label="Total payouts"      value={formatCurrency(financials.total_payouts)} />
+                <InfoRow label="Outstanding balance" value={formatCurrency(financials.outstanding_balance)} />
+                <InfoRow label="Avg commission"     value={formatCurrency(financials.average_commission)} />
+              </>
+            )}
+          </CardContent>
         </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500">Total Commissions</div>
-              <div className="text-2xl font-bold">
-                {formatCurrency(financials.total_commissions_paid)}
-              </div>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <Activity className="size-3.5 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Activity summary</CardTitle>
             </div>
-            <div className="flex items-center gap-1">
-              {getPerformanceIndicator(financials.total_commissions_paid)}
-              <DollarSign className="h-5 w-5 text-emerald-600" />
-            </div>
-          </div>
+          </CardHeader>
+          <CardContent className="flex flex-col divide-y">
+            {loading ? (
+              Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-4 w-full my-2" />)
+            ) : (
+              <>
+                <InfoRow label="Commission transactions" value={financials.total_commission_transactions ?? 0} />
+                <InfoRow label="Payout transactions"     value={financials.total_payout_transactions     ?? 0} />
+                <InfoRow label="Partners with referrals" value={stats.partners_with_referrals            ?? 0} />
+                <InfoRow label="Suspended"               value={stats.suspended_partners                ?? 0} />
+              </>
+            )}
+          </CardContent>
         </Card>
       </div>
 
-      {/* Financial Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="p-4">
-          <h4 className="font-medium mb-3 flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-green-600" />
-            Financial Summary
-          </h4>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Lifetime Earned</span>
-              <span className="font-medium">{formatCurrency(financials.lifetime_earned)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Total Payouts</span>
-              <span className="font-medium">{formatCurrency(financials.total_payouts)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Outstanding Balance</span>
-              <span className="font-medium text-amber-600">{formatCurrency(financials.outstanding_balance)}</span>
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <h4 className="font-medium mb-3 flex items-center gap-2">
-            <Activity className="h-4 w-4 text-blue-600" />
-            Activity Summary
-          </h4>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Commission Transactions</span>
-              <span className="font-medium">{financials.total_commission_transactions || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Payout Transactions</span>
-              <span className="font-medium">{financials.total_payout_transactions || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Avg Commission</span>
-              <span className="font-medium">{formatCurrency(financials.average_commission)}</span>
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <h4 className="font-medium mb-3 flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-purple-600" />
-            Recent Insights
-          </h4>
-          <div className="space-y-3">
-            <div className="text-sm">
-              <span className="text-gray-500">Partners with referrals: </span>
-              <span className="font-medium">{stats.partners_with_referrals || 0}</span>
-            </div>
-            <div className="text-sm">
-              <span className="text-gray-500">Suspended partners: </span>
-              <span className="font-medium text-red-600">{stats.suspended_partners || 0}</span>
-            </div>
-            <div className="text-sm">
-              <span className="text-gray-500">Last updated: </span>
-              <span className="font-medium">{new Date().toLocaleDateString()}</span>
-            </div>
-          </div>
-        </Card>
-      </div>
+      {/* Top performing partners */}
+      {(loading || topPartners.length > 0) && (
+        <>
+          <Separator />
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Top performing partners
+            </p>
 
-      {/* Top Performing Partners */}
-      {topPartners.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="font-medium">Top Performing Partners</h4>
-          <CloudflareTable
-            data={topPartners}
-            columns={topPartnersColumns}
-            pagination={false}
-            searchable={false}
-            emptyMessage="No partner performance data available"
-          />
-        </div>
+            {loading ? (
+              Array(3).fill(0).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg border">
+                  <Skeleton className="size-8 rounded-full" />
+                  <div className="flex-1 flex flex-col gap-1">
+                    <Skeleton className="h-3.5 w-32" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col gap-2">
+                {topPartners.map((partner, i) => {
+                  const pct = maxEarned > 0
+                    ? Math.round(((partner.total_earned ?? 0) / maxEarned) * 100)
+                    : 0;
+                  return (
+                    <div key={i} className="flex items-center gap-3 rounded-lg border px-4 py-3">
+                      <RankBadge rank={i + 1} />
+                      <Avatar className="size-8 shrink-0">
+                        <AvatarFallback className="text-xs">
+                          {partner.partner_name?.charAt(0) ?? 'P'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-medium truncate">{partner.partner_name}</p>
+                          <Badge variant="outline" className="text-xs font-mono shrink-0">
+                            {partner.referral_code}
+                          </Badge>
+                          <Badge
+                            variant={partner.is_active ? 'default' : 'secondary'}
+                            className="text-xs shrink-0"
+                          >
+                            {partner.is_active ? 'Active' : 'Suspended'}
+                          </Badge>
+                        </div>
+                        <Progress value={pct} className="h-1" />
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-medium tabular-nums">
+                          {formatCurrency(partner.total_earned)}
+                        </p>
+                        <p className="text-xs text-muted-foreground tabular-nums">
+                          {partner.transaction_count ?? 0} txns
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
-      {/* Recent Commission Activity */}
-      {recentActivity.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="font-medium">Recent Commission Activity</h4>
-          <CloudflareTable
-            data={recentActivity}
-            columns={recentActivityColumns}
-            pagination={false}
-            searchable={false}
-            emptyMessage="No recent activity"
-          />
-        </div>
+      {/* Recent commission activity */}
+      {(loading || recentActivity.length > 0) && (
+        <>
+          <Separator />
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Recent commission activity
+            </p>
+
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead className="text-xs h-9">Partner</TableHead>
+                    <TableHead className="text-xs h-9">Commission</TableHead>
+                    <TableHead className="text-xs h-9">Rate</TableHead>
+                    <TableHead className="text-xs h-9">Landlord</TableHead>
+                    <TableHead className="text-xs h-9">Plan</TableHead>
+                    <TableHead className="text-xs h-9">Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    Array(4).fill(0).map((_, i) => (
+                      <TableRow key={i}>
+                        {Array(6).fill(0).map((_, j) => (
+                          <TableCell key={j} className="py-2">
+                            <Skeleton className="h-4 w-full" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : recentActivity.map((row, i) => (
+                    <TableRow key={i} className="h-12">
+                      <TableCell className="text-sm font-medium">
+                        {row.partner_name}
+                      </TableCell>
+                      <TableCell className="text-sm tabular-nums font-medium text-primary">
+                        {formatCurrency(row.amount)}
+                      </TableCell>
+                      <TableCell>
+                        {row.commission_rate
+                          ? <Badge variant="outline" className="text-xs tabular-nums">
+                              {parseFloat(row.commission_rate).toFixed(1)}%
+                            </Badge>
+                          : '—'}
+                      </TableCell>
+                      <TableCell className="text-sm">{row.landlord_name ?? '—'}</TableCell>
+                      <TableCell>
+                        {row.plan_name
+                          ? <div className="flex flex-col gap-0.5">
+                              <span className="text-sm">{row.plan_name}</span>
+                              <span className="text-xs text-muted-foreground capitalize">{row.plan_type}</span>
+                            </div>
+                          : '—'}
+                      </TableCell>
+                      <TableCell className="text-sm tabular-nums">
+                        {formatDate(row.created_at)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </>
       )}
+
     </div>
   );
 }
