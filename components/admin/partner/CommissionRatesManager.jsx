@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +36,6 @@ import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import { useCommissionRates } from "@/hooks/admin/useAdminPartner";
@@ -72,8 +70,10 @@ function SortButton({ column, label }) {
   );
 }
 
+// Reusable table — no CloudflareTable, no legacy filters
 function RatesTable({ data, loading, columns, emptyMessage }) {
   const [sorting, setSorting] = useState([]);
+
   const table = useReactTable({
     data: data ?? [],
     columns,
@@ -182,7 +182,7 @@ export default function CommissionRatesManager() {
       setEditOpen(false);
       setBulkRates({});
     } catch {
-      // handled by hook
+      /* handled by hook */
     }
   };
 
@@ -191,7 +191,6 @@ export default function CommissionRatesManager() {
     setBulkRates({});
   };
 
-  // Configured columns
   const configuredCols = useMemo(
     () => [
       {
@@ -248,7 +247,6 @@ export default function CommissionRatesManager() {
     [],
   );
 
-  // Unconfigured columns
   const unconfiguredCols = useMemo(
     () => [
       {
@@ -276,10 +274,7 @@ export default function CommissionRatesManager() {
         id: "rate",
         header: "Rate",
         cell: () => (
-          <Badge
-            variant="outline"
-            className="text-warning border-warning text-xs"
-          >
+          <Badge variant="outline" className="text-xs">
             Not configured
           </Badge>
         ),
@@ -354,7 +349,7 @@ export default function CommissionRatesManager() {
         ))}
       </div>
 
-      {/* Configured plans */}
+      {/* Configured */}
       {(loading || (rates?.plans_with_rates?.length ?? 0) > 0) && (
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -372,7 +367,7 @@ export default function CommissionRatesManager() {
         </div>
       )}
 
-      {/* Unconfigured plans */}
+      {/* Unconfigured */}
       {(loading || (rates?.plans_without_rates?.length ?? 0) > 0) && (
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -390,25 +385,32 @@ export default function CommissionRatesManager() {
         </div>
       )}
 
-      {/* Edit dialog */}
+      {/* Edit dialog — structure matches your DialogContent exactly */}
       <Dialog
         open={editOpen}
         onOpenChange={(open) => {
           if (!open) handleClose();
         }}
       >
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Edit commission rates</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-xl flex flex-col gap-0 p-0 overflow-hidden">
+          {/* Fixed header */}
+          <div className="px-6 pt-6 pb-4 border-b">
+            <DialogHeader>
+              <DialogTitle>Edit commission rates</DialogTitle>
+            </DialogHeader>
+          </div>
 
-          <div className="flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-1">
+          {/* Scrollable plan list */}
+          <div
+            className="flex flex-col gap-2 overflow-y-auto px-6 py-4"
+            style={{ maxHeight: "400px" }}
+          >
             {allPlans.map((plan) => (
               <div
                 key={plan.plan_id}
-                className="flex items-center justify-between rounded-lg border px-4 py-3"
+                className="flex items-center justify-between rounded-lg border px-4 py-3.5 gap-4"
               >
-                <div className="flex flex-col gap-0.5 min-w-0">
+                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">
                     {plan.plan_name}
                   </p>
@@ -417,7 +419,7 @@ export default function CommissionRatesManager() {
                     <span className="capitalize">{plan.plan_type}</span>
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 ml-4">
+                <div className="flex items-center gap-2 shrink-0">
                   <Input
                     type="number"
                     min="0"
@@ -430,17 +432,18 @@ export default function CommissionRatesManager() {
                     }
                     className="w-20 h-8 text-center text-sm tabular-nums"
                   />
-                  <span className="text-sm text-muted-foreground w-4">%</span>
+                  <span className="text-sm text-muted-foreground w-3">%</span>
                 </div>
               </div>
             ))}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>
+          {/* Fixed footer — sits outside scroll, no flex-col-reverse issues */}
+          <div className="px-6 py-4 border-t flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={handleClose}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={updating}>
+            <Button size="sm" onClick={handleSave} disabled={updating}>
               {updating ? (
                 <>
                   <RefreshCw className="size-3.5 mr-1.5 animate-spin" />
@@ -453,7 +456,7 @@ export default function CommissionRatesManager() {
                 </>
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
