@@ -1,55 +1,71 @@
 'use client';
 
-import { useState } from 'react';
 import { useDashboardSummary } from '@/hooks/admin/useAdminProperties';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { CloudflareTable } from '@/components/cloudflare/Table';
 import { Home, UserCheck, Clock } from 'lucide-react';
+import {
+  PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
-/**
- * PropertyOverview component for the dashboard tab
- * Displays various charts and statistics about properties
- */
+const CHART_COLORS = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+];
+
+function EmptyState({ message }) {
+  return (
+    <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
+      {message}
+    </div>
+  );
+}
+
+function ChartSkeleton() {
+  return <Skeleton className="h-64 w-full rounded-lg" />;
+}
+
 export default function PropertyOverview() {
   const { summary, loading } = useDashboardSummary();
-  const [timeRange, setTimeRange] = useState('6months');
-  
-  // Colors for charts
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
-  
-  // Format data for category pie chart
+
   const categoryData = summary?.properties?.properties_by_category?.map(item => ({
     name: item.category,
-    value: item.count
+    value: item.count,
   })) || [];
-  
-  // Format data for location bar chart
+
   const locationData = summary?.properties?.properties_by_location?.map(item => ({
     name: item.location,
-    value: item.count
+    value: item.count,
   })) || [];
-  
-  // Format data for occupancy trends - using real data from summary if available
-  const occupancyTrendsData = []; // This would be populated from API data
+
+  const unitStatusData = summary?.units?.units_by_status || [];
+
+
+  const activityIcon = (type) => {
+    if (type === 'property') return <Home className="h-4 w-4 text-muted-foreground" />;
+    if (type === 'tenant')   return <UserCheck className="h-4 w-4 text-muted-foreground" />;
+    return <Clock className="h-4 w-4 text-muted-foreground" />;
+  };
 
   return (
     <div className="space-y-6">
-      {/* Top Row - Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
         {/* Properties by Category */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Properties by Category</CardTitle>
-            <CardDescription>Distribution of properties by type</CardDescription>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Properties by Category</CardTitle>
+            <CardDescription>Distribution by type</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="flex justify-center items-center h-64">
-                <Skeleton className="h-64 w-full rounded-lg" />
-              </div>
-            ) : categoryData.length > 0 ? (
+            {loading ? <ChartSkeleton /> : categoryData.length > 0 ? (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -58,186 +74,150 @@ export default function PropertyOverview() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       outerRadius={80}
-                      fill="#8884d8"
                       dataKey="value"
                     >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      {categoryData.map((_, index) => (
+                        <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`${value} properties`, 'Count']} />
+                    <Tooltip formatter={(v) => [`${v} properties`, 'Count']} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-            ) : (
-              <div className="flex justify-center items-center h-64 text-gray-500">
-                No category data available
-              </div>
-            )}
+            ) : <EmptyState message="No category data available" />}
           </CardContent>
         </Card>
-        
+
         {/* Property Distribution by Location */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Property Distribution</CardTitle>
-            <CardDescription>Top locations by property count</CardDescription>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Property Distribution</CardTitle>
+            <CardDescription>Top locations by count</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="flex justify-center items-center h-64">
-                <Skeleton className="h-64 w-full rounded-lg" />
-              </div>
-            ) : locationData.length > 0 ? (
+            {loading ? <ChartSkeleton /> : locationData.length > 0 ? (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={locationData}
                     layout="vertical"
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
                   >
-                    <XAxis type="number" />
-                    <YAxis type="category" dataKey="name" width={100} />
+                    <XAxis type="number" tick={{ fontSize: 12 }} />
+                    <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Bar dataKey="value" fill="#0088FE" name="Properties" />
+                    <Bar dataKey="value" fill={CHART_COLORS[0]} name="Properties" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            ) : (
-              <div className="flex justify-center items-center h-64 text-gray-500">
-                No location data available
-              </div>
-            )}
+            ) : <EmptyState message="No location data available" />}
           </CardContent>
         </Card>
-        
+
         {/* Units by Status */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Units by Status</CardTitle>
-            <CardDescription>Distribution of units by current status</CardDescription>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Units by Status</CardTitle>
+            <CardDescription>Current unit distribution</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="flex justify-center items-center h-64">
-                <Skeleton className="h-64 w-full rounded-lg" />
-              </div>
-            ) : summary?.units?.units_by_status?.length > 0 ? (
+            {loading ? <ChartSkeleton /> : unitStatusData.length > 0 ? (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={summary.units.units_by_status}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    data={unitStatusData}
+                    margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
                   >
-                    <XAxis dataKey="status" />
-                    <YAxis />
+                    <XAxis dataKey="status" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="count" name="Units" fill="#82ca9d" />
+                    <Bar dataKey="count" fill={CHART_COLORS[1]} name="Units" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            ) : (
-              <div className="flex justify-center items-center h-64 text-gray-500">
-                No unit status data available
-              </div>
-            )}
+            ) : <EmptyState message="No unit status data available" />}
           </CardContent>
         </Card>
+
       </div>
-      
-      {/* Bottom Row - Recent Activity & Top Landlords */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      {/* Bottom row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
         {/* Recent Activity */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recent Activity</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
             <CardDescription>Latest system events</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="space-y-3">
-                {Array(5).fill(0).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+              <div className="space-y-2">
+                {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+              </div>
+            ) : summary?.recent_activities?.length > 0 ? (
+              <div className="space-y-2">
+                {summary.recent_activities.map((activity, i) => (
+                  <div key={i} className="flex items-start gap-3 rounded-md border p-3">
+                    <div className="p-1.5 rounded-full bg-muted shrink-0">
+                      {activityIcon(activity.type)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{activity.title}</p>
+                      <p className="text-xs text-muted-foreground">{activity.description}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{activity.time}</p>
+                    </div>
+                  </div>
                 ))}
               </div>
-            ) : (
-              <div className="space-y-3">
-                {summary?.recent_activities?.length > 0 ? (
-                  summary.recent_activities.map((activity, index) => (
-                    <div key={index} className="flex items-start gap-4 rounded-lg border p-3">
-                      <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900">
-                        {activity.type === 'property' ? (
-                          <Home className="h-4 w-4 text-blue-600 dark:text-blue-300" />
-                        ) : activity.type === 'tenant' ? (
-                          <UserCheck className="h-4 w-4 text-green-600 dark:text-green-300" />
-                        ) : (
-                          <Clock className="h-4 w-4 text-amber-600 dark:text-amber-300" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{activity.title}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{activity.description}</p>
-                        <p className="text-xs text-gray-400 mt-1">{activity.time}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex justify-center items-center h-32 text-gray-500">
-                    No recent activities to display
-                  </div>
-                )}
-              </div>
-            )}
+            ) : <EmptyState message="No recent activity" />}
           </CardContent>
         </Card>
-        
+
         {/* Top Landlords */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top Landlords</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Top Landlords</CardTitle>
             <CardDescription>By property count</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="space-y-3">
-                {Array(5).fill(0).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
-                ))}
+              <div className="space-y-2">
+                {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
               </div>
-            ) : (
-              <div className="space-y-3">
-                {summary?.landlords?.top_landlords?.length > 0 ? (
-                  summary.landlords.top_landlords.map((landlord, index) => (
-                    <div key={index} className="flex items-center justify-between rounded-lg border p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{landlord.full_name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {landlord.property_count} {landlord.property_count === 1 ? 'property' : 'properties'}
-                          </p>
-                        </div>
+            ) : summary?.landlords?.top_landlords?.length > 0 ? (
+              <div className="space-y-2">
+                {summary.landlords.top_landlords.map((landlord, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-md border p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
+                        {i + 1}
                       </div>
-                      <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                        {landlord.subscription_status === 'active' ? 'Active' : 'Inactive'}
+                      <div>
+                        <p className="text-sm font-medium">{landlord.full_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {landlord.property_count} {landlord.property_count === 1 ? 'property' : 'properties'}
+                        </p>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="flex justify-center items-center h-32 text-gray-500">
-                    No landlord data available
+                    <span className={`text-xs font-medium ${
+                      landlord.subscription_status === 'active'
+                        ? 'text-primary'
+                        : 'text-muted-foreground'
+                    }`}>
+                      {landlord.subscription_status === 'active' ? 'Active' : 'Inactive'}
+                    </span>
                   </div>
-                )}
+                ))}
               </div>
-            )}
+            ) : <EmptyState message="No landlord data available" />}
           </CardContent>
         </Card>
+
       </div>
     </div>
   );
