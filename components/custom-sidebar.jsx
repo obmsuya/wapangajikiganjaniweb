@@ -42,7 +42,7 @@ const SidebarItem = ({
             "w-full flex items-center gap-2 rounded-full text-sm font-medium transition-all duration-200",
             "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
             active && "bg-sidebar-accent text-white",
-            isCollapsed && "justify-center px-2"
+            isCollapsed && "justify-center px-2",
           )}
           title={isCollapsed ? label : ""}
         >
@@ -54,7 +54,7 @@ const SidebarItem = ({
                 size={16}
                 className={cn(
                   "transition-transform shrink-0 text-sidebar-foreground/50",
-                  isSubmenuOpen && "rotate-180"
+                  isSubmenuOpen && "rotate-180",
                 )}
               />
             </>
@@ -70,7 +70,7 @@ const SidebarItem = ({
                 className={cn(
                   "flex items-center py-2 px-2 text-sm rounded-full transition-colors",
                   "text-sidebar-foreground/60 hover:text-sidebar-foreground",
-                  item.active && "text-sidebar-foreground font-medium"
+                  item.active && "text-sidebar-foreground font-medium",
                 )}
               >
                 <span className="truncate">{item.label}</span>
@@ -88,8 +88,9 @@ const SidebarItem = ({
       className={cn(
         "flex items-center gap-3 p-3.5 rounded-full text-sm font-medium transition-all duration-200 mb-1",
         "text-sidebar-foreground/70 hover:text-primary hover:bg-sidebar-primary/15",
-        active && "bg-sidebar-primary hover:bg-sidebar-primary/90 text-white hover:text-white shadow-sm",
-        isCollapsed && "justify-center px-2"
+        active &&
+          "bg-sidebar-primary hover:bg-sidebar-primary/90 text-white hover:text-white shadow-sm",
+        isCollapsed && "justify-center px-2",
       )}
       title={isCollapsed ? label : ""}
     >
@@ -116,18 +117,20 @@ const BottomTabItem = ({ icon: Icon, label, href, active }) => {
       className={cn(
         "flex flex-col items-center justify-center gap-1 p-1 min-w-[64px] transition-all duration-200",
         "text-muted-foreground",
-        active && "text-primary"
+        active && "text-primary",
       )}
     >
       <div
         className={cn(
           "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200",
-          active && "bg-primary/10"
+          active && "bg-primary/10",
         )}
       >
         <Icon size={18} strokeWidth={active ? 2 : 1.5} />
       </div>
-      <span className={cn("text-[8px] font-medium", active && "font-semibold")}>{label}</span>
+      <span className={cn("text-[8px] font-medium", active && "font-semibold")}>
+        {label}
+      </span>
     </Link>
   );
 };
@@ -186,11 +189,11 @@ export function CustomSidebar({ role = "admin", user }) {
           active: pathname.includes("/landlord/payments/confirmations"),
         },
         {
-          label:"Managers",
-          icon:Users,
-          href:"/landlord/managers",
-          active:pathname.includes("/landlord/managers"),
-        }
+          label: "Managers",
+          icon: Users,
+          href: "/landlord/managers",
+          active: pathname.includes("/landlord/managers"),
+        },
       ];
     }
 
@@ -219,15 +222,19 @@ export function CustomSidebar({ role = "admin", user }) {
           href: "/manager/properties",
           active: pathname.includes("/manager/properties"),
         },
-        {
+      ];
+
+      // Only show Maintenance if manager has the permission
+      if (user?.can_manage_maintenance) {
+        routes.push({
           label: "Maintenance",
           icon: Wrench,
           href: "/manager/maintenance",
           active: pathname === "/manager/maintenance",
-        },
-      ];
+        });
+      }
 
-      // Only add Payments if the manager has the permission
+      // Only show Payments if manager has the permission
       if (user?.can_collect_payments) {
         routes.push({
           label: "Payments",
@@ -322,6 +329,7 @@ export function CustomSidebar({ role = "admin", user }) {
   const getUserPortalTitle = () => {
     if (user?.user_type === "tenant") return "Tenant Portal";
     if (user?.user_type === "landlord") return "Landlord Portal";
+    if (user?.user_type === "manager") return "Manager Portal";
     return "Admin Portal";
   };
 
@@ -333,14 +341,14 @@ export function CustomSidebar({ role = "admin", user }) {
       <aside
         className={cn(
           "hidden md:flex border bg-sidebar fixed inset-y-0 left-4 z-30 flex-col rounded-4xl transition-all duration-300 ease-in-out my-4",
-          sidebarWidth
+          sidebarWidth,
         )}
       >
         {/* Header */}
         <div
           className={cn(
             "flex items-center justify-between h-16 px-4",
-            isCollapsed && "px-2"
+            isCollapsed && "px-2",
           )}
         >
           {!isCollapsed && (
@@ -357,19 +365,24 @@ export function CustomSidebar({ role = "admin", user }) {
             onClick={toggleCollapse}
             className={cn(
               "p-2 rounded-full hover:bg-primary/30 transition-colors text-sidebar-foreground/60 hover:text-primary border hover:border-primary",
-              isCollapsed && "mx-auto"
+              isCollapsed && "mx-auto",
             )}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <ChevronLeft
               size={18}
-              className={cn("transition-transform", isCollapsed && "rotate-180")}
+              className={cn(
+                "transition-transform",
+                isCollapsed && "rotate-180",
+              )}
             />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className={cn("flex-1 overflow-y-auto p-4", isCollapsed && "px-2")}>
+        <nav
+          className={cn("flex-1 overflow-y-auto p-4", isCollapsed && "px-2")}
+        >
           {routes.map((route) => (
             <SidebarItem
               key={route.href || route.label}
@@ -377,8 +390,12 @@ export function CustomSidebar({ role = "admin", user }) {
               label={route.label}
               href={route.href}
               active={route.active}
-              isSubmenuOpen={route.submenuKey ? openSubmenus[route.submenuKey] : false}
-              toggleSubmenu={() => route.submenuKey && toggleSubmenu(route.submenuKey)}
+              isSubmenuOpen={
+                route.submenuKey ? openSubmenus[route.submenuKey] : false
+              }
+              toggleSubmenu={() =>
+                route.submenuKey && toggleSubmenu(route.submenuKey)
+              }
               children={route.children}
               proBadge={route.proBadge}
               isCollapsed={isCollapsed}
@@ -391,14 +408,13 @@ export function CustomSidebar({ role = "admin", user }) {
           <div
             className={cn(
               "flex items-center gap-3 p-2 rounded-full hover:bg-primary/30 transition-colors cursor-pointer",
-              isCollapsed && "justify-center hover:bg-transparent"
+              isCollapsed && "justify-center hover:bg-transparent",
             )}
           >
             <div className="w-9 h-9 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-sm font-semibold shrink-0">
               {user?.full_name?.charAt(0)}
             </div>
             {!isCollapsed && (
-              
               <Link href="/profile" className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">
                   {user?.full_name || "User"}
@@ -418,7 +434,13 @@ export function CustomSidebar({ role = "admin", user }) {
       </aside>
 
       {/* Desktop Spacer */}
-      <div className={cn("hidden md:block", sidebarWidth, "transition-all duration-300 ease-in-out")} />
+      <div
+        className={cn(
+          "hidden md:block",
+          sidebarWidth,
+          "transition-all duration-300 ease-in-out",
+        )}
+      />
 
       {/* Mobile Bottom Tab Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-sidebar dark:bg-[#1C1C1E] border-t border-card-border">

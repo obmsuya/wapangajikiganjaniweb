@@ -147,6 +147,21 @@ const AuthService = {
     }
   },
 
+  getCurrentUserFromToken: () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) return null;
+    // JWT structure: header.payload.signature — we only need the payload (index 1)
+    const payload = token.split('.')[1];
+    // Base64url → Base64 → JSON
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return decoded;
+  } catch {
+    return null;
+  }
+},
+
   // Log out user
   logout: async () => {
     try {

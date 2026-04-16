@@ -21,6 +21,7 @@ import {
 } from "@/components/cloudflare/Breadcrumbs";
 import { usePropertyDetails } from "@/hooks/properties/useProperties";
 import PropertyService from "@/services/landlord/property";
+import AuthService from "@/services/auth";
 import PropertyOverviewTab from "@/components/landlord/properties/tabs/PropertyOverviewTab";
 import PropertyUnitsTab from "@/components/landlord/properties/tabs/PropertyUnitsTab";
 import PropertyFloorsTab from "@/components/landlord/properties/tabs/PropertyFloorsTab";
@@ -35,7 +36,16 @@ import { toast } from "sonner";
 export default function PropertyDetailsPage({ params }) {
   const router = useRouter();
   const unwrappedParams = React.use(params);
-  const { property, tenants, loading, error, refreshProperty } = usePropertyDetails(unwrappedParams.id);
+  const currentUser = AuthService.getCurrentUserFromToken();
+  const canSeePayments =
+    currentUser?.user_type !== "manager" ||
+    currentUser?.can_collect_payments === true;
+  const canManageTenants =
+    currentUser?.user_type !== "manager" ||
+    currentUser?.can_create_tenants === true;
+  const isManager = currentUser?.user_type === "manager";
+  const { property, tenants, loading, error, refreshProperty } =
+    usePropertyDetails(unwrappedParams.id);
   const [activeTab, setActiveTab] = useState("overview");
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showTenantDetails, setShowTenantDetails] = useState(false);
@@ -55,27 +65,27 @@ export default function PropertyDetailsPage({ params }) {
   };
 
   const handleSaveFloorLayout = async (floorNumber, layoutData) => {
-  try {
-    // floorNumber here is 0-indexed (floor_no from backend)
-    // bulkUpdateFloorLayout backend does int(key) - 1, so we pass key as floorNumber + 1
-    const oneIndexedKey = floorNumber + 1;
-    
-    await PropertyService.bulkUpdateFloorLayout(unwrappedParams.id, {
-      [oneIndexedKey]: layoutData,
-    });
+    try {
+      // floorNumber here is 0-indexed (floor_no from backend)
+      // bulkUpdateFloorLayout backend does int(key) - 1, so we pass key as floorNumber + 1
+      const oneIndexedKey = floorNumber + 1;
 
-    toast.success("Floor Updated", {
-      description: `Floor layout has been saved successfully`,
-    });
+      await PropertyService.bulkUpdateFloorLayout(unwrappedParams.id, {
+        [oneIndexedKey]: layoutData,
+      });
 
-    refreshProperty();
-  } catch (error) {
-    console.error("Error saving floor layout:", error);
-    toast.error("Save Failed", {
-      description: error.message || "Failed to save floor layout",
-    });
-  }
-};
+      toast.success("Floor Updated", {
+        description: `Floor layout has been saved successfully`,
+      });
+
+      refreshProperty();
+    } catch (error) {
+      console.error("Error saving floor layout:", error);
+      toast.error("Save Failed", {
+        description: error.message || "Failed to save floor layout",
+      });
+    }
+  };
   const handleAssignTenant = (unit) => {
     setSelectedUnit(unit);
     setShowAssignDialog(true);
@@ -169,19 +179,19 @@ export default function PropertyDetailsPage({ params }) {
             // Ensure current_tenant is properly formatted
             current_tenant: unit.current_tenant
               ? {
-                id: unit.current_tenant.id,
-                full_name: unit.current_tenant.full_name,
-                phone_number: unit.current_tenant.phone_number,
-                email: unit.current_tenant.email,
-                move_in_date: unit.current_tenant.move_in_date,
-                status: unit.current_tenant.status || "active",
-                emergency_contact_name:
-                  unit.current_tenant.emergency_contact_name,
-                emergency_contact_phone:
-                  unit.current_tenant.emergency_contact_phone,
-                emergency_contact_relationship:
-                  unit.current_tenant.emergency_contact_relationship,
-              }
+                  id: unit.current_tenant.id,
+                  full_name: unit.current_tenant.full_name,
+                  phone_number: unit.current_tenant.phone_number,
+                  email: unit.current_tenant.email,
+                  move_in_date: unit.current_tenant.move_in_date,
+                  status: unit.current_tenant.status || "active",
+                  emergency_contact_name:
+                    unit.current_tenant.emergency_contact_name,
+                  emergency_contact_phone:
+                    unit.current_tenant.emergency_contact_phone,
+                  emergency_contact_relationship:
+                    unit.current_tenant.emergency_contact_relationship,
+                }
               : null,
             // Ensure unit status is correct based on tenant presence
             status: unit.current_tenant
@@ -227,13 +237,13 @@ export default function PropertyDetailsPage({ params }) {
               floor.grid_configuration ||
               (floor.layout_data
                 ? {
-                  grid_size: 8,
-                  cell_size: 40,
-                  selected_cells: processedUnits
-                    .map((unit) => unit.svg_id)
-                    .filter((id) => id !== undefined),
-                  layout_type: "manual_grid",
-                }
+                    grid_size: 8,
+                    cell_size: 40,
+                    selected_cells: processedUnits
+                      .map((unit) => unit.svg_id)
+                      .filter((id) => id !== undefined),
+                    layout_type: "manual_grid",
+                  }
                 : null),
 
             // Units details for editing
@@ -250,7 +260,7 @@ export default function PropertyDetailsPage({ params }) {
               floor_number: unit.floor_number,
               utilities: unit.utilities || {},
               occupancy_id: unit.occupancy_id || null,
-              payment_frequency: unit.payment_freq || "1",   // occupancy freq for dialog
+              payment_frequency: unit.payment_freq || "1", // occupancy freq for dialog
               move_in_date: unit.current_tenant?.move_in_date || null,
               payment_status: unit.payment_status || null,
             })),
@@ -371,11 +381,19 @@ export default function PropertyDetailsPage({ params }) {
               <Grid className="h-4 w-4 lg:mr-2" />
               <span className="max-lg:hidden">Floor Plans</span>
             </TabsTrigger>
-            <TabsTrigger value="tenants">
+            <TabsTrigger
+              value="tenants"
+              disabled={!canManageTenants}
+              className="disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               <Users className="h-4 w-4 lg:mr-2" />
               <span className="max-lg:hidden">Tenants</span>
             </TabsTrigger>
-            <TabsTrigger value="payments">
+            <TabsTrigger
+              value="payments"
+              disabled={!canSeePayments}
+              className="disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               <DollarSign className="h-4 w-4 lg:mr-2" />
               <span className="max-lg:hidden">Payments</span>
             </TabsTrigger>

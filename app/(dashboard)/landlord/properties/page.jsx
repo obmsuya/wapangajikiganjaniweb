@@ -14,6 +14,8 @@ import PropertyCard from "@/components/landlord/properties/PropertyCard";
 import UpgradeModal from "@/components/landlord/subscription/UpgradeModal";
 
 export default function PropertiesPage() {
+  const currentUser = AuthService.getCurrentUserFromToken();
+  const isManager = currentUser?.user_type === "manager";
   const router = useRouter();
   const { 
     dashboardStats, 
@@ -173,7 +175,7 @@ export default function PropertiesPage() {
           description="Manage your properties and tenants"
           actions={
             <div className="flex items-center gap-8 justify-between w-full">
-              {subscriptionData && (
+              {subscriptionData && !isManager && (
                 <Badge 
                   variant="secondary" 
                   className={`border ${subscriptionData.isFreePlan ? 'border-orange-200 text-orange-700' : 'bg-green-200 border-green-700 text-green-700'}`}
@@ -183,13 +185,13 @@ export default function PropertiesPage() {
                 </Badge>
               )}
               
-              <Button 
+              {!isManager && <Button 
                 onClick={handleNavigateToSetup}
                 className="w-fit"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Property
-              </Button>
+              </Button>}
             </div>
           }
         />
