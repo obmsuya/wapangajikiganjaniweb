@@ -18,7 +18,7 @@ const TABS = [
   { value: 'subscriptions',  label: 'Subscriptions',  icon: CreditCard },
   { value: 'transactions',   label: 'Transactions',   icon: CreditCard },
   { value: 'failed',         label: 'Failed',         icon: AlertCircle },
-  { value: 'analytics',      label: 'Analytics',      icon: BarChart4 },
+  // { value: 'analytics',      label: 'Analytics',      icon: BarChart4 },
 ];
 
 const SUB_TABS_SUBSCRIPTIONS = [
