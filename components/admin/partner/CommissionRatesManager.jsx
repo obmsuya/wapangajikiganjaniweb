@@ -294,7 +294,7 @@ export default function CommissionRatesManager() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0 flex-none">
-          <Button
+          {/* <Button
             variant="outline"
             size="sm"
             onClick={refreshRates}
@@ -304,7 +304,7 @@ export default function CommissionRatesManager() {
               className={`size-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`}
             />
             Refresh
-          </Button>
+          </Button> */}
           <Button size="sm" onClick={handleBulkEdit} disabled={updating}>
             <Edit className="size-3.5 mr-1.5" />
             Edit rates
