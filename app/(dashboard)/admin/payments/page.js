@@ -103,7 +103,7 @@ export default function AdminPaymentPage() {
               {isClient && <FailedPaymentsList />}
             </TabsContent>
 
-            <TabsContent value="analytics" className="mt-0">
+            {/* <TabsContent value="analytics" className="mt-0">
               {isClient && (
                 <Tabs defaultValue="revenue">
                   <TabsList className="bg-transparent border-b rounded-none h-auto p-0 gap-1 w-full justify-start mb-6">
@@ -118,7 +118,7 @@ export default function AdminPaymentPage() {
                   </TabsContent>
                 </Tabs>
               )}
-            </TabsContent>
+            </TabsContent> */}
 
           </div>
         </Tabs>
