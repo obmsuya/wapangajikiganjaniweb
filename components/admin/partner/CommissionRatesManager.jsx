@@ -440,9 +440,6 @@ export default function CommissionRatesManager() {
 
           {/* Fixed footer — sits outside scroll, no flex-col-reverse issues */}
           <div className="px-6 py-4 border-t flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={handleClose}>
-              Cancel
-            </Button>
             <Button size="sm" onClick={handleSave} disabled={updating}>
               {updating ? (
                 <>
