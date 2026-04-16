@@ -75,13 +75,14 @@ function EmptyManagers({ onAssign }) {
 
 const EMPTY = {
   phone_number: '', full_name: '', email: '',
-  can_create_tenants: true, can_collect_payments: true,
+  can_create_tenants: true, 
+  can_collect_payments: false,
   can_manage_maintenance: true, is_active: true,
 };
 
 const PERMS = [
   { key: 'can_create_tenants',     label: 'Create tenants'    },
-  { key: 'can_collect_payments',   label: 'Collect payments'  },
+  // { key: 'can_collect_payments',   label: 'Collect payments'  },
   { key: 'can_manage_maintenance', label: 'Manage maintenance'},
 ];
 
