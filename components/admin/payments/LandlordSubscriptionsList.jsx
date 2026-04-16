@@ -1,446 +1,445 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { 
-  Search, Filter, Eye, AlertTriangle, RefreshCw, CalendarClock, 
-  Clock, CheckCircle2, XCircle, Download, Share, MoreHorizontal
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import {
+  Eye, AlertTriangle, RefreshCw, Clock, CheckCircle2,
+  XCircle, Download, MoreHorizontal, Filter, Search,
+  Users, CreditCard, AlertCircle, X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
+  Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup,
+  DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
-import { CloudflareTable } from '@/components/cloudflare/Table';
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  flexRender, getCoreRowModel, getSortedRowModel,
+  getFilteredRowModel, getPaginationRowModel, useReactTable,
+} from '@tanstack/react-table';
 import { useLandlordSubscriptions, useSubscriptionPlans } from '@/hooks/admin/useAdminPayment';
 import SubscriptionDetailContent from './SubscriptionDetailContent';
 
-/**
- * Landlord subscriptions list component with filtering capabilities
- */
-export default function LandlordSubscriptionsList() {
-  // State for detail dialog
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [selectedLandlord, setSelectedLandlord] = useState(null);
-  const [isClient, setIsClient] = useState(false);
-  
-  // Get landlord subscriptions and plans
-  const { 
-    subscriptions, 
-    loading, 
-    error, 
-    filters, 
-    updateFilters,
-    refreshSubscriptions,
-    updateSubscription
-  } = useLandlordSubscriptions();
-  
-  const { plans } = useSubscriptionPlans();
-  
-  // Handle hydration issues
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+function formatCurrency(amount) {
+  if (!amount && amount !== 0) return '—';
+  if (amount === 0) return 'Free';
+  return new Intl.NumberFormat('en-TZ', {
+    style: 'currency', currency: 'TZS',
+    minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(amount);
+}
 
-  // Format currency to TZS
-  const formatCurrency = (amount) => {
-    if (amount === undefined || amount === null) return '—';
-    return new Intl.NumberFormat('en-TZ', {
-      style: 'currency',
-      currency: 'TZS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-  
-  // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return '—';
-    return new Date(dateString).toLocaleDateString();
-  };
-  
-  // Get status badge color
-  const getStatusBadge = (status, endDate) => {
-    if (status !== 'active') {
-      return (
-        <Badge variant="outline" className="border-gray-400 text-gray-500">
-          <XCircle className="h-3 w-3 mr-1" />
-          {status === 'cancelled' ? 'Cancelled' : 'Expired'}
-        </Badge>
-      );
-    }
-    
-    // Check if subscription is expiring soon (within 7 days)
-    const end = new Date(endDate);
-    const now = new Date();
-    const daysUntilExpiry = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-    
-    if (daysUntilExpiry <= 0) {
-      return (
-        <Badge variant="outline" className="border-red-400 text-red-500">
-          <XCircle className="h-3 w-3 mr-1" />
-          Expired
-        </Badge>
-      );
-    } else if (daysUntilExpiry <= 7) {
-      return (
-        <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
-          <AlertTriangle className="h-3 w-3 mr-1" />
-          Expiring soon
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-          <CheckCircle2 className="h-3 w-3 mr-1" />
-          Active
-        </Badge>
-      );
-    }
-  };
-  
-  // Handle opening the details dialog
-  const handleViewDetails = useCallback((landlord) => {
-    setSelectedLandlord(landlord);
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString();
+}
+
+function daysUntil(endDate) {
+  if (!endDate) return null;
+  return Math.ceil((new Date(endDate) - new Date()) / (1000 * 60 * 60 * 24));
+}
+
+function StatusBadge({ status, endDate }) {
+  if (!status) return <Badge variant="secondary">No subscription</Badge>;
+  if (status !== 'active') {
+    return (
+      <Badge variant="secondary">
+        <XCircle data-icon="inline-start" />
+        {status === 'cancelled' ? 'Cancelled' : 'Expired'}
+      </Badge>
+    );
+  }
+  const days = daysUntil(endDate);
+  if (days <= 0)  return <Badge variant="destructive"><XCircle data-icon="inline-start" />Expired</Badge>;
+  if (days <= 7)  return <Badge variant="outline" className="text-warning border-warning"><AlertTriangle data-icon="inline-start" />Expiring in {days}d</Badge>;
+  return <Badge variant="default"><CheckCircle2 data-icon="inline-start" />Active</Badge>;
+}
+
+// Summary mini-card — same muted pattern as rest of app
+function SummaryCard({ label, value, icon: Icon }) {
+  return (
+    <div className="bg-muted/40 rounded-lg px-4 py-3">
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <Icon className="size-3.5 text-muted-foreground" />
+      </div>
+      <p className="text-xl font-medium tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+export default function LandlordSubscriptionsList() {
+  const [detailsOpen, setDetailsOpen]         = useState(false);
+  const [selectedLandlord, setSelected]       = useState(null);
+  const [globalFilter, setGlobalFilter]       = useState('');
+  const [sorting, setSorting]                 = useState([]);
+  const [filterPopoverOpen, setFilterPopover] = useState(false);
+  const [localFilters, setLocalFilters]       = useState({ status: '', plan_type: '' });
+
+  const {
+    subscriptions, loading, error, filters,
+    updateFilters, refreshSubscriptions, updateSubscription,
+  } = useLandlordSubscriptions();
+
+  const { plans: rawPlans } = useSubscriptionPlans();
+  const plans = Array.isArray(rawPlans) ? rawPlans
+    : Array.isArray(rawPlans?.plans) ? rawPlans.plans
+    : [];
+
+  // Normalise rows — guarantees shape regardless of API variance
+  const tableData = useMemo(() => {
+    if (!Array.isArray(subscriptions)) return [];
+    return subscriptions.map(l => ({
+      id:             l.id,
+      full_name:      l.full_name,
+      phone_number:   l.phone_number,
+      property_count: l.property_count,
+      date_joined:    l.date_joined,
+      subscription:   l.subscription,
+    }));
+  }, [subscriptions]);
+
+  // Summary counts
+  const summary = useMemo(() => {
+    const active   = tableData.filter(r => r.subscription?.status === 'active' && daysUntil(r.subscription?.end_date) > 0).length;
+    const expiring = tableData.filter(r => {
+      const d = daysUntil(r.subscription?.end_date);
+      return r.subscription?.status === 'active' && d !== null && d > 0 && d <= 7;
+    }).length;
+    const expired  = tableData.filter(r => !r.subscription || daysUntil(r.subscription?.end_date) <= 0 || r.subscription?.status !== 'active').length;
+    return { total: tableData.length, active, expiring, expired };
+  }, [tableData]);
+
+  const handleView = useCallback((landlord) => {
+    setSelected(landlord);
     setDetailsOpen(true);
   }, []);
 
-  // Export data
-  const handleExportData = useCallback(() => {
-    // In a real implementation, this would generate a CSV or Excel file
-    alert('This would export subscription data as CSV/Excel');
-  }, []);
-  
-  // Table columns configuration
-  const columns = [
-    {
-      header: 'Landlord',
-      accessor: 'full_name',
-      sortable: true,
-      filterable: true,
-      cell: (row) => (
-        <div>
-          <div className="font-medium">{row.full_name}</div>
-          <div className="text-sm text-gray-500">{row.phone_number}</div>
-        </div>
-      )
-    },
-    {
-      header: 'Plan',
-      accessor: 'plan_name',
-      sortable: true,
-      filterable: true,
-      cell: (row) => (
-        <div>
-          {row.subscription ? (
-            <div>
-              <span className="font-medium">{row.subscription.plan_name}</span>
-              <div className="text-xs text-gray-500 mt-1">
-                {formatCurrency(row.subscription.price)}
-                {' / '}
-                {row.subscription.plan_type}
-              </div>
-            </div>
-          ) : (
-            <span className="text-gray-500">No active plan</span>
-          )}
-        </div>
-      )
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      sortable: true,
-      filterable: true,
-      filterOptions: [
-        { value: 'active', label: 'Active' },
-        { value: 'expired', label: 'Expired' },
-        { value: 'cancelled', label: 'Cancelled' }
-      ],
-      cell: (row) => (
-        row.subscription ? (
-          getStatusBadge(row.subscription.status, row.subscription.end_date)
-        ) : (
-          <Badge variant="outline" className="border-gray-400 text-gray-500">
-            No subscription
-          </Badge>
-        )
-      )
-    },
-    {
-      header: 'Properties',
-      accessor: 'property_count',
-      sortable: true,
-      cell: (row) => (
-        <div className="text-center">
-          <span className="font-medium">{row.property_count}</span>
-          {row.subscription && (
-            <span className="text-xs text-gray-500 ml-1">
-              / {row.subscription.property_limit}
-            </span>
-          )}
-        </div>
-      )
-    },
-    {
-      header: 'Joined',
-      accessor: 'date_joined',
-      sortable: true,
-      cell: (row) => formatDate(row.date_joined)
-    },
-    {
-      header: 'Expiry',
-      accessor: 'end_date',
-      sortable: true,
-      cell: (row) => (
-        <div className="flex items-center">
-          {row.subscription?.end_date ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center cursor-help">
-                    <Clock className="h-4 w-4 mr-1 text-gray-500" />
-                    {formatDate(row.subscription.end_date)}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Subscription expires on {new Date(row.subscription.end_date).toLocaleString()}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <span className="text-gray-500">—</span>
-          )}
-        </div>
-      )
-    },
-    {
-      header: 'Actions',
-      type: 'actions',
-      actions: [
-        {
-          label: 'View Details',
-          icon: <Eye className="h-4 w-4" />,
-          onClick: handleViewDetails
-        }
-      ]
-    }
-  ];
-
-  // Transform subscriptions data for the table
-  const tableData = subscriptions?.map(landlord => ({
-    id: landlord.id,
-    full_name: landlord.full_name,
-    phone_number: landlord.phone_number,
-    property_count: landlord.property_count,
-    date_joined: landlord.date_joined,
-    subscription: landlord.subscription,
-    plan_name: landlord.subscription?.plan_name || '',
-    status: landlord.subscription?.status || '',
-    end_date: landlord.subscription?.end_date || ''
-  })) || [];
-
-  // Calculate summary stats
-  const summaryStats = {
-    total: tableData.length,
-    active: tableData.filter(row => row.subscription?.status === 'active' && new Date(row.subscription?.end_date) > new Date()).length,
-    expiring: tableData.filter(row => {
-      if (!row.subscription?.end_date || row.subscription?.status !== 'active') return false;
-      const endDate = new Date(row.subscription.end_date);
-      const now = new Date();
-      const daysUntilExpiry = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
-      return daysUntilExpiry > 0 && daysUntilExpiry <= 7;
-    }).length,
-    expired: tableData.filter(row => {
-      if (!row.subscription?.end_date) return false;
-      return new Date(row.subscription.end_date) <= new Date() || row.subscription?.status === 'expired';
-    }).length
+  const applyFilters = () => {
+    const next = Object.fromEntries(
+      Object.entries(localFilters).filter(([, v]) => v !== '')
+    );
+    updateFilters(next);
+    setFilterPopover(false);
   };
 
+  const clearFilters = () => {
+    setLocalFilters({ status: '', plan_type: '' });
+    updateFilters({});
+    setFilterPopover(false);
+  };
+
+  const activeFilterCount = Object.values(localFilters).filter(Boolean).length;
+
+  const columns = useMemo(() => [
+    {
+      accessorKey: 'full_name',
+      header: 'Landlord',
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-medium">{row.original.full_name}</span>
+          <span className="text-xs text-muted-foreground">{row.original.phone_number}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'subscription',
+      header: 'Plan',
+      cell: ({ row }) => {
+        const sub = row.original.subscription;
+        if (!sub) return <span className="text-sm text-muted-foreground">—</span>;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{sub.plan_name}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {formatCurrency(sub.price)} · {sub.plan_type}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      cell: ({ row }) => (
+        <StatusBadge
+          status={row.original.subscription?.status}
+          endDate={row.original.subscription?.end_date}
+        />
+      ),
+    },
+    {
+      accessorKey: 'property_count',
+      header: 'Properties',
+      cell: ({ row }) => {
+        const { property_count, subscription } = row.original;
+        return (
+          <span className="text-sm tabular-nums">
+            {property_count}
+            {subscription && (
+              <span className="text-muted-foreground"> / {subscription.property_limit}</span>
+            )}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'date_joined',
+      header: 'Joined',
+      cell: ({ row }) => (
+        <span className="text-sm tabular-nums">{formatDate(row.original.date_joined)}</span>
+      ),
+    },
+    {
+      id: 'expiry',
+      header: 'Expires',
+      cell: ({ row }) => {
+        const endDate = row.original.subscription?.end_date;
+        if (!endDate) return <span className="text-sm text-muted-foreground">—</span>;
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5 cursor-default">
+                  <Clock className="size-3.5 text-muted-foreground" />
+                  <span className="text-sm tabular-nums">{formatDate(endDate)}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Expires {new Date(endDate).toLocaleString()}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <Button variant="ghost" size="icon" className="size-8" onClick={() => handleView(row.original)}>
+          <Eye className="size-4" />
+        </Button>
+      ),
+    },
+  ], [handleView]);
+
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    state: { sorting, globalFilter },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 10 } },
+  });
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap justify-between items-center gap-3">
-        <h2 className="text-xl font-bold">Landlord Subscriptions</h2>
-        
+    <div className="flex flex-col gap-5">
+
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-base font-medium">Landlord subscriptions</h2>
+          <p className="text-sm text-muted-foreground">{summary.total} landlords</p>
+        </div>
+
         <div className="flex items-center gap-2">
-          <Popover>
+          <Popover open={filterPopoverOpen} onOpenChange={setFilterPopover}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
+                <Filter data-icon="inline-start" />
                 Filters
-                {Object.keys(filters).length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {Object.keys(filters).length}
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 size-5 rounded-full p-0 flex items-center justify-center text-xs">
+                    {activeFilterCount}
                   </Badge>
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="space-y-4">
-                <h3 className="font-medium">Filter Subscriptions</h3>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="search">Search</Label>
-                  <Input
-                    id="search"
-                    placeholder="Name or phone number"
-                    value={filters.search || ''}
-                    onChange={(e) => updateFilters({ search: e.target.value })}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={filters.status || ''}
-                    onValueChange={(value) => updateFilters({ status: value })}
-                  >
-                    <SelectTrigger id="status">
-                      <SelectValue placeholder="All statuses" />
-                    </SelectTrigger>
+            <PopoverContent className="w-72" align="end">
+              <div className="flex flex-col gap-4">
+                <p className="text-sm font-medium">Filter subscriptions</p>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs text-muted-foreground">Status</label>
+                  <Select value={localFilters.status} onValueChange={v => setLocalFilters(p => ({ ...p, status: v }))}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All statuses" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All statuses</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="expired">Expired</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectGroup>
+                        <SelectItem value="">All statuses</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="expired">Expired</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="plan_type">Plan Type</Label>
-                  <Select
-                    value={filters.plan_type || ''}
-                    onValueChange={(value) => updateFilters({ plan_type: value })}
-                  >
-                    <SelectTrigger id="plan_type">
-                      <SelectValue placeholder="All plans" />
-                    </SelectTrigger>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs text-muted-foreground">Plan type</label>
+                  <Select value={localFilters.plan_type} onValueChange={v => setLocalFilters(p => ({ ...p, plan_type: v }))}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All plans" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All plans</SelectItem>
-                      <SelectItem value="free">Free</SelectItem>
-                      <SelectItem value="basic">Basic</SelectItem>
-                      <SelectItem value="premium">Premium</SelectItem>
-                      <SelectItem value="enterprise">Enterprise</SelectItem>
+                      <SelectGroup>
+                        <SelectItem value="">All plans</SelectItem>
+                        <SelectItem value="free">Free</SelectItem>
+                        <SelectItem value="basic">Basic</SelectItem>
+                        <SelectItem value="premium">Premium</SelectItem>
+                        <SelectItem value="enterprise">Enterprise</SelectItem>
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 </div>
-                
-                {Object.keys(filters).length > 0 && (
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => updateFilters({})}
-                  >
-                    Clear All Filters
-                  </Button>
-                )}
+
+                <Separator />
+
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={clearFilters}>Reset</Button>
+                  <Button size="sm" className="flex-1" onClick={applyFilters}>Apply</Button>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
-                <MoreHorizontal className="h-4 w-4 mr-2" />
+                <MoreHorizontal data-icon="inline-start" />
                 Actions
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={handleExportData}>
-                <Download className="h-4 w-4 mr-2" />
-                Export Data
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={refreshSubscriptions}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh Data
-              </DropdownMenuItem>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={refreshSubscriptions}>
+                  <RefreshCw data-icon="inline-start" />
+                  Refresh
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => alert('Export coming soon')}>
+                  <Download data-icon="inline-start" />
+                  Export CSV
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
-      
-      {/* Summary Stats */}
-      {isClient && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Card className="p-3">
-            <div className="text-sm text-gray-500">Total Landlords</div>
-            <div className="text-2xl font-bold">{summaryStats.total}</div>
-          </Card>
-          
-          <Card className="p-3">
-            <div className="text-sm text-gray-500">Active Subscriptions</div>
-            <div className="text-2xl font-bold text-green-600">{summaryStats.active}</div>
-          </Card>
-          
-          <Card className="p-3">
-            <div className="text-sm text-gray-500">Expiring Soon</div>
-            <div className="text-2xl font-bold text-amber-600">{summaryStats.expiring}</div>
-          </Card>
-          
-          <Card className="p-3">
-            <div className="text-sm text-gray-500">Expired/Cancelled</div>
-            <div className="text-2xl font-bold text-gray-500">{summaryStats.expired}</div>
-          </Card>
-        </div>
-      )}
-      
-      {/* Error message */}
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <SummaryCard label="Total"          value={summary.total}    icon={Users} />
+        <SummaryCard label="Active"         value={summary.active}   icon={CheckCircle2} />
+        <SummaryCard label="Expiring soon"  value={summary.expiring} icon={AlertCircle} />
+        <SummaryCard label="Expired"        value={summary.expired}  icon={XCircle} />
+      </div>
+
       {error && (
-        <div className="p-4 bg-error-50 text-error-700 rounded-md">
-          Failed to load subscriptions. Please try again.
-        </div>
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" />
+          <AlertDescription>Failed to load subscriptions. Please refresh.</AlertDescription>
+        </Alert>
       )}
-      
-      {/* Subscriptions table */}
-      <CloudflareTable
-        data={tableData}
-        columns={columns}
-        loading={loading}
-        pagination={true}
-        initialRowsPerPage={10}
-        searchable={false} // We're handling search in our own filters
-        emptyMessage="No landlords found. Try adjusting your filters."
-      />
-      
-      {/* Subscription details dialog */}
+
+      {/* Search */}
+      <div className="relative w-full max-w-sm">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="Search landlords..."
+          value={globalFilter}
+          onChange={e => setGlobalFilter(e.target.value)}
+          className="w-full pl-8 h-9 text-sm"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map(hg => (
+              <TableRow key={hg.id}>
+                {hg.headers.map(h => (
+                  <TableHead key={h.id} className="text-xs h-10">
+                    {flexRender(h.column.columnDef.header, h.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              Array(5).fill(0).map((_, i) => (
+                <TableRow key={i}>
+                  {columns.map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map(row => (
+                <TableRow key={row.id} className="h-12">
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id} className="text-sm">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center text-sm text-muted-foreground">
+                  No landlords found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span>{table.getFilteredRowModel().rows.length} result{table.getFilteredRowModel().rows.length !== 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="size-8" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+            ‹
+          </Button>
+          <span className="px-2 text-sm">
+            {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+          </span>
+          <Button variant="ghost" size="icon" className="size-8" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            ›
+          </Button>
+        </div>
+      </div>
+
+      {/* Detail dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Subscription Details</DialogTitle>
+            <DialogTitle>Subscription details</DialogTitle>
           </DialogHeader>
           {selectedLandlord && (
-            <SubscriptionDetailContent 
+            <SubscriptionDetailContent
               landlord={selectedLandlord}
               plans={plans}
               onUpdateSubscription={updateSubscription}
@@ -452,6 +451,7 @@ export default function LandlordSubscriptionsList() {
           )}
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
