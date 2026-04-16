@@ -283,12 +283,12 @@ export function CustomSidebar({ role = "admin", user }) {
         href: "/admin/payments",
         active: pathname.includes("/admin/payments"),
       },
-      {
-        label: "Settings",
-        icon: Settings,
-        href: "/profile",
-        active: pathname.includes("/profile"),
-      },
+      // {
+      //   label: "Settings",
+      //   icon: Settings,
+      //   href: "/profile",
+      //   active: pathname.includes("/profile"),
+      // },
     ];
   };
 

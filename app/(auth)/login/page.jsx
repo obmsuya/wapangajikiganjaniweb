@@ -72,7 +72,7 @@ export default function LoginPage() {
         // Route based on user_type instead of is_staff
         switch (user.user_type) {
           case "system_admin":
-            router.push("/admin/dashboard");
+            router.push("/admin/users");
             break;
           case "landlord":
             router.push("/landlord/properties");
