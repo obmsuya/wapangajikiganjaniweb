@@ -243,13 +243,13 @@ export default function AdminUsersPage() {
             </div>
 
             {/* Type filter */}
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <Select value={typeFilter || 'all'} onValueChange={v => setTypeFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="h-9 w-36 text-sm">
                 <SelectValue placeholder="All types" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="">All types</SelectItem>
+                  <SelectItem value="all">All types</SelectItem>
                   <SelectItem value="landlord">Landlord</SelectItem>
                   <SelectItem value="tenant">Tenant</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
@@ -260,13 +260,13 @@ export default function AdminUsersPage() {
             </Select>
 
             {/* Status filter */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+           <Select value={statusFilter || 'all'} onValueChange={v => setStatusFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="h-9 w-36 text-sm">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="suspended">Suspended</SelectItem>
                   <SelectItem value="blocked">Blocked</SelectItem>
