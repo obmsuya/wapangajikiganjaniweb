@@ -176,7 +176,7 @@ export function CustomSidebar({ role = "admin", user }) {
           active: pathname === "/landlord/maintenance",
         },
         {
-          label: "Wapangaji",
+          label: "Payment Portal",
           icon: Crown,
           href: "/landlord/subscriptions",
           active: pathname.includes("/landlord/subscriptions"),
@@ -340,7 +340,7 @@ export function CustomSidebar({ role = "admin", user }) {
           {!isCollapsed && (
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-bold text-sidebar-foreground truncate">
-                Payment Portal
+                Wapangaji Portal
               </h2>
               <p className="text-xs text-sidebar-foreground/60 truncate">
                 {getUserPortalTitle()}
