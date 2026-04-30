@@ -164,7 +164,7 @@ export function CustomSidebar({ role = "admin", user }) {
           active: pathname.includes("/landlord/properties"),
         },
         {
-          label: "Payments",
+          label: "Payment Overview",
           icon: Banknote,
           href: "/landlord/payments",
           active: pathname === "/landlord/payments",
@@ -183,7 +183,7 @@ export function CustomSidebar({ role = "admin", user }) {
           proBadge: true,
         },
         {
-          label: "Confirm Payments",
+          label: "Payment Approval",
           icon: Handshake,
           href: "/landlord/payments/confirmations",
           active: pathname.includes("/landlord/payments/confirmations"),
