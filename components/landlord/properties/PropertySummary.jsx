@@ -205,10 +205,10 @@ export default function PropertySummary({
                     <p className="text-sm text-gray-600 mb-1">Category</p>
                     <Badge variant="outline">{propertyData?.category || 'Not set'}</Badge>
                   </div>
-                  <div>
+                  {/* <div>
                     <p className="text-sm text-gray-600 mb-1">Total Area</p>
                     <p className="font-semibold">{propertyData?.total_area || 0} sq m</p>
-                  </div>
+                  </div> */}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Property Image</p>
                     <div className="flex items-center gap-2">
