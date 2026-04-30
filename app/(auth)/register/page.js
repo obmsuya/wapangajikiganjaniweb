@@ -406,6 +406,9 @@ export default function RegisterPage() {
                   Referral Code{" "}
                   <span className="text-muted-foreground font-normal">(optional)</span>
                 </label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Only for partners
+                </p>
 
                 <div
                   className="flex items-center gap-2 justify-between"
