@@ -36,7 +36,7 @@ export default function FloorPlanDesigner({
   updateFloorData,
   updatePropertyData,
   existingProperty = null,
-  saveRef, // ← add this
+  saveRef,
 }) {
   const [inlineFloorCount, setInlineFloorCount] = useState(
     propertyData?.total_floors || 1,
@@ -106,11 +106,6 @@ export default function FloorPlanDesigner({
     onValidationChange?.(isFloorPlanValid);
   }, [isFloorPlanValid, onValidationChange]);
 
-  // ← add this: expose handleSaveCurrentFloor to parent via ref
-  useEffect(() => {
-    if (saveRef) saveRef.current = handleSaveCurrentFloor;
-  }, [saveRef, handleSaveCurrentFloor]);
-
   const handleFloorCountChange = (newCount) => {
     const count = Math.max(1, Math.min(20, newCount));
     setInlineFloorCount(count);
@@ -128,26 +123,6 @@ export default function FloorPlanDesigner({
       });
     }
   };
-
-  const handleFloorChange = useCallback(
-    async (floorNumber) => {
-      if (floorNumber === currentFloor) return;
-      setIsLoadingFloor(true);
-      try {
-        if (selectedUnits.length > 0) await handleSaveCurrentFloor();
-        await loadFloorData(floorNumber);
-      } catch {
-        setErrors((prev) => ({
-          ...prev,
-          floorChange: "Failed to load floor data. Please try again.",
-        }));
-      } finally {
-        setIsLoadingFloor(false);
-        setFloorPanelOpen(false);
-      }
-    },
-    [currentFloor, selectedUnits, loadFloorData],
-  );
 
   const handleSaveCurrentFloor = useCallback(async () => {
     if (!selectedUnits || selectedUnits.length === 0) {
@@ -195,6 +170,31 @@ export default function FloorPlanDesigner({
     generateLayoutPreview,
     saveFloorPlan,
   ]);
+
+  // attach to ref AFTER handleSaveCurrentFloor is defined
+  useEffect(() => {
+    if (saveRef) saveRef.current = handleSaveCurrentFloor;
+  }, [saveRef, handleSaveCurrentFloor]);
+
+  const handleFloorChange = useCallback(
+    async (floorNumber) => {
+      if (floorNumber === currentFloor) return;
+      setIsLoadingFloor(true);
+      try {
+        if (selectedUnits.length > 0) await handleSaveCurrentFloor();
+        await loadFloorData(floorNumber);
+      } catch {
+        setErrors((prev) => ({
+          ...prev,
+          floorChange: "Failed to load floor data. Please try again.",
+        }));
+      } finally {
+        setIsLoadingFloor(false);
+        setFloorPanelOpen(false);
+      }
+    },
+    [currentFloor, selectedUnits, loadFloorData, handleSaveCurrentFloor],
+  );
 
   const handleUnitToggle = useCallback(
     async (cellIndex) => {
