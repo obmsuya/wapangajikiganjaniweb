@@ -166,62 +166,6 @@ export default function PropertySummary({
         </CloudflareCard>
       )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <CloudflareCard>
-          <CloudflareCardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Floors</p>
-                <p className="text-2xl font-bold text-blue-600">{summaryData.configuredFloors}</p>
-                <p className="text-xs text-gray-500">of {summaryData.totalFloors} floors</p>
-              </div>
-              <Building2 className="w-8 h-8 text-blue-600" />
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-
-        <CloudflareCard>
-          <CloudflareCardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Units</p>
-                <p className="text-2xl font-bold text-green-600">{summaryData.totalUnits}</p>
-                <p className="text-xs text-gray-500">total units</p>
-              </div>
-              <Home className="w-8 h-8 text-green-600" />
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-
-        <CloudflareCard>
-          <CloudflareCardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Configured</p>
-                <p className="text-2xl font-bold text-purple-600">{summaryData.unitsWithRent}</p>
-                <p className="text-xs text-gray-500">units with rent</p>
-              </div>
-              <Users className="w-8 h-8 text-purple-600" />
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-
-        <CloudflareCard>
-          <CloudflareCardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Monthly Rent</p>
-                <p className="text-lg font-bold text-orange-600">
-                  TZS {summaryData.totalMonthlyRent.toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-500">total monthly</p>
-              </div>
-              <DollarSign className="w-8 h-8 text-orange-600" />
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-      </div>
 
       {/* Detailed Information */}
       <Tabs defaultValue="basic" className="w-full">
