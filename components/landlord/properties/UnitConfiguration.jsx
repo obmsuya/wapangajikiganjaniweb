@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Home, Edit, DollarSign } from "lucide-react";
+import { Home, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CloudflareCard, CloudflareCardHeader, CloudflareCardContent } from "@/components/cloudflare/Card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,6 @@ export default function UnitConfiguration({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Generate units from floor plans (same logic, only default values)
   const availableUnits = useMemo(() => {
     const generatedUnits = [];
     
@@ -30,7 +29,7 @@ export default function UnitConfiguration({
         floor.units_ids.forEach((gridCellId, index) => {
           const unitData = {
             id: `floor-${floorNumber}-unit-${gridCellId}`,
-            unit_name: `F${floorNumber}R${index + 1}`, // "Room" instead of "Unit"
+            unit_name: `F${floorNumber}R${index + 1}`,
             floor_no: parseInt(floorNumber),
             svg_id: gridCellId,
             area_sqm: 150,
@@ -42,7 +41,6 @@ export default function UnitConfiguration({
             svg_geom: `<rect width="40" height="40" x="0" y="0" id="unit-${gridCellId}" fill="green" stroke="gray" stroke-width="2" />`,
             block: propertyData.block || 'A'
           };
-          
           generatedUnits.push(unitData);
         });
       }
@@ -55,30 +53,25 @@ export default function UnitConfiguration({
     setUnits(availableUnits);
   }, [availableUnits]);
 
-  // Validation - only checks if units exist
+  // validation — all units must have rent set
   const isConfigurationValid = useMemo(() => {
     const newErrors = {};
     
     if (units.length === 0) {
-      newErrors.units = 'No rooms available. Please configure floor plans first.';
+      newErrors.units = 'No units available. Please configure floor plans first.';
+    } else if (units.some(unit => !unit.rent_amount || unit.rent_amount <= 0)) {
+      newErrors.units = 'Please set a rent amount for every unit before continuing.';
     }
 
     setErrors(newErrors);
-    const isValid = Object.keys(newErrors).length === 0;
-    return isValid;
+    return Object.keys(newErrors).length === 0;
   }, [units]);
 
   useEffect(() => {
-    // Push every unit to parent (for saving)
     units.forEach(unit => {
-      if (addUnitData) {
-        addUnitData(unit);
-      }
+      if (addUnitData) addUnitData(unit);
     });
-    
-    if (onValidationChange) {
-      onValidationChange(isConfigurationValid);
-    }
+    if (onValidationChange) onValidationChange(isConfigurationValid);
   }, [units, addUnitData, isConfigurationValid, onValidationChange]);
 
   const handleEditUnit = useCallback((unit) => {
@@ -87,12 +80,7 @@ export default function UnitConfiguration({
   }, []);
 
   const handleSaveUnit = useCallback((unitData) => {
-    setUnits(prevUnits => 
-      prevUnits.map(unit => 
-        unit.id === unitData.id ? unitData : unit
-      )
-    );
-    
+    setUnits(prevUnits => prevUnits.map(unit => unit.id === unitData.id ? unitData : unit));
     setIsDialogOpen(false);
     setEditingUnit(null);
   }, []);
@@ -101,14 +89,6 @@ export default function UnitConfiguration({
     setIsDialogOpen(false);
     setEditingUnit(null);
   }, []);
-
-  const configuredUnitsCount = useMemo(() => {
-    return units.filter(unit => unit.rent_amount > 0).length;
-  }, [units]);
-
-  const totalRentAmount = useMemo(() => {
-    return units.reduce((total, unit) => total + (unit.rent_amount || 0), 0);
-  }, [units]);
 
   const unitsByFloor = useMemo(() => {
     return units.reduce((acc, unit) => {
@@ -121,59 +101,19 @@ export default function UnitConfiguration({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Room Configuration</h2>
+        <h2 className="text-2xl font-bold text-foreground">Unit Details</h2>
         <p className="text-muted-foreground">
-          Set the monthly rent for each room. All rooms will be saved.
+          Set the monthly rent for each unit. All units must be configured before continuing.
         </p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <CloudflareCard>
-          <CloudflareCardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Rooms</p>
-                <p className="text-2xl font-bold">{units.length}</p>
-              </div>
-              <Home className="w-8 h-8 text-blue-600" />
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-
-        <CloudflareCard>
-          <CloudflareCardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Configured</p>
-                <p className="text-2xl font-bold">{configuredUnitsCount}</p>
-              </div>
-              <Edit className="w-8 h-8 text-green-600" />
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-
-        <CloudflareCard className="max-lg:cols-span-2">
-          <CloudflareCardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Monthly Rent</p>
-                <p className="text-lg font-bold">TZS {totalRentAmount.toLocaleString()}</p>
-              </div>
-              <DollarSign className="w-8 h-8 text-purple-600" />
-            </div>
-          </CloudflareCardContent>
-        </CloudflareCard>
-      </div>
-
-      {/* Rooms by Floor */}
       {units.length === 0 ? (
         <CloudflareCard>
           <CloudflareCardContent className="p-8 text-center">
             <Home className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-semibold mb-2">No Rooms Available</h3>
+            <h3 className="text-lg font-semibold mb-2">No Units Available</h3>
             <p className="text-muted-foreground mb-4">
-              Please configure floor plans first to generate rooms.
+              Please configure floor plans first to generate units.
             </p>
           </CloudflareCardContent>
         </CloudflareCard>
@@ -182,7 +122,7 @@ export default function UnitConfiguration({
           {Object.entries(unitsByFloor).map(([floorNumber, floorUnits]) => (
             <CloudflareCard key={floorNumber}>
               <CloudflareCardHeader 
-                title={`Floor ${floorNumber} – ${floorUnits.length} rooms`}
+                title={`Floor ${floorNumber} – ${floorUnits.length} units`}
                 icon={<Home className="w-5 h-5" />}
               />
               <CloudflareCardContent>
@@ -233,14 +173,12 @@ export default function UnitConfiguration({
         </div>
       )}
 
-      {/* Error Messages */}
       {Object.entries(errors).map(([key, error]) => (
         <div key={key} className="text-red-500 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
           {error}
         </div>
       ))}
 
-      {/* Room Configuration Dialog */}
       <UnitConfigDialog
         unit={editingUnit}
         isOpen={isDialogOpen}
@@ -251,14 +189,10 @@ export default function UnitConfiguration({
   );
 }
 
-// ──────────────────────────────────────────────────────────────
-//  UnitConfigDialog – ONLY rent + optional name
-// ──────────────────────────────────────────────────────────────
 function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
   const [rentStr, setRentStr] = useState("");
   const [unitName, setUnitName] = useState("");
 
-  // Load data when dialog opens
   useEffect(() => {
     if (unit) {
       setUnitName(unit.unit_name || "");
@@ -266,31 +200,24 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
     }
   }, [unit]);
 
-  // Parse raw input → number
   const parseRent = (val) => {
     const cleaned = val.replace(/[^\d]/g, "");
     return cleaned === "" ? 0 : Number(cleaned);
   };
 
-  // Format number for display
-  const formatRent = (num) =>
-    num === 0 ? "" : num.toLocaleString();
+  const formatRent = (num) => num === 0 ? "" : num.toLocaleString();
 
   const handleSave = useCallback(() => {
     if (!unit) return;
-
     const updated = {
       ...unit,
       unit_name: unitName || unit.unit_name,
       rent_amount: parseRent(rentStr),
-
-      // Hidden defaults (never shown to user)
       bedrooms: 1,
       area_sqm: 150,
       payment_freq: "monthly",
       status: "vacant"
     };
-
     onSave(updated);
     onClose();
   }, [unit, unitName, rentStr, onSave, onClose]);
@@ -301,14 +228,12 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-72 sm:max-w-96">
         <DialogHeader>
-          <DialogTitle>Room {unit.unit_name}</DialogTitle>
+          <DialogTitle>Unit {unit.unit_name}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5">
-
-          {/* Optional room name */}
           <div className="space-y-2">
-            <Label htmlFor="unit_name">Room name (optional)</Label>
+            <Label htmlFor="unit_name">Unit name (optional)</Label>
             <Input
               id="unit_name"
               value={unitName}
@@ -317,7 +242,6 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
             />
           </div>
 
-          {/* Rent input – text field with live formatting */}
           <div className="space-y-2">
             <Label htmlFor="rent_amount">Monthly rent (TZS) *</Label>
             <Input
@@ -336,12 +260,9 @@ function UnitConfigDialog({ unit, isOpen, onClose, onSave }) {
             </p>
           </div>
 
-          {/* Action buttons */}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" className="w-fit px-8" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} className="w-fit px-8">Save Room</Button>
+            <Button variant="outline" className="w-fit px-8" onClick={onClose}>Cancel</Button>
+            <Button onClick={handleSave} className="w-fit px-8">Save</Button>
           </div>
         </div>
       </DialogContent>
