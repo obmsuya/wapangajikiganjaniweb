@@ -36,9 +36,10 @@ export default function FloorPlanDesigner({
   updateFloorData,
   updatePropertyData,
   existingProperty = null,
+  saveRef, // ← add this
 }) {
   const [inlineFloorCount, setInlineFloorCount] = useState(
-    propertyData?.total_floors || 1
+    propertyData?.total_floors || 1,
   );
   const [previewMode, setPreviewMode] = useState(false);
   const [errors, setErrors] = useState({});
@@ -58,25 +59,21 @@ export default function FloorPlanDesigner({
     validateUnitDeletion,
     floorMemory,
     clearSelection,
-  } = useFloorPlan(
-    updateFloorData,
-    floorData,
-    existingProperty,
-    propertyData
-  );
+  } = useFloorPlan(updateFloorData, floorData, existingProperty, propertyData);
 
-  const floors = useMemo(() => {
-    return Array.from({ length: inlineFloorCount }, (_, i) => i + 1);
-  }, [inlineFloorCount]);
+  const floors = useMemo(
+    () => Array.from({ length: inlineFloorCount }, (_, i) => i + 1),
+    [inlineFloorCount],
+  );
 
   const totals = useMemo(() => {
     const allFloorsData = getAllFloorsData();
     const totalUnits = Object.values(allFloorsData).reduce(
       (total, floor) => total + (floor?.units_total || 0),
-      0
+      0,
     );
     const configuredFloorsCount = Object.keys(allFloorsData).filter(
-      (floorNum) => allFloorsData[floorNum]?.units_total > 0
+      (floorNum) => allFloorsData[floorNum]?.units_total > 0,
     ).length;
     return {
       totalUnits,
@@ -91,7 +88,6 @@ export default function FloorPlanDesigner({
   const isFloorPlanValid = useMemo(() => {
     const newErrors = {};
     let hasValidFloor = false;
-
     if (floors.length > 0) {
       floors.forEach((floorNum) => {
         const floor = floorMemory[floorNum];
@@ -102,7 +98,6 @@ export default function FloorPlanDesigner({
     } else {
       newErrors.floors = "Property must have at least one floor";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0 && hasValidFloor;
   }, [floors, floorMemory]);
@@ -110,6 +105,11 @@ export default function FloorPlanDesigner({
   useEffect(() => {
     onValidationChange?.(isFloorPlanValid);
   }, [isFloorPlanValid, onValidationChange]);
+
+  // ← add this: expose handleSaveCurrentFloor to parent via ref
+  useEffect(() => {
+    if (saveRef) saveRef.current = handleSaveCurrentFloor;
+  }, [saveRef, handleSaveCurrentFloor]);
 
   const handleFloorCountChange = (newCount) => {
     const count = Math.max(1, Math.min(20, newCount));
@@ -121,8 +121,8 @@ export default function FloorPlanDesigner({
           count < inlineFloorCount
             ? Object.fromEntries(
                 Object.entries(propertyData.floors || {}).filter(
-                  ([key]) => parseInt(key) <= count
-                )
+                  ([key]) => parseInt(key) <= count,
+                ),
               )
             : propertyData.floors || {},
       });
@@ -146,7 +146,7 @@ export default function FloorPlanDesigner({
         setFloorPanelOpen(false);
       }
     },
-    [currentFloor, selectedUnits, loadFloorData]
+    [currentFloor, selectedUnits, loadFloorData],
   );
 
   const handleSaveCurrentFloor = useCallback(async () => {
@@ -201,7 +201,10 @@ export default function FloorPlanDesigner({
       if (previewMode) return;
       if (selectedUnits.includes(cellIndex) && existingProperty) {
         try {
-          const tenantInfo = await validateUnitDeletion(currentFloor, cellIndex);
+          const tenantInfo = await validateUnitDeletion(
+            currentFloor,
+            cellIndex,
+          );
           if (tenantInfo?.has_tenant) {
             setErrors((prev) => ({
               ...prev,
@@ -210,7 +213,7 @@ export default function FloorPlanDesigner({
             return;
           }
         } catch {
-          // non-blocking
+          /* non-blocking */
         }
       }
       toggleUnit(cellIndex);
@@ -222,7 +225,7 @@ export default function FloorPlanDesigner({
       validateUnitDeletion,
       currentFloor,
       toggleUnit,
-    ]
+    ],
   );
 
   const copyFloorLayout = useCallback(
@@ -232,17 +235,14 @@ export default function FloorPlanDesigner({
       saveFloorPlan(targetFloor, { ...source, floor_number: targetFloor });
       if (currentFloor === targetFloor) loadFloorData(targetFloor);
     },
-    [floorMemory, saveFloorPlan, currentFloor, loadFloorData]
+    [floorMemory, saveFloorPlan, currentFloor, loadFloorData],
   );
-
-  console.log(propertyData)
 
   const gridCells = useMemo(() => {
     return Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, i) => {
       const isSelected = selectedUnits.includes(i);
       const x = (i % GRID_SIZE) * CELL_SIZE;
       const y = Math.floor(i / GRID_SIZE) * CELL_SIZE;
-
       return (
         <motion.button
           key={i}
@@ -256,12 +256,18 @@ export default function FloorPlanDesigner({
             isSelected
               ? "bg-primary border-2 border-primary/80 shadow-md"
               : previewMode
-              ? "bg-muted/40 border border-border/50"
-              : "bg-background border-2 border-border hover:border-primary/50 hover:bg-primary/5",
-            (previewMode || isLoadingFloor) ? "cursor-default" : "cursor-pointer",
+                ? "bg-muted/40 border border-border/50"
+                : "bg-background border-2 border-border hover:border-primary/50 hover:bg-primary/5",
+            previewMode || isLoadingFloor ? "cursor-default" : "cursor-pointer",
             isLoadingFloor ? "opacity-40" : "",
           ].join(" ")}
-          style={{ position: "absolute", left: x, top: y, width: CELL_SIZE - 2, height: CELL_SIZE - 2 }}
+          style={{
+            position: "absolute",
+            left: x,
+            top: y,
+            width: CELL_SIZE - 2,
+            height: CELL_SIZE - 2,
+          }}
         >
           {isSelected && (
             <span className="flex items-center justify-center w-full h-full text-primary-foreground text-xs font-bold leading-none select-none">
@@ -287,7 +293,8 @@ export default function FloorPlanDesigner({
           <CardContent className="py-12 text-center">
             <Building2 className="size-10 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-muted-foreground text-sm">
-              Please configure your property details first to set the number of floors.
+              Please configure your property details first to set the number of
+              floors.
             </p>
           </CardContent>
         </Card>
@@ -302,7 +309,6 @@ export default function FloorPlanDesigner({
         description="Design layouts for your property by selecting units on the grid"
       />
 
-      {/* Property Configuration Card */}
       <Card className="border-primary/20 bg-primary/5 p-4 sm:p-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base text-primary max-sm:flex-col max-sm:items-start">
@@ -311,9 +317,11 @@ export default function FloorPlanDesigner({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Floor count control */}
           <div className="flex flex-wrap items-center gap-3">
-            <Label htmlFor="floorCount" className="text-sm font-medium shrink-0">
+            <Label
+              htmlFor="floorCount"
+              className="text-sm font-medium shrink-0"
+            >
               Number of Floors
             </Label>
             <div className="flex items-center gap-2 max-sm:justify-between max-sm:w-full">
@@ -333,11 +341,10 @@ export default function FloorPlanDesigner({
                 min="1"
                 max="20"
                 value={inlineFloorCount}
-                disabled={propertyData.category === "Single Floor" ? true : false}
+                disabled={propertyData.category === "Single Floor"}
                 onChange={(e) =>
                   handleFloorCountChange(parseInt(e.target.value) || 1)
                 }
-
                 className="w-16 text-center h-8 text-sm"
               />
               <Button
@@ -345,7 +352,11 @@ export default function FloorPlanDesigner({
                 size="icon"
                 className="size-8"
                 onClick={() => handleFloorCountChange(inlineFloorCount + 1)}
-                disabled={propertyData.category === "Single Floor" ? true : inlineFloorCount >= 20}
+                disabled={
+                  propertyData.category === "Single Floor"
+                    ? true
+                    : inlineFloorCount >= 20
+                }
                 aria-label="Increase floors"
               >
                 <Plus className="size-3.5" />
@@ -353,7 +364,6 @@ export default function FloorPlanDesigner({
             </div>
           </div>
 
-          {/* Stats row */}
           <div className="grid md:grid-cols-3 gap-3">
             <StatPill
               value={totals.configuredFloorsCount}
@@ -372,7 +382,6 @@ export default function FloorPlanDesigner({
             />
           </div>
 
-          {/* Progress bar */}
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-primary to-green-500"
@@ -384,7 +393,6 @@ export default function FloorPlanDesigner({
         </CardContent>
       </Card>
 
-      {/* Errors */}
       {(errors.floors || errors.tenant) && (
         <div className="space-y-2">
           {errors.floors && (
@@ -402,13 +410,8 @@ export default function FloorPlanDesigner({
         </div>
       )}
 
-      {/* Main Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-
-        {/* ---- LEFT PANEL (desktop) / collapsible (mobile) ---- */}
         <div className="lg:col-span-1 space-y-4">
-
-          {/* Mobile: collapsible floor selector */}
           <div className="lg:hidden">
             <button
               onClick={() => setFloorPanelOpen((p) => !p)}
@@ -447,7 +450,6 @@ export default function FloorPlanDesigner({
             </AnimatePresence>
           </div>
 
-          {/* Desktop floor list */}
           <div className="hidden lg:block">
             <Card className="rounded-3xl">
               <CardHeader>
@@ -471,7 +473,6 @@ export default function FloorPlanDesigner({
             </Card>
           </div>
 
-          {/* Controls */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-semibold">
@@ -485,7 +486,6 @@ export default function FloorPlanDesigner({
                   {selectedUnits.length} units
                 </Badge>
               </div>
-
               <div className="grid grid-cols-1 gap-2">
                 <Button
                   onClick={() => setPreviewMode((p) => !p)}
@@ -499,7 +499,6 @@ export default function FloorPlanDesigner({
                   )}
                   {previewMode ? "Exit Preview" : "Preview Mode"}
                 </Button>
-
                 <Button
                   onClick={handleSaveCurrentFloor}
                   disabled={selectedUnits.length === 0}
@@ -508,7 +507,6 @@ export default function FloorPlanDesigner({
                   <Save className="size-3.5" />
                   Save Floor
                 </Button>
-
                 <Button
                   onClick={clearSelection}
                   variant="outline"
@@ -518,8 +516,6 @@ export default function FloorPlanDesigner({
                   Clear All
                 </Button>
               </div>
-
-              {/* Copy to floor */}
               {floors.length > 1 && selectedUnits.length > 0 && (
                 <div className="pt-2 border-t space-y-2">
                   <Label className="text-xs text-muted-foreground">
@@ -531,27 +527,28 @@ export default function FloorPlanDesigner({
                       .map((floorNum) => (
                         <Button
                           key={floorNum}
-                          onClick={() => copyFloorLayout(currentFloor, floorNum)}
+                          onClick={() =>
+                            copyFloorLayout(currentFloor, floorNum)
+                          }
                           variant="outline"
                           size="sm"
                           className="h-7 px-2 text-xs gap-1"
                         >
-                          <Copy className="size-3" />
-                          F{floorNum}
+                          <Copy className="size-3" />F{floorNum}
                         </Button>
                       ))}
                   </div>
                 </div>
               )}
-
               {errors.currentFloor && (
-                <p className="text-destructive text-xs">{errors.currentFloor}</p>
+                <p className="text-destructive text-xs">
+                  {errors.currentFloor}
+                </p>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* ---- GRID AREA ---- */}
         <div className="lg:col-span-3">
           <Card>
             <CardHeader className="p-2">
@@ -568,7 +565,10 @@ export default function FloorPlanDesigner({
                     {GRID_SIZE}×{GRID_SIZE}
                   </Badge>
                   {previewMode && (
-                    <Badge variant="outline" className="bg-green-500 hover:bg-green-500 text-xs">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-500 hover:bg-green-500 text-xs"
+                    >
                       Preview
                     </Badge>
                   )}
@@ -576,7 +576,6 @@ export default function FloorPlanDesigner({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Mode hint banner */}
               <div
                 className={[
                   "rounded-lg px-3 py-2 text-xs",
@@ -590,8 +589,6 @@ export default function FloorPlanDesigner({
                   ? "This is how your floor layout will look. Click Exit Preview to make changes."
                   : "Click grid cells to select units. Each selected cell becomes a unit in your floor plan."}
               </div>
-
-              {/* Grid */}
               <div className="flex justify-center overflow-x-auto py-2">
                 <div
                   className={[
@@ -609,8 +606,6 @@ export default function FloorPlanDesigner({
                   {gridCells}
                 </div>
               </div>
-
-              {/* Legend */}
               <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
                 <LegendItem color="bg-primary" label="Selected unit" />
                 <LegendItem
@@ -632,8 +627,6 @@ export default function FloorPlanDesigner({
   );
 }
 
-/* ─── Sub-components ─────────────────────────────────────────────────────── */
-
 function SectionHeader({ title, description }) {
   return (
     <div>
@@ -652,14 +645,19 @@ function StatPill({ value, label, color }) {
   );
 }
 
-function FloorList({ floors, currentFloor, floorMemory, isLoadingFloor, onFloorChange }) {
+function FloorList({
+  floors,
+  currentFloor,
+  floorMemory,
+  isLoadingFloor,
+  onFloorChange,
+}) {
   return (
     <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
       {floors.map((floorNum) => {
         const data = floorMemory[floorNum];
         const isConfigured = data?.units_total > 0;
         const isActive = currentFloor === floorNum;
-
         return (
           <motion.button
             key={floorNum}
@@ -672,9 +670,11 @@ function FloorList({ floors, currentFloor, floorMemory, isLoadingFloor, onFloorC
               isActive
                 ? "border-primary/60 bg-primary/10 text-primary font-medium"
                 : isConfigured
-                ? "border-green-500/40 bg-green-500/5 text-green-700 dark:text-green-400 hover:bg-green-500/10"
-                : "border-border bg-card text-foreground hover:bg-muted/50",
-              isLoadingFloor ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+                  ? "border-green-500/40 bg-green-500/5 text-green-700 dark:text-green-400 hover:bg-green-500/10"
+                  : "border-border bg-card text-foreground hover:bg-muted/50",
+              isLoadingFloor
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer",
             ].join(" ")}
           >
             <div>
@@ -684,12 +684,8 @@ function FloorList({ floors, currentFloor, floorMemory, isLoadingFloor, onFloorC
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              {isConfigured && (
-                <Check className="size-3.5 text-green-500" />
-              )}
-              {isActive && (
-                <span className="size-2 rounded-full bg-primary" />
-              )}
+              {isConfigured && <Check className="size-3.5 text-green-500" />}
+              {isActive && <span className="size-2 rounded-full bg-primary" />}
             </div>
           </motion.button>
         );

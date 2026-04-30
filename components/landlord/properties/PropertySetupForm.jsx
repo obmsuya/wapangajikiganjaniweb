@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react"; // ← add useRef
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -64,12 +64,17 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
   } = usePropertyCreation();
 
   const [canProceed, setCanProceed] = useState(false);
+  const floorSaveRef = useRef(null); // ← add this
 
-  const handleNext = () => {
-    if (canProceed) {
-      nextStep();
-      setCanProceed(false);
+  const handleNext = async () => {
+    // ← make async
+    if (!canProceed) return;
+    if (currentStep === 3 && floorSaveRef.current) {
+      // ← add this block
+      await floorSaveRef.current();
     }
+    nextStep();
+    setCanProceed(false);
   };
 
   const handlePrevious = () => {
@@ -78,9 +83,7 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
   };
 
   const handleStepClick = (stepNumber) => {
-    if (stepNumber <= currentStep) {
-      goToStep(stepNumber);
-    }
+    if (stepNumber <= currentStep) goToStep(stepNumber);
   };
 
   const handleComplete = async () => {
@@ -120,6 +123,7 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
         return (
           <FloorPlanDesigner
             {...baseProps}
+            saveRef={floorSaveRef} // ← add this
             propertyData={propertyData}
             floorData={floorData}
             updateFloorData={updateFloorData}
@@ -164,8 +168,6 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-
-        {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -186,14 +188,12 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
           </Button>
         </div>
 
-        {/* Step Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             {steps.map((step, index) => {
               const isCompleted = step.id < currentStep;
               const isActive = step.id === currentStep;
               const isClickable = step.id <= currentStep;
-
               return (
                 <div key={step.id} className="flex items-center flex-1 min-w-0">
                   <div className="flex flex-col items-center gap-1.5 shrink-0">
@@ -206,15 +206,11 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
                         isActive
                           ? "bg-primary text-primary-foreground"
                           : isCompleted
-                          ? "bg-green-500 text-white hover:bg-green-600 cursor-pointer"
-                          : "bg-muted text-muted-foreground cursor-not-allowed",
+                            ? "bg-green-500 text-white hover:bg-green-600 cursor-pointer"
+                            : "bg-muted text-muted-foreground cursor-not-allowed",
                       ].join(" ")}
                     >
-                      {isCompleted ? (
-                        <Check className="size-4" />
-                      ) : (
-                        step.id
-                      )}
+                      {isCompleted ? <Check className="size-4" /> : step.id}
                     </button>
                     <span
                       className={[
@@ -222,14 +218,13 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
                         isActive
                           ? "text-primary"
                           : isCompleted
-                          ? "text-green-600"
-                          : "text-muted-foreground",
+                            ? "text-green-600"
+                            : "text-muted-foreground",
                       ].join(" ")}
                     >
                       {step.shortTitle}
                     </span>
                   </div>
-
                   {index < steps.length - 1 && (
                     <div
                       className={[
@@ -244,7 +239,6 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
           </div>
         </div>
 
-        {/* Step Content */}
         <Card>
           <CardContent className="p-2">
             <AnimatePresence mode="wait">
@@ -261,7 +255,6 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
           </CardContent>
         </Card>
 
-        {/* Error */}
         {error && (
           <Card className="mt-4 border-destructive/30 bg-destructive/5">
             <CardContent className="p-4">
@@ -270,7 +263,6 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
           </Card>
         )}
 
-        {/* Footer Navigation */}
         <div className="flex items-center justify-between mt-6 gap-3">
           <Button
             variant="outline"
@@ -279,7 +271,6 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
           >
             Cancel
           </Button>
-
           <div className="flex items-center gap-3">
             {currentStep > 1 && (
               <Button
@@ -291,7 +282,6 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
                 <span className="hidden sm:inline">Previous</span>
               </Button>
             )}
-
             {currentStep < maxSteps ? (
               <Button
                 onClick={handleNext}
@@ -312,7 +302,6 @@ export default function PropertySetupForm({ onComplete, onCancel }) {
             )}
           </div>
         </div>
-
       </div>
     </div>
   );
