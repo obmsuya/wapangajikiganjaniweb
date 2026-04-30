@@ -74,13 +74,13 @@ const STATUS_CONFIG = {
     iconClass: "text-gray-500",
   },
   partial: {
-    bg: "#f97316",
-    border: "#ea580c",
-    text: "#ffffff",
+    bg: "#5eead4",
+    border: "#0d9488",
+    text: "#134e4a",
     label: "Partial",
-    badgeClass: "bg-orange-100 text-orange-800 border-orange-200",
+    badgeClass: "bg-teal-100 text-teal-800 border-teal-200",
     Icon: Coins,
-    iconClass: "text-orange-600",
+    iconClass: "text-teal-600",
   },
 };
 
@@ -427,7 +427,7 @@ export default function PropertyOverviewTab({ property, floorData }) {
                     { status: "due", label: "Due", color: "text-orange-600" },
                     { status: "overdue", label: "Overdue", color: "text-red-600" },
                     { status: "vacant", label: "Vacant", color: "text-gray-600" },
-                    { status: "partial", label: "Partial", color: "text-orange-600" },
+                    { status: "partial", label: "Partial", color: "text-teal-600" },
                   ].map(({ status, label, color }) => (
                     <div key={status}>
                       <div className={`font-semibold ${color}`}>
