@@ -424,7 +424,7 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
                 onClick={handleViewDetails}
               >
                 <Eye className="h-4 w-4 mr-2" />
-                View Details
+                Manage Tenants
                 <ChevronRight className="h-4 w-4 ml-auto opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
               </Button>
 
