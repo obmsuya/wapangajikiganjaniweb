@@ -404,7 +404,7 @@ const extractGridDataFromLayout = useCallback((layout) => {
         {/* Configuration Panel */}
         <div className="space-y-4">
           {/* Layout Configuration */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="text-lg">Layout Configuration</CardTitle>
             </CardHeader>
@@ -475,7 +475,7 @@ const extractGridDataFromLayout = useCallback((layout) => {
                 />
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Units Summary */}
           <Card>
