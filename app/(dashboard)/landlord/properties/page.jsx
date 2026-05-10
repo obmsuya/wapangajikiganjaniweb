@@ -126,37 +126,34 @@ export default function PropertiesPage() {
     occupancyRate: 0
   };
 
-  // Hybrid Visibility Filter
-  const [visibleProperties, invisibleProperties] = useMemo(() => {
-    if (!subscriptionData || !properties.length) return [[], []];
+const [visibleProperties, invisibleProperties] = useMemo(() => {
+  if (!properties.length) return [[], []];
 
-    // Sort by created_at (assuming properties have created_at; add if missing in API)
-    const sortedProperties = [...properties].sort((a, b) => 
-      new Date(a.created_at) - new Date(b.created_at)  // Oldest first
-    );
+  // Manager: server already scoped the list, just show all of them
+  // No upgrade prompts — that's the landlord's concern
+  if (isManager) return [properties, []];
 
-    const visible = [];
-    const invisible = [];
+  // No subscription data at all: show everything (edge case)
+  if (!subscriptionData) return [properties, []];
 
-    sortedProperties.forEach((property) => {
-      // Trust server first
-      let shouldShow = property.is_visible !== false;
+  const sortedProperties = [...properties].sort((a, b) =>
+    new Date(a.created_at) - new Date(b.created_at)
+  );
 
-      // Hybrid client check for free plan
-      if (subscriptionData.isFreePlan) {
-        const visibleCount = visible.length;
-        shouldShow = shouldShow && visibleCount < subscriptionData.propertyLimit;
-      }
+  const visible = [];
+  const invisible = [];
 
-      if (shouldShow) {
-        visible.push(property);
-      } else {
-        invisible.push(property);
-      }
-    });
+  sortedProperties.forEach((property) => {
+    let shouldShow = property.is_visible !== false;
+    if (subscriptionData.isFreePlan) {
+      shouldShow = shouldShow && visible.length < subscriptionData.propertyLimit;
+    }
+    if (shouldShow) visible.push(property);
+    else invisible.push(property);
+  });
 
-    return [visible, invisible];
-  }, [properties, subscriptionData]);
+  return [visible, invisible];
+}, [properties, subscriptionData, isManager]);
 
   return (
     <div className="min-h-screen relative max-md:pb-12">
