@@ -98,31 +98,32 @@ export default function DashboardLayout({ children }) {
 
   const isSetupRoute = pathname?.includes('/setup') || pathname?.includes('/welcome');
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          router.push('/login');
-          return;
-        }
-
-        const userData = await AuthService.getCurrentUser();
-        if (!userData) {
-          router.push('/login');
-          return;
-        }
-
-        setUser(userData);
-      } catch (error) {
+useEffect(() => {
+  const checkAuth = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
         router.push('/login');
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    checkAuth();
-  }, [router]);
+      // Read from token — has all fields including manager permissions
+      const userData = AuthService.getCurrentUserFromToken();
+      if (!userData) {
+        router.push('/login');
+        return;
+      }
+
+      setUser(userData);
+    } catch (error) {
+      router.push('/login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  checkAuth();
+}, [router]);
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -140,7 +141,7 @@ export default function DashboardLayout({ children }) {
   
   return (
     <div className="flex h-screen overflow-hidden">
-      <CustomSidebar role={user.user_type === 'landlord' ? 'landlord' : 'admin'} user={user} />
+      <CustomSidebar role={user.user_type} user={user} />
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto p-4 md:px-12 md:pt-10 ">
           {children}
