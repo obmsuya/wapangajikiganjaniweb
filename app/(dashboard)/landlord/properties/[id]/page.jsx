@@ -37,9 +37,9 @@ export default function PropertyDetailsPage({ params }) {
   const router = useRouter();
   const unwrappedParams = React.use(params);
   const currentUser = AuthService.getCurrentUserFromToken();
-  const canSeePayments =
-    currentUser?.user_type !== "manager" ||
-    currentUser?.can_collect_payments === true;
+  const canSeePayments = true;
+    // currentUser?.user_type !== "manager" ||
+    // currentUser?.can_collect_payments === true;
   const canManageTenants =
     currentUser?.user_type !== "manager" ||
     currentUser?.can_create_tenants === true;
