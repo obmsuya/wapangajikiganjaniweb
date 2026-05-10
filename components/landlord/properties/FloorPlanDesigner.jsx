@@ -89,12 +89,27 @@ export default function FloorPlanDesigner({
     const newErrors = {};
     let hasValidFloor = false;
     if (floors.length > 0) {
+      
+
+      let unconfiguredFloors = [];
+
       floors.forEach((floorNum) => {
         const floor = floorMemory[floorNum];
-        if (floor && floor.units_total > 0) hasValidFloor = true;
+        if (!floor || floor.units_total === 0) {
+          unconfiguredFloors.push(floorNum);
+        } else {
+          hasValidFloor = true;
+        }
       });
-      if (!hasValidFloor)
-        newErrors.floors = "Please add at least one unit to any floor";
+
+      if (unconfiguredFloors.length > 0) {
+        newErrors.floors =
+          unconfiguredFloors.length === floors.length
+            ? "Please add at least one unit to any floor"
+            : `Floor${unconfiguredFloors.length > 1 ? "s" : ""} ${unconfiguredFloors.join(", ")} still need units configured`;
+      }
+
+
     } else {
       newErrors.floors = "Property must have at least one floor";
     }
