@@ -33,18 +33,24 @@ export default function PropertyBasicInfo({
 
   const validateForm = useCallback(() => {
     const newErrors = {};
-    
+
     if (!propertyData.name?.trim()) {
-      newErrors.name = 'Property name is required';
+      newErrors.name = "Property name is required";
     } else if (propertyData.name.length < 2) {
-      newErrors.name = 'Property name must be at least 2 characters';
+      newErrors.name = "Property name must be at least 2 characters";
     }
 
     if (!propertyData.location?.trim()) {
-      newErrors.location = 'Location is required';
+      newErrors.location = "Location is required";
     }
 
-    // Address is hardcoded — no need to validate
+    if (propertyData.prop_image?.base64) {
+      const base64Data = propertyData.prop_image.base64.split(",")[1] || "";
+      const sizeInBytes = (base64Data.length * 3) / 4;
+      if (sizeInBytes > 15 * 1024 * 1024) {
+        newErrors.image = "Image must be less than 15MB";
+      }
+    }
 
     setErrors(newErrors);
     const isValid = Object.keys(newErrors).length === 0;
