@@ -4,18 +4,11 @@
 import { useState, useEffect } from "react";
 import { 
   User, 
-  Phone, 
-  Calendar, 
-  Home, 
-  DollarSign, 
   MessageSquare, 
   UserX, 
   Edit3,
   Save,
   X,
-  AlertTriangle,
-  Clock,
-  CheckCircle
 } from "lucide-react";
 import {
   Dialog,
@@ -28,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CloudflareCard } from "@/components/cloudflare/Card";
-import { CloudflareTable } from "@/components/cloudflare/Table";
 import { useTenantManagement } from "@/hooks/landlord/useTenantManagement";
 import TenantVacationDialog from "./TenantVacationDialog";
 import { toast } from "sonner";
