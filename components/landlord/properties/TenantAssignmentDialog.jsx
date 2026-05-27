@@ -384,11 +384,10 @@ function TenantTypeQuestion({ unit, onAnswer }) {
 
       <div className="space-y-2">
         <p className="text-sm font-semibold text-foreground">
-          Has the tenant already paid for this unit?
+          Has the tenant already paid?
         </p>
         <p className="text-xs text-muted-foreground">
-          This helps us know whether to set up their payment history or start
-          them fresh.
+          This helps us to set up their payment history
         </p>
       </div>
 
@@ -407,11 +406,10 @@ function TenantTypeQuestion({ unit, onAnswer }) {
           </div>
           <div className="space-y-0.5">
             <p className="text-sm font-semibold text-foreground">
-              Yes, they had already paid
+              Yes
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              The tenant has been renting and has already paid before. Enter
-              their move-in date and last payment so we can calculate their next
+              Enter the move-in date and last payment so we can calculate the next
               due date.
             </p>
           </div>
@@ -431,7 +429,7 @@ function TenantTypeQuestion({ unit, onAnswer }) {
           </div>
           <div className="space-y-0.5">
             <p className="text-sm font-semibold text-foreground">
-              No, they have never paid before
+              No
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               The tenant is moving in fresh and has never paid. Set their
