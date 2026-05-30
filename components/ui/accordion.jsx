@@ -1,63 +1,50 @@
-// components/ui/accordion.jsx
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
-// Context for accordion state
 const AccordionContext = createContext({
   expanded: null,
   setExpanded: () => {},
   multiple: false,
 });
 
-// Hook to use the accordion context
+const AccordionItemContext = createContext(null);
+
 const useAccordion = () => useContext(AccordionContext);
 
-// Main Accordion component
-const Accordion = ({ 
-  children, 
-  className = "", 
-  type = "single", 
+const Accordion = ({
+  children,
+  className = "",
+  type = "single",
   defaultValue,
   value,
   onValueChange,
   collapsible = true,
-  ...props 
+  ...props
 }) => {
-  // State for controlling expanded items
-  const [expanded, setExpanded] = useState(defaultValue || value || (type === "multiple" ? [] : null));
-  
-  // Handle external control
+  const [expanded, setExpanded] = useState(
+    defaultValue || value || (type === "multiple" ? [] : null)
+  );
+
   React.useEffect(() => {
-    if (value !== undefined) {
-      setExpanded(value);
-    }
+    if (value !== undefined) setExpanded(value);
   }, [value]);
 
-  // Handle change in expanded state
   const handleChange = (itemValue) => {
     let newExpanded;
-    
     if (type === "multiple") {
-      // If multiple, toggle the item in the array
       newExpanded = expanded.includes(itemValue)
         ? expanded.filter(item => item !== itemValue)
         : [...expanded, itemValue];
     } else {
-      // If single, toggle between the item and null
       newExpanded = expanded === itemValue && collapsible ? null : itemValue;
     }
-    
     setExpanded(newExpanded);
-    
-    // Call external change handler if provided
-    if (onValueChange) {
-      onValueChange(newExpanded);
-    }
+    if (onValueChange) onValueChange(newExpanded);
   };
-  
+
   return (
     <AccordionContext.Provider value={{ expanded, setExpanded: handleChange, multiple: type === "multiple" }}>
       <div className={`divide-y divide-card-border ${className}`} {...props}>
@@ -67,62 +54,48 @@ const Accordion = ({
   );
 };
 
-// AccordionItem component
-const AccordionItem = ({ 
-  children, 
-  className = "", 
+const AccordionItem = ({
+  children,
+  className = "",
   value,
   disabled = false,
-  ...props 
+  ...props
 }) => {
   const { expanded, multiple } = useAccordion();
-  const isExpanded = multiple 
+  const isExpanded = multiple
     ? Array.isArray(expanded) && expanded.includes(value)
     : expanded === value;
-  
+
   return (
-    <div 
-      className={`
-        ${className}
-        ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-      `}
-      data-state={isExpanded ? "open" : "closed"}
-      {...props}
-    >
-      {children}
-    </div>
+    <AccordionItemContext.Provider value={value}>
+      <div
+        className={`${className} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        data-state={isExpanded ? "open" : "closed"}
+        {...props}
+      >
+        {children}
+      </div>
+    </AccordionItemContext.Provider>
   );
 };
 
-// AccordionTrigger component
-const AccordionTrigger = ({ 
-  children, 
-  className = "", 
+const AccordionTrigger = ({
+  children,
+  className = "",
   icon = <ChevronDown size={16} />,
-  ...props 
+  disabled,
+  ...props
 }) => {
   const { expanded, setExpanded, multiple } = useAccordion();
-  const itemValue = props['data-value'];
-  const isExpanded = multiple 
+  const itemValue = useContext(AccordionItemContext);
+  const isExpanded = multiple
     ? Array.isArray(expanded) && expanded.includes(itemValue)
     : expanded === itemValue;
-  const disabled = props.disabled;
-  
-  const handleClick = () => {
-    if (!disabled) {
-      setExpanded(itemValue);
-    }
-  };
-  
+
   return (
     <div
-      className={`
-        flex justify-between items-center py-4 px-4 cursor-pointer
-        hover:bg-secondary/50 transition-colors duration-150
-        ${disabled ? "cursor-not-allowed opacity-50" : ""}
-        ${className}
-      `}
-      onClick={handleClick}
+      className={`flex justify-between items-center py-4 px-4 cursor-pointer hover:bg-secondary/50 transition-colors duration-150 ${disabled ? "cursor-not-allowed opacity-50" : ""} ${className}`}
+      onClick={() => { if (!disabled) setExpanded(itemValue); }}
       aria-expanded={isExpanded}
       role="button"
       tabIndex={disabled ? -1 : 0}
@@ -140,18 +113,17 @@ const AccordionTrigger = ({
   );
 };
 
-// AccordionContent component
-const AccordionContent = ({ 
-  children, 
-  className = "", 
-  ...props 
+const AccordionContent = ({
+  children,
+  className = "",
+  ...props
 }) => {
   const { expanded, multiple } = useAccordion();
-  const itemValue = props['data-value'];
-  const isExpanded = multiple 
+  const itemValue = useContext(AccordionItemContext);
+  const isExpanded = multiple
     ? Array.isArray(expanded) && expanded.includes(itemValue)
     : expanded === itemValue;
-  
+
   return (
     <AnimatePresence initial={false}>
       {isExpanded && (
