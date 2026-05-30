@@ -251,7 +251,6 @@ export default function PropertyOverviewTab({ property, floorData }) {
               rentAmount: tenantRecord?.rent_amount ?? unit.rent_amount,
               paymentStatus,
               isOccupied: !!tenantRecord?.tenant || !!unit.current_tenant,
-              // NEW — rich fields for tooltip
               paymentDetails: tenantRecord?.payment_details ?? null,
               nextPaymentDate: tenantRecord?.next_payment_date ?? null,
               paymentFrequency: tenantRecord?.payment_frequency ?? null,

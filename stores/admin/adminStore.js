@@ -34,6 +34,8 @@ export const useAdminStore = create((set, get) => ({
   dashboard: null,
   users: [],
   currentUser: null,
+  landlordOverview: [],         
+  overviewLoading: false,  
 
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
