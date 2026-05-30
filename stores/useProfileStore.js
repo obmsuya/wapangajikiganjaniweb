@@ -57,62 +57,73 @@ export const useProfileStore = create((set, get) => ({
   },
 
   // Update user profile
-  updateProfile: async (profileData) => {
+updateProfile: async (profileData, pictureFile = null) => {
     try {
-      set({ loading: true, error: null });
+        set({ loading: true, error: null });
 
-      const response = await api.put('/api/v1/auth/me/', profileData);
+        let response;
 
-      if (response.data) {
-        set({ 
-          user: { ...get().user, ...response.data },
-          loading: false,
-          isEditingProfile: false
-        });
-
-        // Update localStorage
-        if (typeof window !== 'undefined') {
-          const currentUser = JSON.parse(localStorage.getItem('user_data') || '{}');
-          const updatedUser = { ...currentUser, ...response.data };
-          localStorage.setItem('user_data', JSON.stringify(updatedUser));
+        if (pictureFile) {
+            const formData = new FormData();
+            Object.entries(profileData).forEach(([key, val]) => {
+                if (val !== null && val !== undefined) formData.append(key, val);
+            });
+            formData.append('profile_picture', pictureFile);
+            response = await api.put('/api/v1/auth/me/update/', formData);
+        } else {
+            response = await api.put('/api/v1/auth/me/update/', profileData);
         }
 
-        return { success: true, message: response.message || 'Profile updated successfully' };
-      }
+        if (response.data) {
+            set({
+                user: { ...get().user, ...response.data },
+                loading: false,
+                isEditingProfile: false
+            });
 
-      return { success: false, message: 'Update failed' };
+            if (typeof window !== 'undefined') {
+                const currentUser = JSON.parse(localStorage.getItem('user_data') || '{}');
+                localStorage.setItem('user_data', JSON.stringify({ ...currentUser, ...response.data }));
+            }
+
+            return { success: true, message: response.message || 'Profile updated successfully' };
+        }
+
+        return { success: false, message: 'Update failed' };
     } catch (error) {
-      const errorMessage = error.message || 'Failed to update profile';
-      set({ 
-        error: errorMessage,
-        loading: false 
-      });
-      return { success: false, message: errorMessage };
+        const errorMessage = error.message || 'Failed to update profile';
+        set({ error: errorMessage, loading: false });
+        return { success: false, message: errorMessage };
     }
-  },
+},
 
-  // Change password
-  changePassword: async (passwordData) => {
+changePassword: async (passwordData) => {
     try {
-      set({ loading: true, error: null });
+        set({ loading: true, error: null });
 
-      const response = await api.put('/api/v1/auth/password/change/', passwordData);
+        const storedTokens = typeof window !== 'undefined'
+            ? JSON.parse(localStorage.getItem('tokens') || '{}')
+            : {};
 
-      set({ 
-        loading: false,
-        isChangingPassword: false
-      });
+        const response = await api.put('/api/v1/auth/password/change/', {
+            ...passwordData,
+            refresh: storedTokens.refresh || null,
+        });
 
-      return { success: true, message: response.message || 'Password changed successfully' };
+        set({ loading: false, isChangingPassword: false });
+
+        if (response.tokens && typeof window !== 'undefined') {
+            localStorage.setItem('tokens', JSON.stringify(response.tokens));
+        }
+
+        return { success: true, message: response.message || 'Password changed successfully' };
     } catch (error) {
-      const errorMessage = error.message || 'Failed to change password';
-      set({ 
-        error: errorMessage,
-        loading: false 
-      });
-      return { success: false, message: errorMessage };
+        const errorMessage = error.message || 'Failed to change password';
+        set({ error: errorMessage, loading: false });
+        return { success: false, message: errorMessage };
     }
-  },
+},
+
 
   // Upload profile picture (placeholder for future implementation)
   uploadProfilePicture: async (file) => {
