@@ -5,7 +5,7 @@ import {
   Search, ChevronUp, ChevronDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   Home, Users, Building2, ChevronDown as AccordionChevron,
-  Phone, Mail, Shield, UserCheck, UserX, MapPin,
+  Phone, Mail, Shield, UserCheck, UserX, MapPin, Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,13 +25,18 @@ import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   flexRender, getCoreRowModel, getSortedRowModel,
   getFilteredRowModel, getPaginationRowModel, useReactTable,
 } from '@tanstack/react-table';
 import { CloudflareBreadcrumbs } from '@/components/cloudflare/Breadcrumbs';
 import { useAdminStore } from '@/stores/admin/adminStore';
+import { toast } from 'sonner';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -166,7 +171,7 @@ function LandlordOverviewTab() {
           No landlords found
         </div>
       ) : (
-        <Accordion type="multiple" className="space-y-2">
+        <Accordion type="single" collapsible className="space-y-2">
           {filtered.map(landlord => (
             <AccordionItem
               key={landlord.id}
@@ -426,12 +431,32 @@ function AllUsersTab() {
   const [sorting, setSorting]           = useState([]);
   const [typeFilter, setTypeFilter]     = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [deleteOpen, setDeleteOpen]     = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
-  const { users, loading, fetchUsers } = useAdminStore();
+  const { users, loading, fetchUsers, deleteUser } = useAdminStore();
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    const result = await deleteUser(userToDelete.id);
+    if (result?.success) {
+      toast.success(`${userToDelete.full_name} deleted`);
+    }
+    setDeleteOpen(false);
+    setUserToDelete(null);
+  };
+
   const columns = useMemo(() => [
+    {
+      // Hidden column — exists only so globalFilter can match phone numbers
+      id: 'phone_number',
+      accessorKey: 'phone_number',
+      header: '',
+      enableHiding: true,
+      cell: () => null,
+    },
     {
       accessorKey: 'full_name',
       header: ({ column }) => <SortButton column={column} label="Name" />,
@@ -506,6 +531,21 @@ function AllUsersTab() {
         </span>
       ),
     },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 text-destructive hover:text-destructive"
+          onClick={() => { setUserToDelete(row.original); setDeleteOpen(true); }}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      ),
+    },
   ], []);
 
   const columnFilters = useMemo(() => {
@@ -520,7 +560,7 @@ function AllUsersTab() {
   const table = useReactTable({
     data:    tableData,
     columns,
-    state:   { sorting, globalFilter, columnFilters },
+    state:   { sorting, globalFilter, columnFilters, columnVisibility: { phone_number: false } },
     onSortingChange:      setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel:       getCoreRowModel(),
@@ -669,6 +709,31 @@ function AllUsersTab() {
           </Button>
         </div>
       </div>
+
+      {/* Delete confirm */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {userToDelete?.full_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes their account and all associated data.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setDeleteOpen(false); setUserToDelete(null); }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
