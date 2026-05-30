@@ -232,13 +232,13 @@ function LandlordOverviewTab() {
               <AccordionContent className="px-4 pb-4 pt-0">
                 <div className="border-t pt-4 space-y-5">
 
-                  {/* Stat pills */}
+                  {/* Stat pills
                   <div className="flex flex-wrap gap-2">
                     <StatPill label="Properties" value={landlord.total_properties} />
                     <StatPill label="Managers"   value={landlord.total_managers} />
                     <StatPill label="Tenants"    value={landlord.total_tenants} />
                     <StatPill label="Joined"     value={formatDate(landlord.date_joined)} />
-                  </div>
+                  </div> */}
 
                   {/* Landlord contact info */}
                   <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
