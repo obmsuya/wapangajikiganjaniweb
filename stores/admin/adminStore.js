@@ -186,13 +186,29 @@ export const useAdminStore = create((set, get) => ({
     }
   },
 
-  reset: () => {
-    set({
-      loading: false,
-      error: null,
-      dashboard: null,
-      users: [],
-      currentUser: null
-    });
-  }
+ fetchLandlordOverview: async () => {
+    try {
+      set({ overviewLoading: true, error: null });
+      const response = await api.get('/api/v1/auth/admin/landlords/overview/');
+      if (response && !response.error) {
+        set({ landlordOverview: response.landlords ?? [], overviewLoading: false });
+      } else {
+        throw new Error(response?.error || 'Failed to load landlord overview');
+      }
+    } catch (error) {
+      const classified = classifyError(error);
+      set({ error: classified.message, overviewLoading: false });
+      toast.error('Overview Error', { description: classified.message });
+    }
+  },
+
+  reset: () => set({
+    loading: false,
+    error: null,
+    dashboard: null,
+    users: [],
+    currentUser: null,
+    landlordOverview: [],
+    overviewLoading: false,
+  }),
 }));
