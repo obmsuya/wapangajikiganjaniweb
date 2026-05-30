@@ -179,7 +179,7 @@ function LandlordOverviewTab() {
               className="border rounded-lg px-0 overflow-hidden"
             >
               {/* ── Accordion trigger — landlord summary row ── */}
-              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/30 transition-colors [&>svg]:hidden">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-3 w-full">
 
                   {/* Avatar */}
@@ -223,8 +223,6 @@ function LandlordOverviewTab() {
                     {landlord.status}
                   </Badge>
 
-                  {/* Chevron */}
-                  <AccordionChevron className="size-4 text-muted-foreground shrink-0 transition-transform duration-200 ml-1 accordion-chevron" />
                 </div>
               </AccordionTrigger>
 
