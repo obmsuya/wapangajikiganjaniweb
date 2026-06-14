@@ -62,7 +62,7 @@ function buildFullPhone(localPart) {
 }
 
 function validateLocalPhone(localPart) {
-  if (!localPart || !localPart.trim()) return "Phone number is required";
+  if (!localPart?.trim()) return "Phone number is required";
   const digits = localPart.replace(/\D/g, "");
   if (!/^[67]\d{8}$/.test(digits))
     return "Enter 9 digits starting with 6 or 7 — e.g. 712 433 665";
@@ -406,7 +406,7 @@ function TenantTypeQuestion({ unit, onAnswer }) {
           </div>
           <div className="space-y-0.5">
             <p className="text-sm font-semibold text-foreground">
-              No
+              Yes
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Enter the move-in date and last payment so we can calculate the next
@@ -429,7 +429,7 @@ function TenantTypeQuestion({ unit, onAnswer }) {
           </div>
           <div className="space-y-0.5">
             <p className="text-sm font-semibold text-foreground">
-              Yes
+              No
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               The tenant is moving in fresh and has never paid. Set their
