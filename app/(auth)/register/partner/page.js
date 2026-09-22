@@ -19,6 +19,7 @@ import {
   TrendingUp,
   Star,
 } from "lucide-react";
+import AuthService from "@/services/auth";
 import { useTheme } from "next-themes";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -91,17 +92,31 @@ export default function PartnerRegisterPage() {
     }
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const { confirm_password, ...data } = formData;
+      const response = await AuthService.register({
+        ...data,
+        user_type: "partner",   // backend requires this for partner accounts
+        // email is required by backend for partner registration — you already collect it
+      });
+
+      // store tokens like your landlord register flow does
+      localStorage.setItem("access_token", response.tokens.access);
+      localStorage.setItem("refresh_token", response.tokens.refresh);
+
+      toast.success("Welcome, Partner!", {
+        description: `Your referral code: ${response.user.referral_code}`,
+      });
+
       router.push("/partner");
     } catch (error) {
-      console.error(error);
+      toast.error("Registration failed", {
+        description: error.response?.data?.error || "Please try again.",
+      });
     } finally {
       setIsLoading(false);
     }
