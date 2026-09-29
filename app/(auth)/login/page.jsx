@@ -1,7 +1,7 @@
 // app/(auth)/login/page.jsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,37 @@ import { Button } from "@/components/ui/button";
 import AuthService from "@/services/auth";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
+import SmsCodeForm from "@/components/shared/SmsCodeForm";
+
+const SMS_SIGN_IN_COPY = {
+  phoneLabel: "Phone Number",
+  phoneRequired: "Phone number is required",
+  sendCode: "Send code",
+  sending: "Sending code...",
+  codeLabel: "6-digit code",
+  codeSentTo: (phoneNumber) => `If ${phoneNumber} has an account, we sent a 6-digit code by SMS.`,
+  changeNumber: "Change number",
+  codeFormat: "Enter the 6-digit code from the SMS",
+  submitting: "Signing in...",
+  resend: "Send a new code",
+  resendIn: (seconds) => `Send a new code in ${seconds}s`,
+  codeWrong: (attemptsLeft) =>
+    typeof attemptsLeft === "number"
+      ? `That code is not correct. ${attemptsLeft} ${attemptsLeft === 1 ? "try" : "tries"} left.`
+      : "That code is not correct.",
+  codeExpired: "That code has expired. Send a new code.",
+  codeLocked: "Too many wrong codes. Send a new code.",
+  tooManyRequests: "Too many requests. Please wait a moment and try again.",
+  networkError: "No connection. Check your internet and try again.",
+  genericError: "Something went wrong. Please try again.",
+};
+
+// Only same-site paths, so ?next= can't send someone to another site.
+function getSafeNextPath() {
+  const nextPath = new URLSearchParams(window.location.search).get("next");
+  const isSameSitePath = !!nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//");
+  return isSameSitePath ? nextPath : null;
+}
 
 const loginSchema = z.object({
   phone_number: z.string().min(1, "Phone number is required"),
@@ -30,6 +61,12 @@ export default function LoginPage() {
     password: "",
   });
   const [errors, setErrors] = useState({});
+  const [signInMethod, setSignInMethod] = useState("password");
+
+  useEffect(() => {
+    const requestedMethod = new URLSearchParams(window.location.search).get("method");
+    if (requestedMethod === "sms") setSignInMethod("sms");
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,6 +93,20 @@ export default function LoginPage() {
     }
   };
 
+  const goToDashboard = (user) => {
+    toast.success("Welcome back!", {
+      description: `Hello ${user.full_name}, redirecting to your dashboard...`,
+    });
+
+    const destination = getSafeNextPath() || AuthService.getHomePathForUser(user);
+    setTimeout(() => router.push(destination), 500);
+  };
+
+  const handleSmsCodeSignIn = async (phoneNumber, code) => {
+    const user = await AuthService.loginWithOtp({ phone_number: phoneNumber, otp: code });
+    goToDashboard(user);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -64,37 +115,7 @@ export default function LoginPage() {
     try {
       const user = await AuthService.login(formData);
 
-      toast.success("Welcome back!", {
-        description: `Hello ${user.full_name}, redirecting to your dashboard...`,
-      });
-
-      setTimeout(() => {
-        // Route based on user_type instead of is_staff
-        switch (user.user_type) {
-          case "system_admin":
-            router.push("/admin/users");
-            break;
-          case "landlord":
-            router.push("/landlord/properties");
-            break;
-          case "manager":
-            router.push("/landlord/properties");
-            break;
-          case "tenant":
-            router.push("/tenant/");
-            break;
-          case "partner":
-            router.push("/partner");
-            break;
-          default:
-            // Fallback based on is_staff for legacy users
-            if (user.is_staff || user.is_superuser) {
-              router.push("/admin/dashboard");
-            } else {
-              router.push("/landlord/dashboard");
-            }
-        }
-      }, 500);
+      goToDashboard(user);
     } catch (error) {
       toast.error("Login failed", {
         description: error.response?.data?.error || "Invalid credentials.",
@@ -171,6 +192,14 @@ export default function LoginPage() {
                   </p>
                 </div>
 
+                {signInMethod === "sms" ? (
+                  <SmsCodeForm
+                    copy={SMS_SIGN_IN_COPY}
+                    requestCode={AuthService.requestLoginOtp}
+                    submitCode={handleSmsCodeSignIn}
+                    submitLabel="Sign In"
+                  />
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -243,6 +272,16 @@ export default function LoginPage() {
                     {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
+                )}
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mt-3"
+                  onClick={() => setSignInMethod(signInMethod === "sms" ? "password" : "sms")}
+                >
+                  {signInMethod === "sms" ? "Sign in with password" : "Sign in with an SMS code"}
+                </Button>
 
                 <motion.div
                   initial={{ opacity: 0 }}

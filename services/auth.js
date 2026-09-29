@@ -1,6 +1,9 @@
 // services/auth.js - Updated with referral support
 import api from '@/lib/api/api-client';
 
+// Public endpoints: no stale token (it would 401 an AllowAny view) and no refresh on 401.
+const PUBLIC_REQUEST = { accessToken: null, skipAuthRefresh: true };
+
 const AuthService = {
   // Login user
   login: async (credentials) => {
@@ -19,6 +22,21 @@ const AuthService = {
       console.error('Login error:', error);
       throw error;
     }
+  },
+
+  requestLoginOtp: (phoneNumber) =>
+    api.post('/api/v1/auth/login/request-otp/', { phone_number: phoneNumber }, PUBLIC_REQUEST),
+
+  loginWithOtp: async ({ phone_number, otp }) => {
+    const response = await api.post('/api/v1/auth/login/otp/', { phone_number, otp }, PUBLIC_REQUEST);
+    const { user, tokens } = response;
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('access_token', tokens.access);
+      localStorage.setItem('refresh_token', tokens.refresh);
+    }
+
+    return user;
   },
 
   // Register a new user (landlord or partner)
