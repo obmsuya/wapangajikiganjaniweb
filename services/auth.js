@@ -39,6 +39,12 @@ const AuthService = {
     return user;
   },
 
+  requestAccountDeletionOtp: (phoneNumber) =>
+    api.post('/api/v1/auth/account-deletion/request-otp/', { phone_number: phoneNumber }, PUBLIC_REQUEST),
+
+  requestAccountDeletion: ({ phone_number, otp }) =>
+    api.post('/api/v1/auth/account-deletion/', { phone_number, otp }, PUBLIC_REQUEST),
+
   exchangeBillingLink: (code) =>
     api.post('/api/v1/auth/billing-link/exchange/', { code }, PUBLIC_REQUEST),
 

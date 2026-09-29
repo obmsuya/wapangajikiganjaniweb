@@ -68,7 +68,7 @@ function describeSmsCodeError(error, copy) {
 }
 
 // Phone → SMS code → submit. The caller decides what the code unlocks.
-export default function SmsCodeForm({ copy, requestCode, submitCode, submitLabel, isSubmitBlocked = false, children }) {
+export default function SmsCodeForm({ copy, requestCode, submitCode, submitLabel, submitVariant = "default", isSubmitBlocked = false, children }) {
   const [step, setStep] = useState("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [code, setCode] = useState("");
@@ -182,7 +182,7 @@ export default function SmsCodeForm({ copy, requestCode, submitCode, submitLabel
           {errorMessage}
         </p>
       )}
-      <Button type="submit" disabled={isSubmitting || isSubmitBlocked}>
+      <Button type="submit" variant={submitVariant} disabled={isSubmitting || isSubmitBlocked}>
         {isSubmitting ? copy.submitting : submitLabel}
       </Button>
       <button

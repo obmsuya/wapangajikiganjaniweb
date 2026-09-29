@@ -1,5 +1,6 @@
 "use client"
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { ArrowLeft, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +42,11 @@ export default function PrivacyPolicyPage() {
         {
           title: "Your Rights",
           text: "You can stop all data collection by uninstalling the app from your device at any time."
+        },
+        {
+          title: "Deleting Your Account",
+          text: "You can delete your account in the app, or on the web without the app. Your account is switched off right away and its data is deleted 30 days later. Landlords must withdraw any wallet money first.",
+          link: { href: "/remove-account", label: "Delete your account" }
         },
         {
           title: "Security",
@@ -89,6 +95,11 @@ export default function PrivacyPolicyPage() {
         {
           title: "Haki Zako",
           text: "Unaweza kuacha ukusanyaji wote wa data kwa kuondoa programu kutoka kwenye kifaa chako wakati wowote."
+        },
+        {
+          title: "Kufuta Akaunti Yako",
+          text: "Unaweza kufuta akaunti yako kwenye app, au kwenye tovuti bila app. Akaunti inazimwa papo hapo na taarifa zake zinafutwa baada ya siku 30. Wamiliki wa nyumba wanapaswa kutoa pesa za pochi kwanza.",
+          link: { href: "/remove-account", label: "Futa akaunti yako" }
         },
         {
           title: "Usalama",
@@ -171,6 +182,11 @@ export default function PrivacyPolicyPage() {
                   <p className="text-gray-700 leading-relaxed">
                     {section.text}
                   </p>
+                )}
+                {section.link && (
+                  <Link href={section.link.href} className="inline-block text-blue-700 font-medium hover:underline">
+                    {section.link.label}
+                  </Link>
                 )}
               </div>
             ))}
