@@ -133,11 +133,13 @@ export default function BillingPage() {
   };
 
   const finishSuccessfulPayment = async () => {
-    // The full session's token carries the plan in its claims; refresh it so the dashboard sees the new plan.
-    if (isFullSession) {
-      await api.refreshToken().catch(() => null);
-    }
     setView("success");
+    // The full session's token carries the plan in its claims; refresh it in
+    // the background so the dashboard sees the new plan. The success page
+    // never waits on it.
+    if (isFullSession) {
+      api.refreshToken().catch(() => null);
+    }
   };
 
   const waitForPayment = async (transactionId) => {
@@ -175,7 +177,8 @@ export default function BillingPage() {
 
   const handlePay = async () => {
     if (isPaymentStartingRef.current) return;
-    const trimmedAccountNumber = accountNumber.trim();
+    // AzamPay wants the digits only; people type spaces as the placeholder shows.
+    const trimmedAccountNumber = accountNumber.replace(/\s/g, "");
     if (!provider || !trimmedAccountNumber) {
       setCheckoutError(copy.missingFields);
       return;
