@@ -39,6 +39,8 @@ export const BILLING_COPY = {
     providerLabel: "Mtandao wa simu",
     phoneLabel: "Namba ya simu ya kulipia",
     missingFields: "Chagua mtandao na uweke namba ya simu.",
+    checkoutNetworkError:
+      "Hakuna mtandao. Kama umepokea ombi la malipo kwenye simu, likamilishe hapo; vinginevyo jaribu tena.",
     pay: (amount) => `Lipa ${amount}`,
     starting: "Inaanza...",
     cancel: "Ghairi",
@@ -99,6 +101,8 @@ export const BILLING_COPY = {
     providerLabel: "Mobile money provider",
     phoneLabel: "Mobile number to pay from",
     missingFields: "Choose a provider and enter the mobile number.",
+    checkoutNetworkError:
+      "No connection. If a payment request reached your phone, finish it there; otherwise try again.",
     pay: (amount) => `Pay ${amount}`,
     starting: "Starting...",
     cancel: "Cancel",
