@@ -7,6 +7,53 @@ import { useCountdown } from "@/hooks/use-countdown";
 
 const DEFAULT_RESEND_SECONDS = 60;
 
+export const SMS_CODE_COPY = {
+  en: {
+    phoneLabel: "Phone Number",
+    phoneRequired: "Phone number is required",
+    sendCode: "Send code",
+    sending: "Sending code...",
+    codeLabel: "6-digit code",
+    codeSentTo: (phoneNumber) => `If ${phoneNumber} has an account, we sent a 6-digit code by SMS.`,
+    changeNumber: "Change number",
+    codeFormat: "Enter the 6-digit code from the SMS",
+    submitting: "Please wait...",
+    resend: "Send a new code",
+    resendIn: (seconds) => `Send a new code in ${seconds}s`,
+    codeWrong: (attemptsLeft) =>
+      typeof attemptsLeft === "number"
+        ? `That code is not correct. ${attemptsLeft} ${attemptsLeft === 1 ? "try" : "tries"} left.`
+        : "That code is not correct.",
+    codeExpired: "That code has expired. Send a new code.",
+    codeLocked: "Too many wrong codes. Send a new code.",
+    tooManyRequests: "Too many requests. Please wait a moment and try again.",
+    networkError: "No connection. Check your internet and try again.",
+    genericError: "Something went wrong. Please try again.",
+  },
+  sw: {
+    phoneLabel: "Namba ya simu",
+    phoneRequired: "Weka namba ya simu",
+    sendCode: "Tuma msimbo",
+    sending: "Inatuma msimbo...",
+    codeLabel: "Msimbo wa tarakimu 6",
+    codeSentTo: (phoneNumber) => `Kama ${phoneNumber} ina akaunti, tumetuma msimbo wa tarakimu 6 kwa SMS.`,
+    changeNumber: "Badilisha namba",
+    codeFormat: "Weka msimbo wa tarakimu 6 kutoka kwenye SMS",
+    submitting: "Subiri...",
+    resend: "Tuma msimbo mpya",
+    resendIn: (seconds) => `Tuma msimbo mpya baada ya sekunde ${seconds}`,
+    codeWrong: (attemptsLeft) =>
+      typeof attemptsLeft === "number"
+        ? `Msimbo si sahihi. Majaribio ${attemptsLeft} yamebaki.`
+        : "Msimbo si sahihi.",
+    codeExpired: "Muda wa msimbo umeisha. Tuma msimbo mpya.",
+    codeLocked: "Umekosea mara nyingi. Tuma msimbo mpya.",
+    tooManyRequests: "Maombi mengi mno. Subiri kidogo kisha ujaribu tena.",
+    networkError: "Hakuna mtandao. Angalia intaneti yako kisha ujaribu tena.",
+    genericError: "Kuna tatizo. Jaribu tena.",
+  },
+};
+
 function describeSmsCodeError(error, copy) {
   const errorCode = error?.data?.code;
   if (errorCode === "otp_invalid" || errorCode === "otp_missing") {

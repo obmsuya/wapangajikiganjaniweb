@@ -14,31 +14,10 @@ import { Button } from "@/components/ui/button";
 import AuthService from "@/services/auth";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
-import SmsCodeForm from "@/components/shared/SmsCodeForm";
+import SmsCodeForm, { SMS_CODE_COPY } from "@/components/shared/SmsCodeForm";
 import BillingService from "@/services/landlord/billing";
 
-const SMS_SIGN_IN_COPY = {
-  phoneLabel: "Phone Number",
-  phoneRequired: "Phone number is required",
-  sendCode: "Send code",
-  sending: "Sending code...",
-  codeLabel: "6-digit code",
-  codeSentTo: (phoneNumber) => `If ${phoneNumber} has an account, we sent a 6-digit code by SMS.`,
-  changeNumber: "Change number",
-  codeFormat: "Enter the 6-digit code from the SMS",
-  submitting: "Signing in...",
-  resend: "Send a new code",
-  resendIn: (seconds) => `Send a new code in ${seconds}s`,
-  codeWrong: (attemptsLeft) =>
-    typeof attemptsLeft === "number"
-      ? `That code is not correct. ${attemptsLeft} ${attemptsLeft === 1 ? "try" : "tries"} left.`
-      : "That code is not correct.",
-  codeExpired: "That code has expired. Send a new code.",
-  codeLocked: "Too many wrong codes. Send a new code.",
-  tooManyRequests: "Too many requests. Please wait a moment and try again.",
-  networkError: "No connection. Check your internet and try again.",
-  genericError: "Something went wrong. Please try again.",
-};
+const SMS_SIGN_IN_COPY = { ...SMS_CODE_COPY.en, submitting: "Signing in..." };
 
 // Only same-site paths, so ?next= can't send someone to another site.
 function getSafeNextPath() {
