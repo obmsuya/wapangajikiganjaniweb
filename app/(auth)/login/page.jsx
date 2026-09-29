@@ -20,10 +20,17 @@ import BillingService from "@/services/landlord/billing";
 const SMS_SIGN_IN_COPY = { ...SMS_CODE_COPY.en, submitting: "Signing in..." };
 
 // Only same-site paths, so ?next= can't send someone to another site.
+// Resolving it catches tricks like "/\\evil.com" that a prefix check misses.
 function getSafeNextPath() {
   const nextPath = new URLSearchParams(window.location.search).get("next");
-  const isSameSitePath = !!nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//");
-  return isSameSitePath ? nextPath : null;
+  if (!nextPath) return null;
+  try {
+    const resolved = new URL(nextPath, window.location.origin);
+    if (resolved.origin !== window.location.origin) return null;
+    return resolved.pathname + resolved.search + resolved.hash;
+  } catch {
+    return null;
+  }
 }
 
 const loginSchema = z.object({
