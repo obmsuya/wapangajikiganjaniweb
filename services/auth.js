@@ -173,9 +173,31 @@ const AuthService = {
       console.error('Logout error:', error);
     } finally {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        api.clearTokens();
+        sessionStorage.removeItem('billing_session');
       }
+    }
+  },
+
+  isTokenExpired: (decodedToken) => {
+    if (!decodedToken?.exp) return false;
+    return decodedToken.exp * 1000 <= Date.now();
+  },
+
+  getHomePathForUser: (user) => {
+    switch (user?.user_type) {
+      case 'system_admin':
+        return '/admin/users';
+      case 'landlord':
+      case 'manager':
+        return '/landlord/properties';
+      case 'tenant':
+        return '/tenant/';
+      case 'partner':
+        return '/partner';
+      default:
+        // Legacy users without a user_type
+        return user?.is_staff || user?.is_superuser ? '/admin/dashboard' : '/landlord/dashboard';
     }
   },
 

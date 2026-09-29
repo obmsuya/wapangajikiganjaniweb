@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { CustomSidebar } from "@/components/custom-sidebar";
 import AuthService from "@/services/auth";
+import api from "@/lib/api/api-client";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function DashboardSkeleton() {
@@ -90,6 +91,13 @@ function DashboardSkeleton() {
   );
 }
 
+// Managers work on the landlord pages; tenants and landlords never see each other's pages.
+function isOnOtherRolesPages(pathname, userType) {
+  if (pathname?.startsWith("/landlord")) return userType === "tenant";
+  if (pathname?.startsWith("/tenant")) return userType === "landlord" || userType === "manager";
+  return false;
+}
+
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -98,32 +106,44 @@ export default function DashboardLayout({ children }) {
 
   const isSetupRoute = pathname?.includes('/setup') || pathname?.includes('/welcome');
 
-useEffect(() => {
-  const checkAuth = async () => {
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        router.push('/login');
+  useEffect(() => {
+    const checkAuth = async () => {
+      let userData = AuthService.getCurrentUserFromToken();
+      if (!userData) {
+        api.redirectToLogin();
         return;
       }
 
-      // Read from token — has all fields including manager permissions
-      const userData = AuthService.getCurrentUserFromToken();
-      if (!userData) {
-        router.push('/login');
+      if (AuthService.isTokenExpired(userData)) {
+        const refreshedAccessToken = await api.refreshToken();
+        if (!refreshedAccessToken) return;
+        userData = AuthService.getCurrentUserFromToken();
+      }
+
+      if (isOnOtherRolesPages(pathname, userData.user_type)) {
+        router.replace(AuthService.getHomePathForUser(userData));
         return;
       }
 
       setUser(userData);
-    } catch (error) {
-      router.push('/login');
-    } finally {
       setLoading(false);
-    }
-  };
+    };
 
-  checkAuth();
-}, [router]);
+    checkAuth();
+  }, [router, pathname]);
+
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      const isSignedOutInAnotherTab =
+        event.key === null || (event.key === "access_token" && !event.newValue);
+      if (isSignedOutInAnotherTab) {
+        router.replace("/login");
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [router]);
 
   if (loading) {
     return <DashboardSkeleton />;
