@@ -39,6 +39,9 @@ const AuthService = {
     return user;
   },
 
+  exchangeBillingLink: (code) =>
+    api.post('/api/v1/auth/billing-link/exchange/', { code }, PUBLIC_REQUEST),
+
   // Register a new user (landlord or partner)
   register: async (credentials) => {
     try {

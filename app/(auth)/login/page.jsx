@@ -15,6 +15,7 @@ import AuthService from "@/services/auth";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
 import SmsCodeForm from "@/components/shared/SmsCodeForm";
+import BillingService from "@/services/landlord/billing";
 
 const SMS_SIGN_IN_COPY = {
   phoneLabel: "Phone Number",
@@ -94,6 +95,8 @@ export default function LoginPage() {
   };
 
   const goToDashboard = (user) => {
+    // A full sign-in replaces any billing-link session left in this tab.
+    BillingService.clearBillingSession();
     toast.success("Welcome back!", {
       description: `Hello ${user.full_name}, redirecting to your dashboard...`,
     });
