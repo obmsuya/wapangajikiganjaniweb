@@ -241,6 +241,7 @@ const [visibleProperties, invisibleProperties] = useMemo(() => {
                       subscriptionContext={subscriptionData}
                       isVisible={true}
                       onDelete={removeProperty}
+                      canDelete={!isManager}
                     />
                   ))}
                 </div>
@@ -262,11 +263,20 @@ const [visibleProperties, invisibleProperties] = useMemo(() => {
                       subscriptionContext={subscriptionData}
                       isVisible={false}
                       onDelete={removeProperty}
+                      canDelete={!isManager}
                     />
                   ))}
                 </div>
               </div>
             )}
+          </div>
+        ) : isManager ? (
+          <div className="text-center py-12">
+            <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Assigned</h3>
+            <p className="text-gray-600 max-w-md mx-auto">
+              Your landlord hasn&apos;t assigned any properties to you yet. Once they do, they will appear here.
+            </p>
           </div>
         ) : (
           <div className="text-center py-12">
