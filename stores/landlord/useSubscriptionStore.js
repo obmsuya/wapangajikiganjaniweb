@@ -133,17 +133,9 @@ export const useSubscriptionStore = create((set, get) => ({
 
   refreshToken: async () => {
     try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (!refreshToken) {
-        throw new Error('No refresh token found');
-      }
+      const newAccessToken = await api.refreshToken();
 
-      const response = await api.post('/api/v1/auth/token/refresh/', {
-        refresh: refreshToken,
-      });
-
-      if (response && response.access) {
-        localStorage.setItem('access_token', response.access);
+      if (newAccessToken) {
         get().initializeTokenData();
         get().fetchCurrentSubscription();
         get().fetchPropertyVisibility();

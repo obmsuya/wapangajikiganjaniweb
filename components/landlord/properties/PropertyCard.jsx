@@ -33,7 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export default function PropertyCard({ property, subscriptionContext, isVisible = true, onDelete }) {
+export default function PropertyCard({ property, subscriptionContext, isVisible = true, onDelete, canDelete = true }) {
   const router = useRouter();
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -428,14 +428,17 @@ export default function PropertyCard({ property, subscriptionContext, isVisible 
                 <ChevronRight className="h-4 w-4 ml-auto opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
               </Button>
 
-              <Button
-                variant="outline"
-                className="flex-1 group/btn border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-900 dark:hover:bg-red-950"
-                onClick={handleDeleteClick}
-                disabled={isDeleting}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {canDelete && (
+                <Button
+                  variant="outline"
+                  className="flex-1 group/btn border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-900 dark:hover:bg-red-950"
+                  onClick={handleDeleteClick}
+                  disabled={isDeleting}
+                  aria-label="Delete property"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>

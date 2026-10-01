@@ -1,6 +1,9 @@
 // services/auth.js - Updated with referral support
 import api from '@/lib/api/api-client';
 
+// Public endpoints: no stale token (it would 401 an AllowAny view) and no refresh on 401.
+const PUBLIC_REQUEST = { accessToken: null, skipAuthRefresh: true };
+
 const AuthService = {
   // Login user
   login: async (credentials) => {
@@ -20,6 +23,30 @@ const AuthService = {
       throw error;
     }
   },
+
+  requestLoginOtp: (phoneNumber) =>
+    api.post('/api/v1/auth/login/request-otp/', { phone_number: phoneNumber }, PUBLIC_REQUEST),
+
+  loginWithOtp: async ({ phone_number, otp }) => {
+    const response = await api.post('/api/v1/auth/login/otp/', { phone_number, otp }, PUBLIC_REQUEST);
+    const { user, tokens } = response;
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('access_token', tokens.access);
+      localStorage.setItem('refresh_token', tokens.refresh);
+    }
+
+    return user;
+  },
+
+  requestAccountDeletionOtp: (phoneNumber) =>
+    api.post('/api/v1/auth/account-deletion/request-otp/', { phone_number: phoneNumber }, PUBLIC_REQUEST),
+
+  requestAccountDeletion: ({ phone_number, otp }) =>
+    api.post('/api/v1/auth/account-deletion/', { phone_number, otp }, PUBLIC_REQUEST),
+
+  exchangeBillingLink: (code) =>
+    api.post('/api/v1/auth/billing-link/exchange/', { code }, PUBLIC_REQUEST),
 
   // Register a new user (landlord or partner)
   register: async (credentials) => {
@@ -173,9 +200,31 @@ const AuthService = {
       console.error('Logout error:', error);
     } finally {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        api.clearTokens();
+        sessionStorage.removeItem('billing_session');
       }
+    }
+  },
+
+  isTokenExpired: (decodedToken) => {
+    if (!decodedToken?.exp) return false;
+    return decodedToken.exp * 1000 <= Date.now();
+  },
+
+  getHomePathForUser: (user) => {
+    switch (user?.user_type) {
+      case 'system_admin':
+        return '/admin/users';
+      case 'landlord':
+      case 'manager':
+        return '/landlord/properties';
+      case 'tenant':
+        return '/tenant/';
+      case 'partner':
+        return '/partner';
+      default:
+        // Legacy users without a user_type
+        return user?.is_staff || user?.is_superuser ? '/admin/dashboard' : '/landlord/dashboard';
     }
   },
 

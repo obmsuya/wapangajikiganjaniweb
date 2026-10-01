@@ -1,7 +1,7 @@
 // app/(auth)/login/page.jsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,24 @@ import { Button } from "@/components/ui/button";
 import AuthService from "@/services/auth";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
+import SmsCodeForm, { SMS_CODE_COPY } from "@/components/shared/SmsCodeForm";
+import BillingService from "@/services/landlord/billing";
+
+const SMS_SIGN_IN_COPY = { ...SMS_CODE_COPY.en, submitting: "Signing in..." };
+
+// Only same-site paths, so ?next= can't send someone to another site.
+// Resolving it catches tricks like "/\\evil.com" that a prefix check misses.
+function getSafeNextPath() {
+  const nextPath = new URLSearchParams(window.location.search).get("next");
+  if (!nextPath) return null;
+  try {
+    const resolved = new URL(nextPath, window.location.origin);
+    if (resolved.origin !== window.location.origin) return null;
+    return resolved.pathname + resolved.search + resolved.hash;
+  } catch {
+    return null;
+  }
+}
 
 const loginSchema = z.object({
   phone_number: z.string().min(1, "Phone number is required"),
@@ -30,6 +48,12 @@ export default function LoginPage() {
     password: "",
   });
   const [errors, setErrors] = useState({});
+  const [signInMethod, setSignInMethod] = useState("password");
+
+  useEffect(() => {
+    const requestedMethod = new URLSearchParams(window.location.search).get("method");
+    if (requestedMethod === "sms") setSignInMethod("sms");
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,6 +80,22 @@ export default function LoginPage() {
     }
   };
 
+  const goToDashboard = (user) => {
+    // A full sign-in replaces any billing-link session left in this tab.
+    BillingService.clearBillingSession();
+    toast.success("Welcome back!", {
+      description: `Hello ${user.full_name}, redirecting to your dashboard...`,
+    });
+
+    const destination = getSafeNextPath() || AuthService.getHomePathForUser(user);
+    setTimeout(() => router.push(destination), 500);
+  };
+
+  const handleSmsCodeSignIn = async (phoneNumber, code) => {
+    const user = await AuthService.loginWithOtp({ phone_number: phoneNumber, otp: code });
+    goToDashboard(user);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -64,37 +104,7 @@ export default function LoginPage() {
     try {
       const user = await AuthService.login(formData);
 
-      toast.success("Welcome back!", {
-        description: `Hello ${user.full_name}, redirecting to your dashboard...`,
-      });
-
-      setTimeout(() => {
-        // Route based on user_type instead of is_staff
-        switch (user.user_type) {
-          case "system_admin":
-            router.push("/admin/users");
-            break;
-          case "landlord":
-            router.push("/landlord/properties");
-            break;
-          case "manager":
-            router.push("/landlord/properties");
-            break;
-          case "tenant":
-            router.push("/tenant/");
-            break;
-          case "partner":
-            router.push("/partner");
-            break;
-          default:
-            // Fallback based on is_staff for legacy users
-            if (user.is_staff || user.is_superuser) {
-              router.push("/admin/dashboard");
-            } else {
-              router.push("/landlord/dashboard");
-            }
-        }
-      }, 500);
+      goToDashboard(user);
     } catch (error) {
       toast.error("Login failed", {
         description: error.response?.data?.error || "Invalid credentials.",
@@ -171,6 +181,14 @@ export default function LoginPage() {
                   </p>
                 </div>
 
+                {signInMethod === "sms" ? (
+                  <SmsCodeForm
+                    copy={SMS_SIGN_IN_COPY}
+                    requestCode={AuthService.requestLoginOtp}
+                    submitCode={handleSmsCodeSignIn}
+                    submitLabel="Sign In"
+                  />
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -243,6 +261,16 @@ export default function LoginPage() {
                     {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
+                )}
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mt-3"
+                  onClick={() => setSignInMethod(signInMethod === "sms" ? "password" : "sms")}
+                >
+                  {signInMethod === "sms" ? "Sign in with password" : "Sign in with an SMS code"}
+                </Button>
 
                 <motion.div
                   initial={{ opacity: 0 }}

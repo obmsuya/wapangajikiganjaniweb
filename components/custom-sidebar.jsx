@@ -215,32 +215,22 @@ export function CustomSidebar({ role = "admin", user }) {
     }
 
     if (user?.user_type === "manager" || role === "manager") {
+      // Managers work on the landlord pages; the server scopes them to their assigned properties.
       const routes = [
         {
           label: "Properties",
           icon: Building2,
-          href: "/manager/properties",
-          active: pathname.includes("/manager/properties"),
+          href: "/landlord/properties",
+          active: pathname.includes("/landlord/properties"),
         },
       ];
 
-      // Only show Maintenance if manager has the permission
       if (user?.can_manage_maintenance) {
         routes.push({
           label: "Maintenance",
           icon: Wrench,
-          href: "/manager/maintenance",
-          active: pathname === "/manager/maintenance",
-        });
-      }
-
-      // Only show Payments if manager has the permission
-      if (user?.can_collect_payments) {
-        routes.push({
-          label: "Payments",
-          icon: Banknote,
-          href: "/manager/payments",
-          active: pathname.includes("/manager/payments"),
+          href: "/landlord/maintenance",
+          active: pathname === "/landlord/maintenance",
         });
       }
 
