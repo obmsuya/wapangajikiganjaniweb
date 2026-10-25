@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
+import { toast } from "sonner";
 import {
   Eye,
   EyeOff,
@@ -98,24 +99,20 @@ const handleSubmit = async (e) => {
     setIsLoading(true);
     try {
       const { confirm_password, ...data } = formData;
-      const response = await AuthService.register({
+      // AuthService.register stores the tokens itself and returns only the user.
+      const user = await AuthService.register({
         ...data,
-        user_type: "partner",   // backend requires this for partner accounts
-        // email is required by backend for partner registration — you already collect it
+        user_type: "partner",
       });
 
-      // store tokens like your landlord register flow does
-      localStorage.setItem("access_token", response.tokens.access);
-      localStorage.setItem("refresh_token", response.tokens.refresh);
-
       toast.success("Welcome, Partner!", {
-        description: `Your referral code: ${response.user.referral_code}`,
+        description: `Your referral code: ${user.referral_code}`,
       });
 
       router.push("/partner");
     } catch (error) {
       toast.error("Registration failed", {
-        description: error.response?.data?.error || "Please try again.",
+        description: error.message || "Please try again.",
       });
     } finally {
       setIsLoading(false);
